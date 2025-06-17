@@ -1,4 +1,4 @@
-# Pasta <]
+# Pasta ğŸ
 
 A cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting.
 
@@ -44,7 +44,7 @@ uv run python -m pasta
 
 ### macOS
 - Grant accessibility permissions when prompted
-- System Preferences ’ Security & Privacy ’ Privacy ’ Accessibility
+- System Preferences â†’ Security & Privacy â†’ Privacy â†’ Accessibility
 
 ### Windows
 - May require running as administrator for certain applications
@@ -59,7 +59,7 @@ uv run python -m pasta
 1. **Start Pasta**: The application runs in your system tray
 2. **Copy text**: Use Ctrl+C (Cmd+C on macOS) as normal
 3. **Quick Paste**: Click the tray icon or use the configured hotkey
-4. **Paste from History**: Right-click tray icon ’ "Paste from History"
+4. **Paste from History**: Right-click tray icon â†’ "Paste from History"
 
 ### Keyboard Shortcuts
 
