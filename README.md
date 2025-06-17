@@ -1,6 +1,14 @@
 # Pasta 🍝
 
+[![Tests](https://github.com/utensils/pasta/actions/workflows/test.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
 A cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting.
+
+## 🚧 Project Status
+
+**This project is under active development.** Core functionality is being implemented following Test-Driven Development principles. See the [project board](https://github.com/utensils/pasta/projects) for current progress.
 
 ## Features
 
@@ -30,7 +38,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pasta.git
+git clone https://github.com/utensils/pasta.git
 cd pasta
 
 # Install dependencies
@@ -61,7 +69,7 @@ uv run python -m pasta
 3. **Quick Paste**: Click the tray icon or use the configured hotkey
 4. **Paste from History**: Right-click tray icon → "Paste from History"
 
-### Keyboard Shortcuts
+### Keyboard Shortcuts (Planned)
 
 - `Ctrl+Shift+V`: Quick paste last item
 - `Ctrl+Shift+H`: Open history window
@@ -161,5 +169,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For issues, feature requests, or questions:
-- Open an issue on [GitHub](https://github.com/yourusername/pasta/issues)
+- Open an issue on [GitHub](https://github.com/utensils/pasta/issues)
 - Check the [troubleshooting guide](docs/troubleshooting.md)

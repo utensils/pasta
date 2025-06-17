@@ -70,13 +70,16 @@ pasta/
 │   ├── gui/            # User interface components
 │   │   ├── tray.py        # System tray implementation (pystray)
 │   │   ├── settings.py    # Settings window (PyQt6)
+│   │   ├── history.py     # History browser window (PyQt6)
 │   │   └── resources/     # Icons and images
 │   └── utils/          # Platform-specific utilities
+│       ├── platform.py     # Platform detection and utilities
 │       ├── permissions.py  # Permission checking and requests
 │       └── security.py     # Encryption and sensitive data detection
 └── tests/
     ├── unit/           # Unit tests for individual components
-    └── integration/    # End-to-end integration tests
+    ├── integration/    # End-to-end integration tests
+    └── fixtures/       # Shared test data and fixtures
 ```
 
 ### Key Design Patterns
@@ -89,7 +92,7 @@ pasta/
 
 ### Critical Implementation Notes
 
-1. **Permissions Handling**: 
+1. **Permissions Handling**:
    - macOS: Requires accessibility permissions via System Preferences
    - Windows: May need UAC manifest for certain operations
    - Linux: User must be in 'input' group for device access
@@ -101,7 +104,7 @@ pasta/
 
 3. **Rate Limiting**: Implement to prevent abuse:
    - 30 pastes per 60 seconds
-   - 100 clipboard reads per 60 seconds  
+   - 100 clipboard reads per 60 seconds
    - 5 large pastes (>10KB) per 5 minutes
 
 4. **Testing Considerations**:
@@ -135,3 +138,23 @@ When implementing features:
 - Handle errors gracefully with appropriate try/except blocks
 - Log important operations without exposing sensitive data
 - Follow single responsibility principle for classes and functions
+- Use `# noqa: ARG002` for unused arguments in placeholder methods during development
+- Ensure all files have proper line endings (LF, not CRLF)
+- No trailing whitespace or missing newlines at end of files
+
+## Project Status
+
+### Completed
+- ✅ Project structure setup
+- ✅ All configuration files (pyproject.toml, pre-commit, GitHub Actions)
+- ✅ Core module placeholders with proper type hints
+- ✅ Testing infrastructure with comprehensive fixtures
+- ✅ Pre-commit hooks installed and working
+- ✅ GitHub repository connected and pushed
+
+### Next Steps (per PRD)
+- [ ] Write ClipboardManager tests (Phase 2)
+- [ ] Write PastaKeyboardEngine tests (Phase 2)
+- [ ] Write PermissionChecker tests (Phase 2)
+- [ ] Write StorageManager tests (Phase 2)
+- [ ] Implement core modules to pass tests (Phase 3)
