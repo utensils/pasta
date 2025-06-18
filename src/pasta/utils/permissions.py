@@ -96,13 +96,12 @@ class PermissionChecker:
             True if user has necessary permissions
         """
         # Check if user is in input group (for device access)
-        if not HAS_GRP:
+        if not HAS_GRP or grp is None:
             return True  # Can't check without grp module, assume OK
 
         try:
-            # Type assertion for mypy - we know grp is not None here
-            assert grp is not None
-            input_group = grp.getgrnam("input")
+            # Type ignores needed for Windows where grp doesn't have these attributes
+            input_group = grp.getgrnam("input")  # type: ignore[attr-defined]
             user_groups = os.getgroups()
             return input_group.gr_gid in user_groups
         except KeyError:
