@@ -6,7 +6,9 @@
 
 # Pasta
 
-![Pasta Logo](src/pasta/gui/resources/logo.png)
+<p align="center">
+  <img src="src/pasta/gui/resources/logo.png" alt="Pasta Logo" width="200" height="200">
+</p>
 
 A cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting.
 
