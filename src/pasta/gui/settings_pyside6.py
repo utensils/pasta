@@ -1,8 +1,10 @@
 """Settings window using PySide6."""
 
+import sys
 from typing import Optional
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -43,6 +45,15 @@ class SettingsWindow(QDialog):
         self.setWindowTitle("Pasta Settings")
         self.setGeometry(100, 100, 600, 500)
         self.setModal(False)  # Non-modal dialog
+
+        # macOS-specific: Ensure window appears in dock and handles Cmd+Q properly
+        if sys.platform == "darwin":
+            # Window should appear in dock when open
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
+
+            # Add Cmd+Q shortcut that only closes this window
+            cmd_q = QShortcut(QKeySequence("Ctrl+Q"), self)  # Ctrl+Q is Cmd+Q on macOS
+            cmd_q.activated.connect(self.close)
 
         # Create layout
         layout = QVBoxLayout(self)
@@ -327,3 +338,14 @@ class SettingsWindow(QDialog):
         """Apply settings and close dialog."""
         self.apply_settings()
         self.accept()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        """Handle window close event.
+
+        On macOS, this ensures Cmd+Q only closes the window, not the app.
+
+        Args:
+            event: The close event
+        """
+        # Accept the close event (close only this window)
+        event.accept()

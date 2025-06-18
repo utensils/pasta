@@ -115,8 +115,3 @@ uv build
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## Support
-
-- [Report issues](https://github.com/utensils/pasta/issues)
-- [View documentation](https://github.com/utensils/pasta/wiki)

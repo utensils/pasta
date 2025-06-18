@@ -112,8 +112,23 @@ class SystemTray(QObject):
             # Set application name so dialogs show "Pasta" instead of "python"
             self._app.setApplicationName("Pasta")
             self._app.setApplicationDisplayName("Pasta")
+            # Set organization for QSettings
+            self._app.setOrganizationName("Utensils")
+            self._app.setOrganizationDomain("utensils.dev")
             # Don't quit when last window is closed (we're a tray app)
             self._app.setQuitOnLastWindowClosed(False)
+
+            # macOS-specific configuration
+            if sys.platform == "darwin":
+                try:
+                    # Try to set the app to run as accessory (no dock icon)
+                    # This only works when running as a proper app bundle
+                    from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
+
+                    NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+                except ImportError:
+                    # PyObjC not available, will rely on Info.plist LSUIElement
+                    pass
         else:
             self._app = cast(Optional[QApplication], QApplication.instance())
 
