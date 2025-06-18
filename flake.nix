@@ -33,15 +33,14 @@
           expat
           libuuid
           gdbm
-          lzma
+          xz
           tk
         ];
 
         # Qt/GUI dependencies
-        guiDeps = with pkgs; [
+        guiDeps = with pkgs; if pkgs.stdenv.isLinux then [
           qt6.qtbase
           qt6.qtwayland
-          libsForQt5.qt5.qtbase  # For compatibility
           xorg.libX11
           xorg.libXext
           xorg.libXrender
@@ -54,19 +53,25 @@
           libGL
           fontconfig
           freetype
-        ];
+        ] else if pkgs.stdenv.isDarwin then [
+          # macOS Qt dependencies are handled differently
+          qt6.qtbase
+          libGL
+          fontconfig
+          freetype
+        ] else [];
 
         # Platform-specific dependencies
-        platformDeps = with pkgs; lib.optionals stdenv.isLinux [
+        platformDeps = with pkgs; if pkgs.stdenv.isLinux then [
           # Linux-specific
           xdotool
           xclip
           wl-clipboard
           libevdev
           python311Packages.evdev
-        ] ++ lib.optionals stdenv.isDarwin [
-          # macOS would need different tools
-          # These are handled by PyAutoGUI/pyperclip on macOS
+        ] else [
+          # macOS/other platforms - no extra deps needed
+          # These are handled by PyAutoGUI/pyperclip
         ];
 
         # Development tools
@@ -98,33 +103,23 @@
 
           # Packages available in the shell
           packages = with pkgs; [
-            # Python and UV
+            # Python and build tools
             python
             uv
             ruff
 
-            # Build tools
-            buildTools
-
-            # GUI dependencies
-            guiDeps
-
-            # Platform dependencies
-            platformDeps
-
-            # Dev tools
-            devTools
-
-            # Additional Python tools
-            python311Packages.pip
-            python311Packages.wheel
-            python311Packages.setuptools
+            # Install UV via pip for now
+            (python311.withPackages (ps: with ps; [
+              pip
+              wheel
+              setuptools
+            ]))
 
             # PyInstaller dependencies
             binutils
             patchelf
-            upx
-          ];
+            # upx  # Not available on all platforms
+          ] ++ buildTools ++ guiDeps ++ platformDeps ++ devTools;
 
           # Environment variables
           env = [
@@ -169,7 +164,7 @@
             # X11 for Linux GUI
             {
               name = "DISPLAY";
-              eval = ":${toString (builtins.getEnv "DISPLAY" or "0")}";
+              value = ":0";
             }
           ];
 
