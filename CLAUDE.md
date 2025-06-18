@@ -166,12 +166,16 @@ When implementing features:
 - **Keyboard Engine**: Adaptive typing with chunking and platform-specific optimizations
 - **Permission System**: Cross-platform permission checking and request handling
 - **Storage**: SQLite-based history with encryption for sensitive data
-- **System Tray**: Full menu with dynamic state updates
+- **System Tray**: Full menu with dynamic state updates and visual mode indicators
 - **Settings**: Comprehensive settings UI with persistence and validation
 - **Security**: Sensitive data detection, rate limiting, privacy mode
 - **Snippets**: Full snippet management with templates and hotkeys
 - **Emergency Stop**: Double ESC or tray click to abort operations
 - **macOS UI/UX**: LSUIElement support, proper Cmd+W/Q handling, native window behavior
+- **Paste Modes**: Auto/Clipboard/Typing modes with visual feedback (icon color changes)
+  - Typing mode (orange icon) simulates keyboard input for apps that block clipboard
+  - Clipboard mode (blue icon) uses standard system clipboard
+  - "Paste Last Item" menu option respects current paste mode
 
 ### CI/CD Status
 - ✅ All GitHub Actions passing on all platforms (Ubuntu, Windows, macOS)

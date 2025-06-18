@@ -56,9 +56,26 @@ uv run python -m pasta
 4. **Paste from History**: Select an item in history and click "Copy to Clipboard"
 5. **Emergency Stop**: Double ESC to abort any paste operation
 
+### Paste Modes
+
+Pasta offers three paste modes that control how text is pasted when using "Paste Last Item":
+
+- **Auto Mode** (default): Automatically selects the best method based on text length
+- **Clipboard Mode** (blue icon): Uses standard system clipboard paste
+- **Typing Mode** (orange icon): Simulates keyboard typing character-by-character
+  - Useful for applications that don't accept clipboard paste
+  - Works around security restrictions in some applications
+  - Visual feedback with orange tray icon
+
+To use typing mode:
+1. Right-click tray icon → Paste Mode → Typing
+2. Copy text normally (Cmd+C/Ctrl+C)
+3. Right-click tray icon → "Paste Last Item (typing)"
+
 ### System Tray Menu
 
-- **Paste Mode**: Auto / Clipboard / Typing (for future manual paste)
+- **Paste Mode**: Switch between Auto / Clipboard / Typing modes
+- **Paste Last Item**: Paste the most recent clipboard item using current mode
 - **History**: View and search all clipboard history
 - **Settings**: Configure all options
 - **Emergency Stop**: Abort current operation (when pasting)

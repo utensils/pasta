@@ -42,6 +42,8 @@ class TestSystemTrayIntegration:
             patch("pasta.gui.tray_pyside6.QAction"),
             patch("pasta.gui.tray_pyside6.ClipboardWorker") as mock_worker,
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
+            patch("pasta.gui.tray_pyside6.QPixmap"),
+            patch("pasta.gui.tray_pyside6.QPainter"),
         ):
             # Mock QApplication instance
             mock_qapp.instance.return_value = None
@@ -61,7 +63,11 @@ class TestSystemTrayIntegration:
             mock_worker.side_effect = worker_init
             mock_worker_instance._on_clipboard_change = Mock()
 
-            return SystemTray(**components)
+            tray = SystemTray(**components)
+            # Mock methods that would create Qt widgets
+            tray._update_menu = Mock()
+            tray._update_tray_icon = Mock()
+            return tray
 
     def test_clipboard_to_paste_flow(self, tray, components):
         """Test full flow from clipboard change to history storage."""
@@ -124,14 +130,14 @@ class TestSystemTrayIntegration:
             assert tray.enabled is False
 
     def test_paste_mode_integration(self, tray, components):
-        """Test paste mode setting is stored but doesn't trigger auto-paste."""
+        """Test paste mode triggers appropriate paste behavior."""
         with (
             patch.object(components["storage_manager"], "save_entry") as mock_save,
             patch.object(components["keyboard_engine"], "paste_text") as mock_paste,
         ):
             test_entry = {"content": "test", "timestamp": "2024-01-01", "hash": "abc", "type": "text"}
 
-            # Test auto mode - should only save to history
+            # Test auto mode - should only save to history, no paste
             tray.set_paste_mode("auto")
             tray._on_clipboard_change(test_entry)
             mock_save.assert_called_with(test_entry)

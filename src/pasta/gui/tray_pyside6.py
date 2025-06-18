@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Optional, cast
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from pasta.core.clipboard import ClipboardManager
@@ -134,16 +134,11 @@ class SystemTray(QObject):
 
     def _setup_tray_icon(self) -> None:
         """Set up the system tray icon."""
-        # Load icon
-        icon_path = Path(__file__).parent / "resources" / "pasta.png"
-        if icon_path.exists():
-            self.tray_icon.setIcon(QIcon(str(icon_path)))
-        else:
-            # Use empty icon if file not found - avoid creating QPixmap in constructor
-            self.tray_icon.setIcon(QIcon())
+        # Store base icon path
+        self.base_icon_path = Path(__file__).parent / "resources" / "pasta.png"
 
-        # Set tooltip
-        self.tray_icon.setToolTip("Pasta - Clipboard History Manager")
+        # Update icon based on current mode
+        self._update_tray_icon()
 
         # Create menu
         self._create_menu()
@@ -153,6 +148,70 @@ class SystemTray(QObject):
 
         # Show the tray icon
         self.tray_icon.show()
+
+    def _update_tray_icon(self) -> None:
+        """Update the tray icon based on current mode and state."""
+        if not self.base_icon_path.exists():
+            self.tray_icon.setIcon(QIcon())
+            return
+
+        # Load base icon
+        pixmap = QPixmap(str(self.base_icon_path))
+
+        # Modify icon based on mode
+        if self.paste_mode == "typing":
+            # Tint icon orange for typing mode
+            painted_pixmap = QPixmap(pixmap.size())
+            painted_pixmap.fill(Qt.GlobalColor.transparent)
+
+            painter = QPainter(painted_pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            painter.drawPixmap(0, 0, pixmap)
+
+            # Apply orange tint
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+            painter.fillRect(painted_pixmap.rect(), Qt.GlobalColor.darkYellow)
+            painter.end()
+
+            pixmap = painted_pixmap
+            tooltip = "Pasta - Typing Mode Active"
+        elif self.paste_mode == "clipboard":
+            # Tint icon blue for clipboard mode
+            painted_pixmap = QPixmap(pixmap.size())
+            painted_pixmap.fill(Qt.GlobalColor.transparent)
+
+            painter = QPainter(painted_pixmap)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            painter.drawPixmap(0, 0, pixmap)
+
+            # Apply blue tint
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+            painter.fillRect(painted_pixmap.rect(), Qt.GlobalColor.darkCyan)
+            painter.end()
+
+            pixmap = painted_pixmap
+            tooltip = "Pasta - Clipboard Mode Active"
+        else:
+            # Default auto mode
+            tooltip = "Pasta - Clipboard History Manager"
+
+        # Apply disabled state if needed
+        if not self.enabled:
+            # Make icon semi-transparent for disabled state
+            painted_pixmap = QPixmap(pixmap.size())
+            painted_pixmap.fill(Qt.GlobalColor.transparent)
+
+            painter = QPainter(painted_pixmap)
+            painter.setOpacity(0.5)
+            painter.drawPixmap(0, 0, pixmap)
+            painter.end()
+
+            pixmap = painted_pixmap
+            tooltip += " (Disabled)"
+
+        # Set the icon and tooltip
+        self.tray_icon.setIcon(QIcon(pixmap))
+        self.tray_icon.setToolTip(tooltip)
 
     def _create_menu(self) -> None:
         """Create the tray menu."""
@@ -180,6 +239,12 @@ class SystemTray(QObject):
         paste_mode_menu.addAction(typing_action)
 
         menu.addSeparator()
+
+        # Paste last item
+        paste_action = QAction(f"Paste Last Item ({self.paste_mode})", self)
+        paste_action.setEnabled(self.enabled)
+        paste_action.triggered.connect(self.paste_last_item)
+        menu.addAction(paste_action)
 
         # Enabled toggle
         enabled_action = QAction("Enabled", self)
@@ -245,9 +310,31 @@ class SystemTray(QObject):
             # Save to storage
             self.storage_manager.save_entry(entry)
 
-        # Note: We do NOT automatically paste here!
-        # The user copied something - we just save it to history.
-        # Pasting should only happen via explicit user action (hotkey, menu, etc.)
+        # Note: Typing/clipboard modes now only affect how paste operations work,
+        # not whether they happen automatically. Use the history window or
+        # manual paste operations to trigger paste with the selected method.
+
+    def paste_last_item(self) -> None:
+        """Paste the last clipboard item using the current paste mode."""
+        if not self.enabled:
+            return
+
+        # Get the most recent entry from history
+        entries = self.storage_manager.get_entries(limit=1)
+        if not entries:
+            return
+
+        entry = entries[0]
+        if entry.get("content_type") == "text" and entry.get("content"):
+            with contextlib.suppress(Exception):
+                # Determine paste method based on mode
+                if self.paste_mode == "typing":
+                    self.keyboard_engine.paste_text(entry["content"], method="typing")
+                elif self.paste_mode == "clipboard":
+                    self.keyboard_engine.paste_text(entry["content"], method="clipboard")
+                else:
+                    # Auto mode - use clipboard by default
+                    self.keyboard_engine.paste_text(entry["content"], method="clipboard")
 
     def toggle_enabled(self) -> None:
         """Toggle paste functionality on/off."""
@@ -276,10 +363,13 @@ class SystemTray(QObject):
         """
         with self._lock:
             self.paste_mode = mode
+        self._update_tray_icon()
         self._update_menu()
 
     def _update_menu(self) -> None:
         """Update the tray menu to reflect current state."""
+        # Update icon to reflect current state
+        self._update_tray_icon()
         # Recreate menu to update checkmarks and labels
         self._create_menu()
 

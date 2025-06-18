@@ -132,6 +132,10 @@ warn_unused_ignores = false
 module = "pasta.core.hotkeys"
 warn_unused_ignores = false
 
+[[tool.mypy.overrides]]
+module = "pasta.gui.tray_pyside6"
+warn_unused_ignores = false
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config --timeout=30"
