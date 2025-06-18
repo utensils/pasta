@@ -1,4 +1,4 @@
-# 🍝 Pasta - Universal Clipboard Typer
+# Pasta - Universal Clipboard Typer
 [![Tests](https://github.com/utensils/pasta/actions/workflows/test.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/utensils/pasta)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
