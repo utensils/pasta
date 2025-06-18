@@ -221,7 +221,7 @@ class TestSystemTrayIntegration:
             # Verify cleanup
             assert components["clipboard_manager"].monitoring is False
 
-    @patch("pasta.gui.tray.QApplication")
+    @patch("pasta.gui.tray_pyside6.QApplication")
     def test_gui_window_lifecycle(self, mock_qapp, tray, components):
         """Test GUI window creation and cleanup."""
         mock_app = Mock()

@@ -276,7 +276,7 @@ class TestSettingsWindow:
     def test_history_retention_value(self, window, settings_manager):
         """Test history retention spin box."""
         # Check default value
-        assert window.history_retention.value() == 30  # Default from settings
+        assert window.history_retention.value() == 7  # Default from settings
 
         # Test range
         assert window.history_retention.minimum() == 1
