@@ -1,29 +1,13 @@
-"""Settings window and configuration management."""
-from typing import Any, Optional
+"""Settings window for configuring Pasta."""
+
+from PyQt6.QtWidgets import QMainWindow
 
 
-class SettingsWindow:
-    """Settings window for Pasta configuration.
+class SettingsWindow(QMainWindow):
+    """Window for configuring Pasta settings."""
 
-    This class creates and manages the settings window
-    using PyQt6 for user configuration.
-
-    Attributes:
-        settings: Dictionary of current settings
-        window: The Qt window instance
-    """
-
-    def __init__(self, settings: dict[str, Any]) -> None:
-        """Initialize the SettingsWindow.
-
-        Args:
-            settings: Current application settings
-        """
-        self.settings = settings
-        self.window: Optional[Any] = None
-        # TODO: Implement settings window
-
-    def show(self) -> None:
-        """Display the settings window."""
-        # TODO: Implement window display
-        pass
+    def __init__(self) -> None:
+        """Initialize the settings window."""
+        super().__init__()
+        self.setWindowTitle("Pasta - Settings")
+        self.resize(500, 600)

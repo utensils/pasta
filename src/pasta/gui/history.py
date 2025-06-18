@@ -1,29 +1,20 @@
-"""Clipboard history browser window."""
-from typing import Any, Optional
+"""History window for viewing clipboard history."""
+
+from PyQt6.QtWidgets import QMainWindow
+
+from pasta.core.storage import StorageManager
 
 
-class HistoryWindow:
-    """Window for browsing clipboard history.
+class HistoryWindow(QMainWindow):
+    """Window for viewing clipboard history."""
 
-    This class creates and manages a window for browsing
-    and selecting items from clipboard history.
-
-    Attributes:
-        history: List of clipboard history items
-        window: The Qt window instance
-    """
-
-    def __init__(self, history: list[dict[str, Any]]) -> None:
-        """Initialize the HistoryWindow.
+    def __init__(self, storage_manager: StorageManager) -> None:
+        """Initialize the history window.
 
         Args:
-            history: List of clipboard history entries
+            storage_manager: StorageManager instance
         """
-        self.history = history
-        self.window: Optional[Any] = None
-        # TODO: Implement history window
-
-    def show(self) -> None:
-        """Display the history window."""
-        # TODO: Implement window display
-        pass
+        super().__init__()
+        self.storage_manager = storage_manager
+        self.setWindowTitle("Pasta - History")
+        self.resize(600, 400)

@@ -1,32 +1,72 @@
 """Main entry point for Pasta application."""
+
+import os
 import sys
-from typing import NoReturn
+from pathlib import Path
+
+from pasta.core.clipboard import ClipboardManager
+from pasta.core.keyboard import PastaKeyboardEngine
+from pasta.core.storage import StorageManager
+from pasta.gui.tray import SystemTray
+from pasta.utils.permissions import PermissionChecker
 
 
-def main() -> NoReturn:
-    """Run the Pasta application.
-
-    This is the main entry point that initializes and starts
-    the system tray application.
-    """
+def main() -> None:
+    """Run the Pasta application."""
     print("Pasta - Clipboard to Keyboard Bridge")
     print("Starting application...")
 
-    # TODO: Initialize clipboard manager
-    # TODO: Initialize keyboard engine
-    # TODO: Initialize system tray
-    # TODO: Start main event loop
+    # Check permissions first
+    permission_checker = PermissionChecker()
+    if not permission_checker.check_permissions():
+        print("\n⚠️  Pasta requires additional permissions to function properly.")
+        print(permission_checker.get_permission_error_message())
+        print("\nSetup instructions:")
+        print(permission_checker.get_permission_instructions())
 
-    print("Application started. Running in system tray...")
+        # Try to request permissions
+        permission_checker.request_permissions()
 
-    # Placeholder - will be replaced with actual implementation
+        # Exit for now (user needs to grant permissions and restart)
+        print("\nPlease grant the required permissions and restart Pasta.")
+        sys.exit(1)
+
+    # Initialize components
+    clipboard_manager = ClipboardManager()
+    keyboard_engine = PastaKeyboardEngine()
+
+    # Use default database location
+    # Store in user's data directory
+    if sys.platform == "darwin":
+        data_dir = Path.home() / "Library" / "Application Support" / "Pasta"
+    elif sys.platform == "win32":
+        data_dir = Path(os.getenv("APPDATA", "")) / "Pasta"
+    else:
+        data_dir = Path.home() / ".local" / "share" / "pasta"
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    db_path = str(data_dir / "history.db")
+
+    storage_manager = StorageManager(db_path)
+
+    # Create system tray
+    tray = SystemTray(
+        clipboard_manager=clipboard_manager,
+        keyboard_engine=keyboard_engine,
+        storage_manager=storage_manager,
+        permission_checker=permission_checker,
+    )
+
+    print("\n✅ Pasta is running in the system tray.")
+    print("Right-click the tray icon to access options.")
+    print("Press Ctrl+C to quit.\n")
+
     try:
-        import time
-
-        while True:
-            time.sleep(1)
+        # Run the application
+        tray.run()
     except KeyboardInterrupt:
         print("\nShutting down Pasta...")
+        tray.quit()
         sys.exit(0)
 
 
