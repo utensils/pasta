@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from typing import Optional
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -22,10 +22,14 @@ from PySide6.QtWidgets import (
 )
 
 from pasta.core.storage import StorageManager
+from pasta.utils.dock_manager import DockIconManager
 
 
 class HistoryWindow(QMainWindow):
     """Window for viewing and managing clipboard history."""
+
+    # Signal emitted when window is closed
+    closed = Signal()
 
     def __init__(self, storage_manager: StorageManager, parent: Optional[QWidget] = None) -> None:
         """Initialize the history window.
@@ -273,9 +277,8 @@ class HistoryWindow(QMainWindow):
                         ids_to_delete.append(entry_id)
 
             # Delete from storage
-            # Note: StorageManager might need a delete_entry method
-            # For now, we'll just reload
-            _ = ids_to_delete  # Acknowledge unused variable
+            for entry_id in ids_to_delete:
+                self.storage_manager.delete_entry(entry_id)
 
             # Reload history
             self.load_history()
@@ -303,8 +306,16 @@ class HistoryWindow(QMainWindow):
         """
         # Stop refresh timer
         self.refresh_timer.stop()
+
+        # Remove dock icon reference on macOS
+        if sys.platform == "darwin":
+            DockIconManager.get_instance().remove_reference("history")
+
         # Accept the close event (close only this window)
         event.accept()
+
+        # Emit closed signal
+        self.closed.emit()
 
     def show(self) -> None:
         """Show the history window and bring it to the front.
@@ -314,6 +325,10 @@ class HistoryWindow(QMainWindow):
         """
         # Call parent show() first
         super().show()
+
+        # Show dock icon on macOS
+        if sys.platform == "darwin":
+            DockIconManager.get_instance().add_reference("history")
 
         # Ensure window is in normal state (not minimized)
         self.setWindowState(Qt.WindowState.WindowNoState)

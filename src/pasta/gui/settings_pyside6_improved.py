@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from pasta.core.settings import Settings, SettingsManager
+from pasta.utils.dock_manager import DockIconManager
 
 
 class SettingsWindow(QDialog):
@@ -37,6 +38,8 @@ class SettingsWindow(QDialog):
 
     # Signal emitted when settings change
     settings_changed = Signal()
+    # Signal emitted when window is closed
+    closed = Signal()
 
     def __init__(self, settings_manager: SettingsManager, parent: Optional[QWidget] = None) -> None:
         """Initialize the improved settings window.
@@ -226,7 +229,9 @@ class SettingsWindow(QDialog):
 
         self.paste_mode = QComboBox()
         self.paste_mode.addItems(["Auto", "Clipboard", "Typing"])
-        self.paste_mode.setCurrentText(self.settings.paste_mode.capitalize())
+        # Convert enum value to display text
+        current_mode = self.settings.paste_mode.value.capitalize()
+        self.paste_mode.setCurrentText(current_mode)
         self.paste_mode.setToolTip("Default method for pasting content")
         monitoring_layout.addRow("Default paste mode:", self.paste_mode)
 
@@ -717,7 +722,11 @@ class SettingsWindow(QDialog):
         """Update settings object from UI values."""
         self.settings.start_on_login = self.start_on_login.isChecked()
         self.settings.monitoring_enabled = self.monitoring_enabled.isChecked()
-        self.settings.paste_mode = self.paste_mode.currentText().lower()
+        # Convert text to PasteMode enum
+        from pasta.core.settings import PasteMode
+
+        mode_text = self.paste_mode.currentText().lower()
+        self.settings.paste_mode = PasteMode(mode_text)
         self.settings.typing_speed = self.typing_speed.value()
         self.settings.chunk_size = self.chunk_size.value()
         self.settings.adaptive_delay = self.adaptive_delay.isChecked()
@@ -751,7 +760,8 @@ class SettingsWindow(QDialog):
         # General
         self.start_on_login.setChecked(settings.start_on_login)
         self.monitoring_enabled.setChecked(settings.monitoring_enabled)
-        self.paste_mode.setCurrentText(settings.paste_mode.capitalize())
+        # Convert enum value to display text
+        self.paste_mode.setCurrentText(settings.paste_mode.value.capitalize())
 
         # Performance
         self.typing_speed.setValue(settings.typing_speed)
@@ -828,17 +838,33 @@ class SettingsWindow(QDialog):
             if reply == QMessageBox.StandardButton.Save:
                 self.apply_settings()
                 event.accept()
+                # Remove dock icon reference on macOS
+                if sys.platform == "darwin":
+                    DockIconManager.get_instance().remove_reference("settings")
+                self.closed.emit()
             elif reply == QMessageBox.StandardButton.Discard:
                 event.accept()
+                # Remove dock icon reference on macOS
+                if sys.platform == "darwin":
+                    DockIconManager.get_instance().remove_reference("settings")
+                self.closed.emit()
             else:
                 event.ignore()
         else:
             event.accept()
+            # Remove dock icon reference on macOS
+            if sys.platform == "darwin":
+                DockIconManager.get_instance().remove_reference("settings")
+            self.closed.emit()
 
     def show(self) -> None:
         """Show the dialog and bring it to front."""
         # Call parent show
         super().show()
+
+        # Show dock icon on macOS
+        if sys.platform == "darwin":
+            DockIconManager.get_instance().add_reference("settings")
 
         # Ensure window is not minimized
         self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
