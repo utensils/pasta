@@ -35,7 +35,7 @@ uv run mypy src/
 # Run tests
 uv run pytest                                    # Run all tests
 uv run pytest -xvs                              # Stop on first failure, verbose
-uv run pytest --cov=pasta --cov-report=html     # With coverage report
+uv run pytest --cov=src/pasta --cov-report=term --cov-report=html  # With coverage report
 uv run pytest -k "test_clipboard" -v            # Run specific tests
 uv run pytest tests/unit/                       # Run unit tests only
 

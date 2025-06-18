@@ -348,7 +348,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
-                uv run pytest --cov=pasta --cov-report=html --cov-report=term
+                uv run pytest --cov=src/pasta --cov-report=term --cov-report=html
               '';
             }
             {
