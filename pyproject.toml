@@ -121,6 +121,7 @@ module = [
     "pyautogui.*",
     "PIL.*",
     "keyboard.*",
+    "grp",
 ]
 ignore_missing_imports = true
 
