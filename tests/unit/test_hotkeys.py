@@ -1,10 +1,12 @@
 """Tests for the HotkeyManager module."""
 
+import sys
+import threading
 from unittest.mock import Mock, patch
 
 import pytest
 
-from pasta.core.hotkeys import HotkeyManager
+from pasta.core.hotkeys import KEYBOARD_AVAILABLE, HotkeyManager
 
 
 class TestHotkeyManager:
@@ -22,64 +24,91 @@ class TestHotkeyManager:
         assert not manager._registered
         assert hasattr(manager, "_lock")
 
+    def test_keyboard_module_disabled_on_macos(self):
+        """Test that keyboard module is disabled on macOS to prevent crashes."""
+        if sys.platform == "darwin":
+            assert not KEYBOARD_AVAILABLE
+        # On other platforms, it depends on whether keyboard is installed
+
     def test_set_abort_callback(self, manager):
         """Test setting abort callback."""
         callback = Mock()
         manager.set_abort_callback(callback)
         assert manager.abort_callback == callback
 
-    @patch("pasta.core.hotkeys.keyboard.add_hotkey")
-    def test_register_hotkeys(self, mock_add_hotkey, manager):
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Keyboard module disabled on macOS")
+    def test_register_hotkeys(self, manager):
         """Test registering hotkeys."""
-        manager.register_hotkeys()
+        if not KEYBOARD_AVAILABLE:
+            pytest.skip("Keyboard module not available")
 
-        mock_add_hotkey.assert_called_once_with("esc+esc", manager._on_abort_hotkey, suppress=False)
-        assert manager._registered
+        with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+            manager.register_hotkeys()
+            mock_keyboard.add_hotkey.assert_called_once_with("esc+esc", manager._on_abort_hotkey, suppress=False)
+            assert manager._registered
 
-    @patch("pasta.core.hotkeys.keyboard.add_hotkey")
-    def test_register_hotkeys_idempotent(self, mock_add_hotkey, manager):
+    def test_register_hotkeys_idempotent(self, manager):
         """Test that registering hotkeys is idempotent."""
-        manager.register_hotkeys()
-        manager.register_hotkeys()  # Second call
+        manager._registered = True
 
-        # Should only be called once
-        assert mock_add_hotkey.call_count == 1
+        if sys.platform != "darwin" and KEYBOARD_AVAILABLE:
+            with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+                manager.register_hotkeys()
+                # Should not call add_hotkey if already registered
+                mock_keyboard.add_hotkey.assert_not_called()
+        else:
+            # Should not raise exception
+            manager.register_hotkeys()
 
-    @patch("pasta.core.hotkeys.keyboard.add_hotkey", side_effect=Exception("Error"))
-    def test_register_hotkeys_error_handling(self, mock_add_hotkey, manager):
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Keyboard module disabled on macOS")
+    def test_register_hotkeys_error_handling(self, manager):
         """Test error handling during hotkey registration."""
-        # Should not raise exception
-        manager.register_hotkeys()
-        assert not manager._registered
+        if not KEYBOARD_AVAILABLE:
+            pytest.skip("Keyboard module not available")
 
-    @patch("pasta.core.hotkeys.keyboard.remove_hotkey")
-    def test_unregister_hotkeys(self, mock_remove_hotkey, manager):
+        with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+            mock_keyboard.add_hotkey.side_effect = Exception("Test error")
+            # Should not raise exception
+            manager.register_hotkeys()
+            assert not manager._registered
+
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Keyboard module disabled on macOS")
+    def test_unregister_hotkeys(self, manager):
         """Test unregistering hotkeys."""
-        # First register
+        if not KEYBOARD_AVAILABLE:
+            pytest.skip("Keyboard module not available")
+
         manager._registered = True
+        with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+            manager.unregister_hotkeys()
+            mock_keyboard.remove_hotkey.assert_called_once_with("esc+esc")
+            assert not manager._registered
 
-        manager.unregister_hotkeys()
-
-        mock_remove_hotkey.assert_called_once_with("esc+esc")
-        assert not manager._registered
-
-    @patch("pasta.core.hotkeys.keyboard.remove_hotkey")
-    def test_unregister_hotkeys_not_registered(self, mock_remove_hotkey, manager):
+    def test_unregister_hotkeys_not_registered(self, manager):
         """Test unregistering when not registered."""
-        manager.unregister_hotkeys()
+        manager._registered = False
 
-        # Should not be called
-        mock_remove_hotkey.assert_not_called()
+        if sys.platform != "darwin" and KEYBOARD_AVAILABLE:
+            with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+                manager.unregister_hotkeys()
+                mock_keyboard.remove_hotkey.assert_not_called()
+        else:
+            # Should not raise exception
+            manager.unregister_hotkeys()
 
-    @patch("pasta.core.hotkeys.keyboard.remove_hotkey", side_effect=Exception("Error"))
-    def test_unregister_hotkeys_error_handling(self, mock_remove_hotkey, manager):
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Keyboard module disabled on macOS")
+    def test_unregister_hotkeys_error_handling(self, manager):
         """Test error handling during hotkey unregistration."""
-        manager._registered = True
+        if not KEYBOARD_AVAILABLE:
+            pytest.skip("Keyboard module not available")
 
-        # Should not raise exception
-        manager.unregister_hotkeys()
-        # State should still be updated
-        assert not manager._registered
+        manager._registered = True
+        with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
+            mock_keyboard.remove_hotkey.side_effect = Exception("Test error")
+            # Should not raise exception
+            manager.unregister_hotkeys()
+            # State should still be updated
+            assert not manager._registered
 
     def test_on_abort_hotkey(self, manager):
         """Test abort hotkey handler."""
@@ -106,8 +135,6 @@ class TestHotkeyManager:
 
     def test_thread_safety(self, manager):
         """Test thread-safe operations."""
-        import threading
-
         results = []
 
         def register_multiple():
@@ -132,6 +159,19 @@ class TestHotkeyManager:
 
         # Should complete without deadlock
         assert len(results) == 20
+
+    def test_macos_regression_no_crash(self):
+        """Regression test: Ensure no CoreFoundation crash on macOS."""
+        if sys.platform != "darwin":
+            pytest.skip("macOS-specific test")
+
+        # This should not crash
+        manager = HotkeyManager()
+        manager.register_hotkeys()
+        manager.unregister_hotkeys()
+
+        # Verify keyboard module is not imported on macOS
+        assert not KEYBOARD_AVAILABLE
 
 
 class TestHotkeyManagerWithoutKeyboard:
@@ -162,22 +202,18 @@ class TestHotkeyManagerWithoutKeyboard:
             # Should be unregistered
             assert not manager._registered
 
-    @patch("pasta.core.hotkeys.keyboard.add_hotkey")
-    def test_keyboard_not_called_when_unavailable(self, mock_add_hotkey, manager):
+    def test_keyboard_not_called_when_unavailable(self, manager):
         """Test that keyboard methods are not called when module is unavailable."""
         with patch("pasta.core.hotkeys.KEYBOARD_AVAILABLE", False):
+            # Should not raise exception
             manager.register_hotkeys()
+            assert not manager._registered
 
-            # Keyboard methods should not be called
-            mock_add_hotkey.assert_not_called()
-
-    @patch("pasta.core.hotkeys.keyboard.remove_hotkey")
-    def test_keyboard_remove_not_called_when_unavailable(self, mock_remove_hotkey, manager):
+    def test_keyboard_remove_not_called_when_unavailable(self, manager):
         """Test that keyboard remove is not called when module is unavailable."""
         manager._registered = True
 
         with patch("pasta.core.hotkeys.KEYBOARD_AVAILABLE", False):
+            # Should handle gracefully
             manager.unregister_hotkeys()
-
-            # Keyboard methods should not be called
-            mock_remove_hotkey.assert_not_called()
+            assert not manager._registered

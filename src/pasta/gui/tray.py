@@ -219,7 +219,7 @@ class SystemTray:
     def show_about(self) -> None:
         """Show about information."""
         # Open project URL
-        webbrowser.open("https://github.com/yourusername/pasta")
+        webbrowser.open("https://github.com/utensils/pasta")
 
     def quit(self) -> None:
         """Quit the application."""

@@ -149,7 +149,7 @@ class TestSystemTray:
         tray.show_about()
 
         # Should open project URL
-        mock_webbrowser.assert_called_once_with("https://github.com/yourusername/pasta")
+        mock_webbrowser.assert_called_once_with("https://github.com/utensils/pasta")
 
     def test_quit(self, tray, mock_components):
         """Test quit functionality."""

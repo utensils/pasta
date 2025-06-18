@@ -172,6 +172,7 @@ pasta-prd.md
 config.json
 settings.json
 consent.json
+.pasta_key
 
 # Temporary files
 *.tmp

@@ -1,16 +1,29 @@
 """Global hotkey management for Pasta."""
 
 import contextlib
+import sys
 import threading
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
-try:
-    import keyboard
+if TYPE_CHECKING:
+    import keyboard as keyboard_typing
+else:
+    keyboard_typing = None
 
-    KEYBOARD_AVAILABLE = True
-except Exception:
-    # Keyboard module not available or failed to initialize
+# The keyboard module has issues on macOS that can cause CoreFoundation crashes
+# Disable it on macOS until we implement a proper solution using pynput or other alternatives
+if sys.platform == "darwin":
+    keyboard = None
     KEYBOARD_AVAILABLE = False
+else:
+    try:
+        import keyboard
+
+        KEYBOARD_AVAILABLE = True
+    except Exception:
+        # Keyboard module not available or failed to initialize
+        keyboard = None
+        KEYBOARD_AVAILABLE = False
 
 
 class HotkeyManager:
@@ -52,7 +65,7 @@ class HotkeyManager:
 
             try:
                 # Register double ESC for emergency stop
-                keyboard.add_hotkey(self.abort_hotkey, self._on_abort_hotkey, suppress=False)
+                keyboard.add_hotkey(self.abort_hotkey, self._on_abort_hotkey, suppress=False)  # type: ignore[attr-defined]
                 self._registered = True
             except Exception:
                 # Hotkey registration failed
@@ -70,7 +83,7 @@ class HotkeyManager:
                 return
 
             try:
-                keyboard.remove_hotkey(self.abort_hotkey)
+                keyboard.remove_hotkey(self.abort_hotkey)  # type: ignore[attr-defined]
                 self._registered = False
             except Exception:
                 # Even if removal fails, mark as unregistered
