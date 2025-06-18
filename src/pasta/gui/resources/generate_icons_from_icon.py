@@ -4,6 +4,7 @@ import os
 import subprocess
 
 from PIL import Image
+from PIL.Image import Image as PILImage
 
 
 def create_icon_set_from_logo(logo_path: str) -> None:
@@ -13,7 +14,7 @@ def create_icon_set_from_logo(logo_path: str) -> None:
         logo_path: Path to the icon.png file
     """
     # Load the logo
-    logo = Image.open(logo_path)
+    logo: PILImage = Image.open(logo_path)
 
     # Convert to RGBA if not already
     if logo.mode != "RGBA":

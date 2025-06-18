@@ -132,6 +132,7 @@ module = [
     "keyboard.*",
     "grp",
     "PyQt6.*",
+    "AppKit.*",
 ]
 ignore_missing_imports = true
 
