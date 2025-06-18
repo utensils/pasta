@@ -46,10 +46,14 @@ class SettingsWindow(QDialog):
         self.setGeometry(100, 100, 600, 500)
         self.setModal(False)  # Non-modal dialog
 
-        # macOS-specific: Ensure window appears in dock and handles Cmd+Q properly
+        # macOS-specific: Ensure window appears in dock and handles shortcuts properly
         if sys.platform == "darwin":
             # Window should appear in dock when open
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
+
+            # Add Cmd+W shortcut that closes this window (standard macOS behavior)
+            cmd_w = QShortcut(QKeySequence("Ctrl+W"), self)  # Ctrl+W is Cmd+W on macOS
+            cmd_w.activated.connect(self.close)
 
             # Add Cmd+Q shortcut that only closes this window
             cmd_q = QShortcut(QKeySequence("Ctrl+Q"), self)  # Ctrl+Q is Cmd+Q on macOS

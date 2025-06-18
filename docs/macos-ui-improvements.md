@@ -55,18 +55,31 @@ if sys.platform == "darwin":
 
 **Settings and History Windows:**
 - Non-modal dialogs that appear in the dock when open
-- Cmd+Q shortcut that closes only the window
+- Native window controls (close, minimize, maximize buttons)
+- Standard macOS keyboard shortcuts:
+  - Cmd+W closes the window (standard macOS behavior)
+  - Cmd+Q closes the window (not quit app)
+  - Cmd+M minimizes the window
+  - Escape key closes modal dialogs
 - Proper window titles and organization
 
 ```python
-# macOS-specific: Ensure window appears in dock and handles Cmd+Q properly
+# macOS-specific: Ensure window appears in dock and handles shortcuts properly
 if sys.platform == "darwin":
     # Window should appear in dock when open
     self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
 
+    # Add Cmd+W shortcut that closes this window (standard macOS behavior)
+    cmd_w = QShortcut(QKeySequence("Ctrl+W"), self)  # Ctrl+W is Cmd+W on macOS
+    cmd_w.activated.connect(self.close)
+
     # Add Cmd+Q shortcut that only closes this window
     cmd_q = QShortcut(QKeySequence("Ctrl+Q"), self)  # Ctrl+Q is Cmd+Q on macOS
     cmd_q.activated.connect(self.close)
+
+    # Add Cmd+M shortcut for minimize (history window)
+    cmd_m = QShortcut(QKeySequence("Ctrl+M"), self)  # Ctrl+M is Cmd+M on macOS
+    cmd_m.activated.connect(self.showMinimized)
 ```
 
 ## Building for macOS
