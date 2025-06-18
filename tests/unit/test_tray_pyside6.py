@@ -191,16 +191,23 @@ class TestSystemTray:
         """Test clipboard change handling."""
         entry = {"content": "test content", "timestamp": 123456}
 
-        # When enabled
+        # Clipboard changes should save to storage, not trigger paste
         tray.enabled = True
         tray._on_clipboard_change(entry)
-        mock_components["keyboard_engine"].paste_text.assert_called_with("test content", method=tray.paste_mode)
 
-        # When disabled
-        tray.enabled = False
-        mock_components["keyboard_engine"].reset_mock()
-        tray._on_clipboard_change(entry)
+        # Should save to storage
+        mock_components["storage_manager"].save_entry.assert_called_with(entry)
+
+        # Should NOT paste automatically
         mock_components["keyboard_engine"].paste_text.assert_not_called()
+
+        # Test with disabled state - should still save to history
+        tray.enabled = False
+        mock_components["storage_manager"].reset_mock()
+        tray._on_clipboard_change(entry)
+
+        # Should still save to storage even when disabled
+        mock_components["storage_manager"].save_entry.assert_called_with(entry)
 
     def test_on_emergency_stop(self, tray, mock_components):
         """Test emergency stop functionality."""

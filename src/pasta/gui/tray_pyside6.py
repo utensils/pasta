@@ -240,12 +240,14 @@ class SystemTray(QObject):
         Args:
             entry: Clipboard entry dict with content, timestamp, etc.
         """
-        if not self.enabled:
-            return
-
+        # Always save to history, regardless of enabled state
         with contextlib.suppress(Exception):
-            # Paste using current mode
-            self.keyboard_engine.paste_text(entry["content"], method=self.paste_mode)
+            # Save to storage
+            self.storage_manager.save_entry(entry)
+
+        # Note: We do NOT automatically paste here!
+        # The user copied something - we just save it to history.
+        # Pasting should only happen via explicit user action (hotkey, menu, etc.)
 
     def toggle_enabled(self) -> None:
         """Toggle paste functionality on/off."""
