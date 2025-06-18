@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test that all required imports work correctly."""
+
 import importlib.util
 
 

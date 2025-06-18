@@ -344,3 +344,36 @@ class TestSystemTray:
 
         # Should complete without errors
         assert True
+
+    def test_emergency_stop(self, tray, mock_components):
+        """Test emergency stop functionality."""
+        # Mock keyboard engine is_pasting
+        mock_components["keyboard_engine"].is_pasting.return_value = True
+
+        # Call emergency stop
+        tray._on_emergency_stop()
+
+        # Should abort paste
+        mock_components["keyboard_engine"].abort_paste.assert_called_once()
+
+    @patch("pasta.gui.tray.HotkeyManager")
+    def test_hotkey_manager_integration(self, mock_hotkey_manager, mock_components):
+        """Test hotkey manager is set up correctly."""
+        tray = SystemTray(**mock_components)
+
+        # Should create hotkey manager
+        assert hasattr(tray, "hotkey_manager")
+
+        # Should set abort callback
+        tray.hotkey_manager.set_abort_callback.assert_called_once()
+
+    def test_icon_click_during_paste(self, tray, mock_components):
+        """Test clicking icon during paste triggers emergency stop."""
+        # Mock pasting state
+        mock_components["keyboard_engine"].is_pasting.return_value = True
+
+        # Click icon
+        tray._on_icon_clicked(None, None)
+
+        # Should trigger emergency stop
+        mock_components["keyboard_engine"].abort_paste.assert_called_once()

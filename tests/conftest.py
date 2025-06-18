@@ -1,11 +1,20 @@
 """Pytest configuration and shared fixtures."""
+
 import os
 import sys
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
+
+# Mock the keyboard module to prevent import failures in test environments
+# This is necessary because the keyboard module can fail on some systems
+# (e.g., macOS without proper permissions, headless environments, etc.)
+keyboard_mock = MagicMock()
+keyboard_mock.add_hotkey = MagicMock()
+keyboard_mock.remove_hotkey = MagicMock()
+sys.modules["keyboard"] = keyboard_mock
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -139,3 +148,12 @@ def mock_time(monkeypatch: pytest.MonkeyPatch) -> Mock:
     monkeypatch.setattr("time.sleep", time_mock.sleep)
 
     return time_mock
+
+
+@pytest.fixture(autouse=True)
+def reset_keyboard_mock():
+    """Reset keyboard mock before each test."""
+    keyboard_mock.reset_mock()
+    keyboard_mock.add_hotkey.reset_mock()
+    keyboard_mock.remove_hotkey.reset_mock()
+    yield

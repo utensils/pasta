@@ -3,13 +3,14 @@
 import os
 import platform
 import subprocess
+import sys
 import threading
 from typing import Optional
 
 try:
     import grp
 except ImportError:
-    grp = None  # type: ignore  # Not available on Windows
+    grp = None  # type: ignore[assignment]  # Not available on Windows
 
 
 class PermissionChecker:
@@ -93,11 +94,11 @@ class PermissionChecker:
             True if user has necessary permissions
         """
         # Check if user is in input group (for device access)
-        if grp is None:
-            return True  # Can't check, assume OK
+        if sys.platform == "win32" or grp is None:
+            return True  # Can't check on Windows, assume OK
 
         try:
-            input_group = grp.getgrnam("input")  # type: ignore
+            input_group = grp.getgrnam("input")
             user_groups = os.getgroups()
             return input_group.gr_gid in user_groups
         except KeyError:

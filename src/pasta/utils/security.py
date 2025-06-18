@@ -1,4 +1,5 @@
 """Security utilities for data protection."""
+
 from typing import Optional
 
 

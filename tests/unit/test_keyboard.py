@@ -212,6 +212,42 @@ class TestPastaKeyboardEngine:
         result = engine.paste_text("", method="auto")
         assert result is True  # Should succeed but do nothing
 
+    def test_abort_paste(self, engine):
+        """Test abort functionality."""
+        # Initial state
+        assert not engine.is_pasting()
+
+        # Set abort
+        engine.abort_paste()
+        assert engine._abort_event.is_set()
+
+    @patch("pyautogui.write")
+    @patch("time.sleep")
+    def test_typing_aborted_by_event(self, mock_sleep, mock_write, engine):
+        """Test typing stops when abort event is set."""
+
+        # Set abort event after first write
+        def side_effect(*args, **kwargs):
+            engine.abort_paste()
+
+        mock_write.side_effect = side_effect
+
+        large_text = "x" * 500
+        result = engine.paste_text(large_text, method="typing")
+
+        assert result is False
+        # Should have stopped after first chunk
+        assert mock_write.call_count == 1
+
+    def test_is_pasting_state(self, engine):
+        """Test is_pasting state tracking."""
+        assert not engine.is_pasting()
+
+        # Can't easily test during paste without mocking,
+        # but we can verify the method exists and initial state
+        assert hasattr(engine, "is_pasting")
+        assert callable(engine.is_pasting)
+
     @patch("pyautogui.write")
     def test_unicode_text_handling(self, mock_write, engine):
         """Test handling of Unicode text."""

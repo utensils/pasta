@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QApplication
 from pystray import Menu, MenuItem
 
 from pasta.core.clipboard import ClipboardManager
+from pasta.core.hotkeys import HotkeyManager
 from pasta.core.keyboard import PastaKeyboardEngine
 from pasta.core.storage import StorageManager
 from pasta.gui.history import HistoryWindow
@@ -62,11 +63,18 @@ class SystemTray:
         # Qt application for windows
         self._qt_app: Optional[QApplication] = None
 
+        # Hotkey manager
+        self.hotkey_manager = HotkeyManager()
+        self.hotkey_manager.set_abort_callback(self._on_emergency_stop)
+
         # Set up clipboard callback
         self.clipboard_manager.register_callback(self._on_clipboard_change)
 
         # Create tray icon
         self.icon = self._create_icon()
+
+        # Set up icon click handler
+        self.icon.on_clicked = self._on_icon_clicked
 
     def _create_icon(self) -> pystray.Icon:
         """Create the system tray icon.
@@ -119,6 +127,8 @@ class SystemTray:
             ),
             Menu.SEPARATOR,
             MenuItem("Enabled", self.toggle_enabled, checked=lambda _: self.enabled),
+            MenuItem("Emergency Stop (Double ESC)", self._on_emergency_stop, enabled=lambda _: self.keyboard_engine.is_pasting()),
+            Menu.SEPARATOR,
             MenuItem("History", self.show_history),
             MenuItem("Settings", self.show_settings),
             Menu.SEPARATOR,
@@ -209,6 +219,9 @@ class SystemTray:
         # Stop monitoring
         self.clipboard_manager.stop_monitoring()
 
+        # Unregister hotkeys
+        self.hotkey_manager.unregister_hotkeys()
+
         # Stop icon
         self.icon.stop()
 
@@ -217,5 +230,30 @@ class SystemTray:
         # Start clipboard monitoring
         self.clipboard_manager.start_monitoring()
 
+        # Register hotkeys
+        self.hotkey_manager.register_hotkeys()
+
         # Run the icon (blocks until quit)
         self.icon.run()
+
+    def _on_emergency_stop(self) -> None:
+        """Handle emergency stop request."""
+        # Abort any ongoing paste
+        self.keyboard_engine.abort_paste()
+
+        # Update menu to reflect state
+        self._update_icon()
+
+        # Flash the icon or show notification
+        print("⚠️  Emergency stop activated! Paste operation aborted.")
+
+    def _on_icon_clicked(self, icon: pystray.Icon, item: Any) -> None:  # noqa: ARG002
+        """Handle tray icon click.
+
+        Args:
+            icon: The icon that was clicked
+            item: The menu item (None for direct click)
+        """
+        # If pasting, emergency stop
+        if self.keyboard_engine.is_pasting():
+            self._on_emergency_stop()

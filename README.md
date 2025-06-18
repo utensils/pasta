@@ -8,18 +8,24 @@ A cross-platform system tray application that converts clipboard content into si
 
 ## 🚧 Project Status
 
-**This project is under active development.** Core functionality is being implemented following Test-Driven Development principles. See the [project board](https://github.com/utensils/pasta/projects) for current progress.
+**This project is ready for testing!** Core functionality has been implemented including:
+- ✅ Clipboard monitoring and auto-paste
+- ✅ Emergency stop (Double ESC or tray icon click)
+- ✅ Cross-platform permission handling
+- ✅ Secure storage with encryption
+- ✅ System tray integration
 
 ## Features
 
-- **Smart Clipboard Monitoring**: Automatically detects clipboard changes and maintains history
-- **Flexible Pasting Methods**: Choose between clipboard paste or character-by-character typing
-- **Cross-Platform Support**: Works on Windows, macOS, and Linux
-- **Secure Storage**: Encrypts sensitive clipboard data at rest
-- **Adaptive Performance**: Automatically adjusts typing speed based on system load
-- **Privacy Protection**: Excludes password managers and sensitive applications
-- **Rate Limiting**: Prevents abuse with configurable limits
-- **System Tray Integration**: Minimal UI that stays out of your way
+- 🍝 **Smart Clipboard Monitoring**: Automatically detects clipboard changes and maintains history
+- ⌨️ **Flexible Pasting Methods**: Choose between clipboard paste or character-by-character typing
+- 🖥️ **Cross-Platform Support**: Works on Windows, macOS, and Linux
+- 🔒 **Secure Storage**: Encrypts sensitive clipboard data at rest
+- 🚀 **Adaptive Performance**: Automatically adjusts typing speed based on system load
+- 🛡️ **Privacy Protection**: Excludes password managers and sensitive applications
+- ⏱️ **Rate Limiting**: Prevents abuse with configurable limits
+- 💼 **System Tray Integration**: Minimal UI that stays out of your way
+- ⚡ **Emergency Stop**: Double ESC or click tray icon to instantly abort pasting
 
 ## Installation
 
@@ -62,23 +68,40 @@ uv run python -m pasta
 - Add user to the `input` group: `sudo usermod -a -G input $USER`
 - Log out and back in for changes to take effect
 
+## Quick Start
+
+```bash
+# 1. Start Pasta
+uv run python -m pasta
+
+# 2. Test it (in another terminal)
+uv run python test_pasta.py
+```
+
 ## Usage
 
 1. **Start Pasta**: The application runs in your system tray
 2. **Copy text**: Use Ctrl+C (Cmd+C on macOS) as normal
-3. **Quick Paste**: Click the tray icon or use the configured hotkey
-4. **Paste from History**: Right-click tray icon → "Paste from History"
+3. **Watch it type**: Pasta automatically types the copied text
+4. **Emergency Stop**: Double-tap ESC or click tray icon during paste
 
-### Keyboard Shortcuts (Planned)
+### Tray Menu Options
 
-- `Ctrl+Shift+V`: Quick paste last item
-- `Ctrl+Shift+H`: Open history window
-- `Ctrl+Shift+S`: Toggle monitoring
+- **Paste Mode**: Choose between Auto/Clipboard/Typing methods
+- **Enabled**: Toggle Pasta on/off
+- **Emergency Stop**: Abort current paste operation
+- **History**: View clipboard history (coming soon)
+- **Settings**: Configure Pasta (coming soon)
+- **About**: Project information
+- **Quit**: Exit Pasta
 
-## Configuration
+### Current Keyboard Shortcuts
 
-Access settings through the system tray menu:
+- **Double ESC**: Emergency stop (abort current paste)
 
+## Configuration (Coming Soon)
+
+Planned settings:
 - **Typing Speed**: Adjust character-per-second rate
 - **History Size**: Number of clipboard entries to keep
 - **Privacy Mode**: Temporarily disable all monitoring

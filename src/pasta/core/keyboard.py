@@ -1,6 +1,7 @@
 """Keyboard simulation and text input module."""
 
 import platform
+import threading
 import time
 
 import psutil
@@ -77,6 +78,11 @@ class PastaKeyboardEngine:
         # Adaptive typing engine
         self._adaptive_engine = AdaptiveTypingEngine()
 
+        # Abort mechanism
+        self._abort_event = threading.Event()
+        self._is_pasting = False
+        self._paste_lock = threading.Lock()
+
     def paste_text(self, text: str, method: str = "auto") -> bool:
         """Paste text using specified method.
 
@@ -91,17 +97,28 @@ class PastaKeyboardEngine:
         if not text:
             return True
 
-        # Determine method
-        if method == "auto":
-            method = "clipboard" if len(text) < self.clipboard_threshold else "typing"
-        elif method not in ("clipboard", "typing"):
-            # Invalid method defaults to auto selection
-            method = "clipboard" if len(text) < self.clipboard_threshold else "typing"
+        # Reset abort event
+        self._abort_event.clear()
 
-        if method == "clipboard":
-            return self._paste_via_clipboard(text)
-        else:
-            return self._paste_via_typing(text)
+        # Mark as pasting
+        with self._paste_lock:
+            self._is_pasting = True
+
+        try:
+            # Determine method
+            if method == "auto":
+                method = "clipboard" if len(text) < self.clipboard_threshold else "typing"
+            elif method not in ("clipboard", "typing"):
+                # Invalid method defaults to auto selection
+                method = "clipboard" if len(text) < self.clipboard_threshold else "typing"
+
+            if method == "clipboard":
+                return self._paste_via_clipboard(text)
+            else:
+                return self._paste_via_typing(text)
+        finally:
+            with self._paste_lock:
+                self._is_pasting = False
 
     def _paste_via_clipboard(self, text: str) -> bool:
         """Fast paste using system clipboard.
@@ -146,6 +163,10 @@ class PastaKeyboardEngine:
             for i, line in enumerate(lines):
                 # Type line in chunks
                 for j in range(0, len(line), self.chunk_size):
+                    # Check abort event
+                    if self._abort_event.is_set():
+                        return False
+
                     # Check fail-safe
                     if not self._check_continue():
                         return False
@@ -156,6 +177,10 @@ class PastaKeyboardEngine:
                     # Pause between chunks
                     if j + self.chunk_size < len(line):
                         time.sleep(0.05)
+
+                    # Check abort again after chunk
+                    if self._abort_event.is_set():
+                        return False
 
                 # Add newline if not last line
                 if i < len(lines) - 1:
@@ -185,3 +210,16 @@ class PastaKeyboardEngine:
             AdaptiveTypingEngine instance
         """
         return self._adaptive_engine
+
+    def abort_paste(self) -> None:
+        """Abort any ongoing paste operation immediately."""
+        self._abort_event.set()
+
+    def is_pasting(self) -> bool:
+        """Check if currently pasting.
+
+        Returns:
+            True if paste operation is in progress
+        """
+        with self._paste_lock:
+            return self._is_pasting

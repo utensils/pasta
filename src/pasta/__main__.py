@@ -57,9 +57,11 @@ def main() -> None:
         permission_checker=permission_checker,
     )
 
-    print("\n✅ Pasta is running in the system tray.")
-    print("Right-click the tray icon to access options.")
-    print("Press Ctrl+C to quit.\n")
+    print("\n✅ Pasta is running in the system tray!")
+    print("🍝 Copy text to clipboard and watch it being typed!")
+    print("⚡ Emergency Stop: Double ESC or click tray icon during paste")
+    print("🔧 Right-click the tray icon to access options")
+    print("⌨️  Press Ctrl+C to quit\n")
 
     try:
         # Run the application
