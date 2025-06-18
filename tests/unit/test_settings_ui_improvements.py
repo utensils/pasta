@@ -416,3 +416,29 @@ class TestSettingsUIImprovements:
         assert window.excluded_apps_list.count() == len(defaults.excluded_apps)
         assert window.excluded_patterns.toPlainText() == "\n".join(defaults.excluded_patterns)
         assert window.emergency_stop_hotkey.text() == defaults.emergency_stop_hotkey
+
+    def test_settings_window_creation_with_string_paste_mode(self, qtbot):
+        """Test that settings window can be created when paste_mode is a string."""
+        # Create settings manager with string paste_mode (as it actually is in the Settings class)
+        manager = SettingsManager()
+        manager.settings = Settings(paste_mode="typing")  # paste_mode is a string, not an enum
+
+        # This should not raise AttributeError
+        window = SettingsWindow(settings_manager=manager)
+        qtbot.addWidget(window)
+
+        # Verify the paste mode was set correctly
+        assert window.paste_mode.currentText().lower() == "typing"
+
+    def test_all_paste_mode_values_work(self, qtbot):
+        """Test that all valid paste_mode string values work."""
+        for mode in ["auto", "clipboard", "typing"]:
+            manager = SettingsManager()
+            manager.settings = Settings(paste_mode=mode)
+
+            # Should not raise any errors
+            window = SettingsWindow(settings_manager=manager)
+            qtbot.addWidget(window)
+
+            # Verify the paste mode was set correctly
+            assert window.paste_mode.currentText().lower() == mode

@@ -229,8 +229,8 @@ class SettingsWindow(QDialog):
 
         self.paste_mode = QComboBox()
         self.paste_mode.addItems(["Auto", "Clipboard", "Typing"])
-        # Convert enum value to display text
-        current_mode = self.settings.paste_mode.value.capitalize()
+        # Convert string value to display text
+        current_mode = self.settings.paste_mode.capitalize()
         self.paste_mode.setCurrentText(current_mode)
         self.paste_mode.setToolTip("Default method for pasting content")
         monitoring_layout.addRow("Default paste mode:", self.paste_mode)
@@ -722,11 +722,9 @@ class SettingsWindow(QDialog):
         """Update settings object from UI values."""
         self.settings.start_on_login = self.start_on_login.isChecked()
         self.settings.monitoring_enabled = self.monitoring_enabled.isChecked()
-        # Convert text to PasteMode enum
-        from pasta.core.settings import PasteMode
-
+        # Convert text to string value
         mode_text = self.paste_mode.currentText().lower()
-        self.settings.paste_mode = PasteMode(mode_text)
+        self.settings.paste_mode = mode_text
         self.settings.typing_speed = self.typing_speed.value()
         self.settings.chunk_size = self.chunk_size.value()
         self.settings.adaptive_delay = self.adaptive_delay.isChecked()
@@ -760,8 +758,8 @@ class SettingsWindow(QDialog):
         # General
         self.start_on_login.setChecked(settings.start_on_login)
         self.monitoring_enabled.setChecked(settings.monitoring_enabled)
-        # Convert enum value to display text
-        self.paste_mode.setCurrentText(settings.paste_mode.value.capitalize())
+        # Convert string value to display text
+        self.paste_mode.setCurrentText(settings.paste_mode.capitalize())
 
         # Performance
         self.typing_speed.setValue(settings.typing_speed)
