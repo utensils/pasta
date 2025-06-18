@@ -1,37 +1,29 @@
-# Pasta 🍝
+# Pasta
 
 [![Tests](https://github.com/utensils/pasta/actions/workflows/test.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/utensils/pasta)
 
 A cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting.
 
-## 🚧 Project Status
+## Project Status
 
-**This project is ready for testing!** Core functionality has been implemented including:
-- ✅ Clipboard monitoring and auto-paste
-- ✅ Emergency stop (Double ESC or tray icon click)
-- ✅ Cross-platform permission handling
-- ✅ Secure storage with encryption
-- ✅ System tray integration
-- ✅ Settings UI with comprehensive configuration
-- ✅ Security features (sensitive data detection, rate limiting, privacy mode)
-- ✅ Snippet management system
+**Ready for testing!** All core features implemented and CI/CD passing on all platforms.
 
 ## Features
 
-- 🍝 **Smart Clipboard Monitoring**: Automatically detects clipboard changes and maintains history
-- ⌨️ **Flexible Pasting Methods**: Choose between clipboard paste or character-by-character typing
-- 🖥️ **Cross-Platform Support**: Works on Windows, macOS, and Linux
-- 🔒 **Secure Storage**: Encrypts sensitive clipboard data at rest
-- 🚀 **Adaptive Performance**: Automatically adjusts typing speed based on system load
-- 🛡️ **Privacy Protection**: Excludes password managers and sensitive applications
-- ⏱️ **Rate Limiting**: Prevents abuse with configurable limits
-- 💼 **System Tray Integration**: Minimal UI that stays out of your way
-- ⚡ **Emergency Stop**: Double ESC or click tray icon to instantly abort pasting
-- ⚙️ **Settings UI**: Configure all aspects of Pasta through an intuitive interface
-- 🔍 **Sensitive Data Detection**: Automatically identifies and protects sensitive information
-- 📝 **Snippet Management**: Save and organize frequently used text snippets
+- **Smart Clipboard Monitoring**: Automatically detects clipboard changes and maintains history
+- **Flexible Pasting Methods**: Choose between clipboard paste or character-by-character typing
+- **Cross-Platform Support**: Works on Windows, macOS, and Linux
+- **Secure Storage**: Encrypts sensitive clipboard data at rest
+- **Adaptive Performance**: Automatically adjusts typing speed based on system load
+- **Privacy Protection**: Excludes password managers and sensitive applications
+- **Rate Limiting**: Prevents abuse with configurable limits
+- **System Tray Integration**: Minimal UI that stays out of your way
+- **Emergency Stop**: Double ESC or click tray icon to instantly abort pasting
+- **Settings UI**: Configure all aspects through an intuitive interface
+- **Snippet Management**: Save and organize frequently used text snippets
 
 ## Installation
 
@@ -76,13 +68,10 @@ uv run python -m pasta
 
 ## Quick Start
 
-```bash
-# 1. Start Pasta
-uv run python -m pasta
-
-# 2. Test it (in another terminal)
-uv run python test_pasta.py
-```
+1. Start Pasta: `uv run python -m pasta`
+2. Copy any text to clipboard
+3. Watch Pasta type it automatically
+4. Double-tap ESC to stop if needed
 
 ## Usage
 
@@ -107,27 +96,12 @@ uv run python test_pasta.py
 
 ## Configuration
 
-Access settings through the system tray menu → Settings:
+Access settings through the system tray menu → Settings. Configure:
 
-### Performance Settings
-- **Typing Speed**: Adjust character-per-second rate (1-1000)
-- **Chunk Size**: Size of text chunks for typing (10-1000 characters)
-- **Adaptive Delay**: Automatically adjust speed based on system load
-
-### History Settings
-- **History Size**: Number of clipboard entries to keep (1-10000)
-- **Retention Days**: How long to keep history (0 for forever)
-- **Encrypt Sensitive**: Automatically encrypt sensitive clipboard data
-
-### Privacy Settings
-- **Privacy Mode**: Temporarily disable all clipboard monitoring
-- **Excluded Apps**: Applications to ignore (e.g., password managers)
-- **Excluded Patterns**: Regex patterns to exclude from capture
-
-### Hotkey Configuration
-- **Emergency Stop**: Default: Double ESC
-- **Quick Paste**: Assignable hotkey for quick paste
-- **Toggle Monitoring**: Assignable hotkey to enable/disable monitoring
+- **Performance**: Typing speed, chunk size, adaptive delays
+- **History**: Size limits, retention periods, encryption
+- **Privacy**: Excluded apps, privacy mode, sensitive data patterns
+- **Hotkeys**: Emergency stop (Double ESC), quick paste, toggle monitoring
 
 ## Development
 
@@ -204,12 +178,12 @@ uv build
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Built With
 
-- Built with [pystray](https://github.com/moses-palmer/pystray) for system tray integration
-- Uses [PyAutoGUI](https://github.com/asweigart/pyautogui) for keyboard simulation
-- Clipboard access via [pyperclip](https://github.com/asweigart/pyperclip)
-- Package management with [UV](https://github.com/astral-sh/uv)
+- [pystray](https://github.com/moses-palmer/pystray) - System tray integration
+- [PyAutoGUI](https://github.com/asweigart/pyautogui) - Keyboard simulation
+- [pyperclip](https://github.com/asweigart/pyperclip) - Clipboard access
+- [UV](https://github.com/astral-sh/uv) - Package management
 
 ## Support
 

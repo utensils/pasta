@@ -113,6 +113,8 @@ pasta/
    - Use mock fixtures for clipboard and keyboard operations
    - Set QT_QPA_PLATFORM=offscreen for headless GUI testing
    - Test on all target platforms (Ubuntu, Windows, macOS)
+   - Use RLock instead of Lock for reentrant locking in SettingsManager
+   - Add pytest-timeout to prevent hanging tests
 
 ### Security Requirements
 
@@ -146,19 +148,17 @@ When implementing features:
 
 ## Project Status
 
-### Completed
-- ✅ Project structure setup
-- ✅ All configuration files (pyproject.toml, pre-commit, GitHub Actions)
+### Completed Phases
 - ✅ Phase 1: Project setup and configuration
 - ✅ Phase 2: Core module tests (ClipboardManager, PastaKeyboardEngine, PermissionChecker, StorageManager)
 - ✅ Phase 3: Core module implementation
 - ✅ Phase 4: System tray tests
-- ✅ Phase 5: System tray implementation
+- ✅ Phase 5: System tray implementation with emergency stop
 - ✅ Phase 6: Settings tests and UI component tests
 - ✅ Phase 7: Settings system and UI implementation
 - ✅ Phase 8: Security and snippet system tests
 - ✅ Phase 9: Security and snippet implementation
-- ✅ Emergency stop feature (Double ESC or tray click)
+- ✅ CI/CD: All GitHub Actions passing on all platforms
 
 ### Current Features
 - **Clipboard Monitoring**: Background thread monitors clipboard changes with deduplication
@@ -171,9 +171,13 @@ When implementing features:
 - **Snippets**: Full snippet management with templates and hotkeys
 - **Emergency Stop**: Double ESC or tray click to abort operations
 
-### Known Issues
-- Settings tests hang in pytest environment (workaround: disabled auto-load in constructor)
-- Keyboard module may not be available in some test environments
+### CI/CD Status
+- ✅ All GitHub Actions passing on all platforms (Ubuntu, Windows, macOS)
+- ✅ All Python versions tested (3.9, 3.10, 3.11, 3.12)
+- ✅ 241 tests passing with proper timeouts
+- ✅ Type checking (mypy) passing on all platforms
+- ✅ Code quality checks (ruff) passing
+- ✅ Cross-platform compatibility verified
 
 ### Next Steps (per PRD)
 - [ ] Phase 10: Write end-to-end integration tests
@@ -182,3 +186,11 @@ When implementing features:
 - [ ] Phase 11: Platform-specific features (macOS, Windows, Linux)
 - [ ] Phase 12: Documentation and packaging
 - [ ] Phase 13: Final testing and release preparation
+
+## Important Reminders
+
+- When running tests, use pytest with timeout to prevent hanging: `uv run pytest --timeout=30`
+- For CI/CD issues, check all platforms (Ubuntu, Windows, macOS) separately
+- Use skipif markers for platform-specific tests that require modules not available on all platforms
+- Always run `uv run ruff check . --fix && uv run ruff format .` before committing
+- Test locally with mypy before pushing: `uv run mypy src/`
