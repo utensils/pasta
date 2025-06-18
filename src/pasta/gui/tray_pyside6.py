@@ -5,7 +5,7 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QIcon
@@ -115,7 +115,7 @@ class SystemTray(QObject):
             # Don't quit when last window is closed (we're a tray app)
             self._app.setQuitOnLastWindowClosed(False)
         else:
-            self._app = QApplication.instance()
+            self._app = cast(Optional[QApplication], QApplication.instance())
 
     def _setup_tray_icon(self) -> None:
         """Set up the system tray icon."""
