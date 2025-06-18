@@ -102,8 +102,12 @@ class PermissionChecker:
         try:
             # Type ignores needed for Windows where grp doesn't have these attributes
             input_group = grp.getgrnam("input")  # type: ignore[attr-defined]
-            user_groups = os.getgroups()
-            return input_group.gr_gid in user_groups
+            if hasattr(os, "getgroups"):
+                user_groups = os.getgroups()
+                return input_group.gr_gid in user_groups
+            else:
+                # os.getgroups() not available on Windows
+                return True
         except KeyError:
             # Input group doesn't exist - not required
             return True
