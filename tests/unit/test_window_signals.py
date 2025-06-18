@@ -1,8 +1,11 @@
 """Tests for window signals and events."""
 
+import os
+import sys
 import unittest
 from unittest.mock import MagicMock
 
+import pytest
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication
@@ -44,6 +47,9 @@ class TestWindowSignals(unittest.TestCase):
         self.assertTrue(hasattr(window, "closed"))
         self.assertIsInstance(window.closed, Signal)
 
+    @pytest.mark.skipif(
+        sys.platform != "darwin" and os.environ.get("CI") == "true", reason="Qt window tests require display or macOS environment"
+    )
     def test_settings_window_emits_closed_signal(self):
         """Test that SettingsWindow emits 'closed' signal when closed."""
         settings_manager = MagicMock(spec=SettingsManager)
@@ -70,6 +76,9 @@ class TestWindowSignals(unittest.TestCase):
             # Verify signal was emitted
             mock_slot.assert_called_once()
 
+    @pytest.mark.skipif(
+        sys.platform != "darwin" and os.environ.get("CI") == "true", reason="Qt window tests require display or macOS environment"
+    )
     def test_history_window_emits_closed_signal(self):
         """Test that HistoryWindow emits 'closed' signal when closed."""
         storage_manager = MagicMock(spec=StorageManager)
@@ -96,6 +105,9 @@ class TestWindowSignals(unittest.TestCase):
             # Verify signal was emitted
             mock_slot.assert_called_once()
 
+    @pytest.mark.skipif(
+        sys.platform != "darwin" and os.environ.get("CI") == "true", reason="Qt window tests require display or macOS environment"
+    )
     def test_window_signals_can_be_connected(self):
         """Test that window closed signals can be connected to slots."""
         settings_manager = MagicMock(spec=SettingsManager)
