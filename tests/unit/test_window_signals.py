@@ -106,9 +106,10 @@ class TestWindowSignals(unittest.TestCase):
         # Mock DockIconManager
         from unittest.mock import patch
 
-        with patch("pasta.gui.settings_pyside6_improved.DockIconManager") as mock_settings_dm, patch(
-            "pasta.gui.history_pyside6.DockIconManager"
-        ) as mock_history_dm:
+        with (
+            patch("pasta.gui.settings_pyside6_improved.DockIconManager") as mock_settings_dm,
+            patch("pasta.gui.history_pyside6.DockIconManager") as mock_history_dm,
+        ):
             mock_settings_manager = MagicMock()
             mock_history_manager = MagicMock()
             mock_settings_dm.get_instance.return_value = mock_settings_manager
