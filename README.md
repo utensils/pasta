@@ -10,11 +10,12 @@ A cross-platform system tray application that converts clipboard content into si
 
 ## Features
 
-- 🎯 **Smart Paste Modes**: Auto-detect optimal method (clipboard vs typing)
+- 📋 **Clipboard History**: Automatically saves everything you copy
+- 🔍 **Searchable History**: Find past clipboard items quickly
 - 🔒 **Security First**: Encrypts sensitive data, excludes password managers
+- 🎯 **Smart Paste Modes**: Multiple methods for different applications
 - ⚡ **Adaptive Performance**: Adjusts typing speed based on system load
-- 🛑 **Emergency Stop**: Double ESC instantly aborts any paste operation
-- 📋 **Clipboard History**: Searchable history with encryption for sensitive data
+- 🛑 **Emergency Stop**: Double ESC instantly aborts any operation
 - ✂️ **Snippet Management**: Save and organize frequently used text
 - 🎨 **Modern UI**: PySide6-based settings and history windows
 - 🌍 **Cross-Platform**: Windows, macOS, and Linux support
@@ -50,16 +51,17 @@ uv run python -m pasta
 ## Usage
 
 1. **Launch**: Pasta runs in your system tray
-2. **Copy**: Use Ctrl+C (Cmd+C on macOS) as normal
-3. **Paste**: Pasta automatically types the content
-4. **Stop**: Double ESC to abort if needed
+2. **Copy**: Use Ctrl+C (Cmd+C on macOS) - content is saved to history
+3. **View History**: Right-click tray icon → History to see clipboard items
+4. **Paste from History**: Select an item in history and click "Copy to Clipboard"
+5. **Emergency Stop**: Double ESC to abort any paste operation
 
 ### System Tray Menu
 
-- **Paste Mode**: Auto / Clipboard / Typing
-- **History**: View and search clipboard history
+- **Paste Mode**: Auto / Clipboard / Typing (for future manual paste)
+- **History**: View and search all clipboard history
 - **Settings**: Configure all options
-- **Emergency Stop**: Abort current operation
+- **Emergency Stop**: Abort current operation (when pasting)
 
 ## Development
 
@@ -96,11 +98,14 @@ uv run mypy src/
 ## Building
 
 ```bash
-# Create standalone executable
-uv run pyinstaller --onefile --windowed src/pasta/__main__.py
-
 # Package for distribution
 uv build
+
+# macOS app bundle
+./scripts/build_macos.sh
+
+# Windows/Linux executable
+uv run pyinstaller pasta.spec --clean
 ```
 
 ## Contributing

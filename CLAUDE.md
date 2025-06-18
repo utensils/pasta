@@ -161,7 +161,8 @@ When implementing features:
 - ✅ CI/CD: All GitHub Actions passing on all platforms
 
 ### Current Features
-- **Clipboard Monitoring**: Background thread monitors clipboard changes with deduplication
+- **Clipboard Monitoring**: Background thread monitors clipboard changes and saves to history
+- **Clipboard History**: All copied content saved to SQLite database with encryption
 - **Keyboard Engine**: Adaptive typing with chunking and platform-specific optimizations
 - **Permission System**: Cross-platform permission checking and request handling
 - **Storage**: SQLite-based history with encryption for sensitive data
@@ -170,6 +171,7 @@ When implementing features:
 - **Security**: Sensitive data detection, rate limiting, privacy mode
 - **Snippets**: Full snippet management with templates and hotkeys
 - **Emergency Stop**: Double ESC or tray click to abort operations
+- **macOS UI/UX**: LSUIElement support, proper Cmd+W/Q handling, native window behavior
 
 ### CI/CD Status
 - ✅ All GitHub Actions passing on all platforms (Ubuntu, Windows, macOS)
@@ -194,3 +196,6 @@ When implementing features:
 - Use skipif markers for platform-specific tests that require modules not available on all platforms
 - Always run `uv run ruff check . --fix && uv run ruff format .` before committing
 - Test locally with mypy before pushing: `uv run mypy src/`
+- Clipboard monitoring should ONLY save to history, never auto-paste
+- History should be saved even when monitoring is disabled
+- On macOS, ensure dialogs respond to Cmd+W and have proper window controls

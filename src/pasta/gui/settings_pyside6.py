@@ -353,3 +353,28 @@ class SettingsWindow(QDialog):
         """
         # Accept the close event (close only this window)
         event.accept()
+
+    def show(self) -> None:
+        """Show the settings window and bring it to the front.
+
+        This override ensures the window is always brought to the foreground
+        when opened, even if it's already visible behind other windows.
+        """
+        # Call parent show() first
+        super().show()
+
+        # Ensure window is in normal state (not minimized)
+        self.setWindowState(Qt.WindowState.WindowNoState)
+
+        # Bring window to front
+        self.raise_()
+
+        # Give window focus
+        self.activateWindow()
+
+        # Platform-specific handling
+        if sys.platform == "darwin":
+            # On macOS, we might need extra steps to ensure focus
+            # The Qt methods above should be sufficient, but if not,
+            # we could use PyObjC to call NSApp.activateIgnoringOtherApps
+            pass

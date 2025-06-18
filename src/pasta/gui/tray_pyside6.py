@@ -143,7 +143,7 @@ class SystemTray(QObject):
             self.tray_icon.setIcon(QIcon())
 
         # Set tooltip
-        self.tray_icon.setToolTip("Pasta - Clipboard to Keyboard")
+        self.tray_icon.setToolTip("Pasta - Clipboard History Manager")
 
         # Create menu
         self._create_menu()
@@ -336,7 +336,10 @@ class SystemTray(QObject):
         """Run the system tray application."""
         # Start clipboard monitoring in thread
         self._clipboard_thread.start()
-        self.clipboard_manager.start_monitoring()
+
+        # Start monitoring if enabled
+        if self.enabled:
+            self.clipboard_manager.start_monitoring()
 
         # Register hotkeys
         self.hotkey_manager.register_hotkeys()

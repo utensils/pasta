@@ -64,16 +64,22 @@ class TestSystemTrayIntegration:
             return SystemTray(**components)
 
     def test_clipboard_to_paste_flow(self, tray, components):
-        """Test full flow from clipboard change to paste."""
-        with patch.object(components["keyboard_engine"], "paste_text") as mock_paste:
+        """Test full flow from clipboard change to history storage."""
+        with (
+            patch.object(components["storage_manager"], "save_entry") as mock_save,
+            patch.object(components["keyboard_engine"], "paste_text") as mock_paste,
+        ):
             # Simulate clipboard content through the tray's handler
             test_entry = {"content": "Integration test content", "timestamp": "2024-01-01", "hash": "abc123", "type": "text"}
 
             # Call the tray's clipboard change handler directly
             tray._on_clipboard_change(test_entry)
 
-            # Verify paste was triggered
-            mock_paste.assert_called_once_with("Integration test content", method="auto")
+            # Verify entry was saved to storage (NOT pasted)
+            mock_save.assert_called_once_with(test_entry)
+
+            # Verify paste was NOT triggered (this is the fix we implemented)
+            mock_paste.assert_not_called()
 
     def test_clipboard_history_storage(self, tray, components, temp_db):
         """Test clipboard content is stored in history."""
@@ -118,26 +124,34 @@ class TestSystemTrayIntegration:
             assert tray.enabled is False
 
     def test_paste_mode_integration(self, tray, components):
-        """Test paste mode changes affect keyboard engine."""
-        with patch.object(components["keyboard_engine"], "paste_text") as mock_paste:
+        """Test paste mode setting is stored but doesn't trigger auto-paste."""
+        with (
+            patch.object(components["storage_manager"], "save_entry") as mock_save,
+            patch.object(components["keyboard_engine"], "paste_text") as mock_paste,
+        ):
             test_entry = {"content": "test", "timestamp": "2024-01-01", "hash": "abc", "type": "text"}
 
-            # Test auto mode
+            # Test auto mode - should only save to history
             tray.set_paste_mode("auto")
             tray._on_clipboard_change(test_entry)
-            mock_paste.assert_called_with("test", method="auto")
+            mock_save.assert_called_with(test_entry)
+            mock_paste.assert_not_called()
+            mock_save.reset_mock()
             mock_paste.reset_mock()
 
-            # Test clipboard mode
+            # Test clipboard mode - should only save to history
             tray.set_paste_mode("clipboard")
             tray._on_clipboard_change(test_entry)
-            mock_paste.assert_called_with("test", method="clipboard")
+            mock_save.assert_called_with(test_entry)
+            mock_paste.assert_not_called()
+            mock_save.reset_mock()
             mock_paste.reset_mock()
 
-            # Test typing mode
+            # Test typing mode - should only save to history
             tray.set_paste_mode("typing")
             tray._on_clipboard_change(test_entry)
-            mock_paste.assert_called_with("test", method="typing")
+            mock_save.assert_called_with(test_entry)
+            mock_paste.assert_not_called()
 
     def test_sensitive_data_handling(self, tray, components):
         """Test sensitive data is handled properly."""
@@ -194,19 +208,19 @@ class TestSystemTrayIntegration:
         """Test system recovers from errors."""
         test_entry = {"content": "test content", "timestamp": "2024-01-01", "hash": "abc", "type": "text"}
 
-        # Simulate keyboard engine error
-        with patch.object(components["keyboard_engine"], "paste_text", side_effect=Exception("Test error")):
+        # Simulate storage error
+        with patch.object(components["storage_manager"], "save_entry", side_effect=Exception("Test error")):
             # Should not crash
             tray._on_clipboard_change(test_entry)
 
         # System should still be functional
         assert tray.enabled is True
 
-        # Next paste should work
-        with patch.object(components["keyboard_engine"], "paste_text") as mock_paste:
+        # Next save should work
+        with patch.object(components["storage_manager"], "save_entry") as mock_save:
             test_entry2 = {"content": "another test", "timestamp": "2024-01-01", "hash": "def", "type": "text"}
             tray._on_clipboard_change(test_entry2)
-            mock_paste.assert_called_once()
+            mock_save.assert_called_once_with(test_entry2)
 
     def test_cleanup_on_quit(self, tray, components):
         """Test proper cleanup when quitting."""

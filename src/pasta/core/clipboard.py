@@ -80,9 +80,9 @@ class ClipboardManager:
             # Create entry
             entry = {
                 "content": content,
-                "timestamp": datetime.now(),
+                "timestamp": datetime.now().isoformat(),
                 "hash": content_hash,
-                "type": self._detect_content_type(content),
+                "content_type": self._detect_content_type(content),
             }
 
             # Add to history

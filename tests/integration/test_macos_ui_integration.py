@@ -137,7 +137,9 @@ class TestMacOSUIIntegration(unittest.TestCase):
     @patch("pasta.gui.tray_pyside6.QMenu")
     @patch("pasta.gui.tray_pyside6.QIcon")
     @patch("pasta.gui.tray_pyside6.QAction")
-    def test_system_tray_app_configuration(self, mock_action, mock_icon, mock_menu, mock_thread, mock_tray_icon):
+    @patch("pasta.gui.tray_pyside6.ClipboardWorker")
+    @patch("pasta.gui.tray_pyside6.HotkeyManager")
+    def test_system_tray_app_configuration(self, mock_hotkey, mock_worker, mock_action, mock_icon, mock_menu, mock_thread, mock_tray_icon):
         """Test system tray app configuration."""
         from pasta.gui.tray_pyside6 import SystemTray
 

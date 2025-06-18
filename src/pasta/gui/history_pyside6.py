@@ -188,7 +188,21 @@ class HistoryWindow(QMainWindow):
 
             # Timestamp
             timestamp = entry.get("timestamp", 0)
-            dt = datetime.fromtimestamp(timestamp)
+
+            # Handle different timestamp formats
+            if isinstance(timestamp, datetime):
+                # Already a datetime object
+                dt = timestamp
+            elif isinstance(timestamp, str):
+                # ISO format string
+                dt = datetime.fromisoformat(timestamp)
+            elif isinstance(timestamp, (int, float)):
+                # Unix timestamp
+                dt = datetime.fromtimestamp(timestamp)
+            else:
+                # Fallback to current time
+                dt = datetime.now()
+
             time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
             time_item = QTableWidgetItem(time_str)
             self.history_table.setItem(row, 2, time_item)
@@ -291,3 +305,28 @@ class HistoryWindow(QMainWindow):
         self.refresh_timer.stop()
         # Accept the close event (close only this window)
         event.accept()
+
+    def show(self) -> None:
+        """Show the history window and bring it to the front.
+
+        This override ensures the window is always brought to the foreground
+        when opened, even if it's already visible behind other windows.
+        """
+        # Call parent show() first
+        super().show()
+
+        # Ensure window is in normal state (not minimized)
+        self.setWindowState(Qt.WindowState.WindowNoState)
+
+        # Bring window to front
+        self.raise_()
+
+        # Give window focus
+        self.activateWindow()
+
+        # Platform-specific handling
+        if sys.platform == "darwin":
+            # On macOS, we might need extra steps to ensure focus
+            # The Qt methods above should be sufficient, but if not,
+            # we could use PyObjC to call NSApp.activateIgnoringOtherApps
+            pass

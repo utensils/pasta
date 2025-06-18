@@ -146,7 +146,7 @@ class TestSystemTray:
 
             # Should set icon and tooltip
             mock_tray_instance.setIcon.assert_called()
-            mock_tray_instance.setToolTip.assert_called_with("Pasta - Clipboard to Keyboard")
+            mock_tray_instance.setToolTip.assert_called_with("Pasta - Clipboard History Manager")
             mock_tray_instance.show.assert_called()
 
     def test_toggle_enabled(self, tray, mock_components):

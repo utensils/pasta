@@ -1,7 +1,7 @@
 [project]
 name = "pasta"
 version = "0.1.0"
-description = "Cross-platform clipboard to keyboard system tray application"
+description = "Cross-platform clipboard history manager with system tray interface"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}

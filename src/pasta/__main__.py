@@ -14,7 +14,7 @@ from pasta.utils.permissions import PermissionChecker
 
 def main() -> None:
     """Run the Pasta application."""
-    print("Pasta - Clipboard to Keyboard Bridge")
+    print("Pasta - Clipboard History Manager")
     print("Starting application...")
 
     # Check permissions first
@@ -64,9 +64,9 @@ def main() -> None:
     )
 
     print("\n✅ Pasta is running in the system tray!")
-    print("🍝 Copy text to clipboard and watch it being typed!")
-    print("⚡ Emergency Stop: Double ESC or click tray icon during paste")
-    print("🔧 Right-click the tray icon to access options")
+    print("🍝 Copy text to clipboard and it will be saved to history")
+    print("⚡ Emergency Stop: Double ESC or click tray icon during operations")
+    print("🔧 Right-click the tray icon to access history and options")
     print("⌨️  Press Ctrl+C to quit\n")
 
     try:
