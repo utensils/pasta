@@ -129,6 +129,10 @@ ignore_missing_imports = true
 module = "pasta.utils.permissions"
 warn_unused_ignores = false
 
+[[tool.mypy.overrides]]
+module = "pasta.core.hotkeys"
+warn_unused_ignores = false
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config --timeout=30"

@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 import pystray
 from PIL import Image
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 from pystray import Menu, MenuItem
 
@@ -66,6 +67,7 @@ class SystemTray:
 
         # Qt application for windows
         self._qt_app: Optional[QApplication] = None
+        self._init_qt_app()
 
         # Hotkey manager
         self.hotkey_manager = HotkeyManager()
@@ -82,6 +84,16 @@ class SystemTray:
 
         # Register as settings observer
         self.settings_manager.add_observer(self._on_settings_changed)
+
+    def _init_qt_app(self) -> None:
+        """Initialize Qt application if needed."""
+        if not QApplication.instance():
+            self._qt_app = QApplication([])
+            # Set application name so dialogs show "Pasta" instead of "python"
+            self._qt_app.setApplicationName("Pasta")
+            self._qt_app.setApplicationDisplayName("Pasta")
+            # Don't quit when last window is closed (we're a tray app)
+            self._qt_app.setQuitOnLastWindowClosed(False)
 
     def _create_icon(self) -> pystray.Icon:
         """Create the system tray icon.
@@ -192,12 +204,10 @@ class SystemTray:
 
     def show_history(self) -> None:
         """Show the history window."""
-        # Ensure Qt app exists
-        if not QApplication.instance():
-            self._qt_app = QApplication([])
-
         # Create and show history window
         window = HistoryWindow(self.storage_manager)
+        # Set window to delete on close so it doesn't stay in memory
+        window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         window.show()
 
         # Keep reference to prevent garbage collection
@@ -205,12 +215,10 @@ class SystemTray:
 
     def show_settings(self) -> None:
         """Show the settings window."""
-        # Ensure Qt app exists
-        if not QApplication.instance():
-            self._qt_app = QApplication([])
-
         # Create and show settings window
         window = SettingsWindow(settings_manager=self.settings_manager)
+        # Set window to delete on close so it doesn't stay in memory
+        window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         window.show()
 
         # Keep reference to prevent garbage collection
