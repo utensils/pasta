@@ -69,10 +69,7 @@
           wl-clipboard
           libevdev
           python311Packages.evdev
-        ] else [
-          # macOS/other platforms - no extra deps needed
-          # These are handled by PyAutoGUI/pyperclip
-        ];
+        ] else [];
 
         # Development tools
         devTools = with pkgs; [
@@ -102,7 +99,7 @@
           };
 
           # Packages available in the shell
-          packages = with pkgs; [
+          packages = builtins.filter (p: p != null) (with pkgs; [
             # Python and build tools
             python
             uv
@@ -119,7 +116,7 @@
             binutils
             patchelf
             # upx  # Not available on all platforms
-          ] ++ buildTools ++ guiDeps ++ platformDeps ++ devTools;
+          ] ++ buildTools ++ guiDeps ++ platformDeps ++ devTools);
 
           # Environment variables
           env = [
@@ -193,6 +190,17 @@
               name = "run-pasta";
               category = "project";
               help = "Run Pasta application";
+              command = ''
+                echo "🍝 Starting Pasta..."
+                # For GUI testing, might need to set platform
+                export QT_QPA_PLATFORM=xcb  # or wayland
+                uv run python -m pasta
+              '';
+            }
+            {
+              name = "run";
+              category = "project";
+              help = "Run Pasta application (alias for run-pasta)";
               command = ''
                 echo "🍝 Starting Pasta..."
                 # For GUI testing, might need to set platform
@@ -496,7 +504,7 @@ else:
                   echo "✅ Project ready! Run 'menu' for commands"
                   echo ""
                   echo "Quick commands:"
-                  echo "  • run-pasta  - Start the application"
+                  echo "  • run        - Start the application"
                   echo "  • test       - Run tests"
                   echo "  • lint       - Check code quality"
                   echo "  • dev        - Run with auto-reload"
