@@ -92,9 +92,11 @@ To use typing mode:
 uv sync --all-extras --dev
 uv run pre-commit install
 
-# Run tests (92% coverage)
+# Run tests
 uv run pytest
-uv run pytest --cov=pasta
+
+# Run tests with coverage report
+uv run pytest --cov=pasta --cov-report=term --cov-report=html
 
 # Code quality
 uv run ruff check . --fix
