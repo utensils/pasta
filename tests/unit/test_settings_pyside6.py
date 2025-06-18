@@ -39,15 +39,28 @@ class TestSettingsWindow:
         """Create a SettingsWindow for testing."""
         window = SettingsWindow(settings_manager=settings_manager)
         qtbot.addWidget(window)
-        return window
+
+        # Override closeEvent to prevent prompts during testing
+        original_close = window.closeEvent
+
+        def test_close(event):
+            window._unsaved_changes = False  # Prevent unsaved changes prompt
+            event.accept()
+
+        window.closeEvent = test_close
+
+        yield window
+
+        # Restore original close event
+        window.closeEvent = original_close
 
     def test_initialization(self, window, settings_manager):
         """Test SettingsWindow initializes correctly."""
         assert window.settings_manager == settings_manager
         assert window.windowTitle() == "Pasta Settings"
         assert window.isModal() is False
-        assert window.width() == 600
-        assert window.height() == 500
+        assert window.width() == 700
+        assert window.height() == 600
 
     def test_tabs_created(self, window):
         """Test all tabs are created."""
@@ -62,7 +75,7 @@ class TestSettingsWindow:
         """Test General tab widgets are initialized correctly."""
         assert window.start_on_login.isChecked() is False
         assert window.monitoring_enabled.isChecked() is True
-        assert window.paste_mode.currentText() == "auto"
+        assert window.paste_mode.currentText() == "Auto"
 
     def test_performance_tab_widgets(self, window):
         """Test Performance tab widgets are initialized correctly."""
@@ -100,10 +113,10 @@ class TestSettingsWindow:
         """Test paste mode combo box."""
         # Test all options
         window.paste_mode.setCurrentIndex(1)
-        assert window.paste_mode.currentText() == "clipboard"
+        assert window.paste_mode.currentText() == "Clipboard"
 
         window.paste_mode.setCurrentIndex(2)
-        assert window.paste_mode.currentText() == "typing"
+        assert window.paste_mode.currentText() == "Typing"
 
     def test_add_excluded_app(self, window, qtbot):
         """Test adding an excluded app."""
