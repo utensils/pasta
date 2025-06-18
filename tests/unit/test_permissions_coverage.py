@@ -1,5 +1,6 @@
 """Additional tests for PermissionChecker to improve coverage."""
 
+import platform
 from unittest.mock import Mock, patch
 
 import pytest
@@ -32,6 +33,7 @@ class TestPermissionCheckerCoverage:
             # Should still only be called once
             mock_check.assert_called_once()
 
+    @pytest.mark.skipif(platform.system() == "Windows", reason="os.getuid doesn't exist on Windows")
     @patch("platform.system", return_value="Linux")
     @patch("os.getuid", return_value=1000)  # Non-root user
     def test_linux_permission_denied(self, mock_uid, mock_system):
