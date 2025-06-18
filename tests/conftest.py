@@ -26,6 +26,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 def kill_existing_pasta_processes():
     """Kill any existing Pasta processes to prevent test interference."""
+    # Skip entirely in CI environment to avoid killing test infrastructure
+    if os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true":
+        return
+
     # Different process names to check
     process_names = ["pasta", "Pasta", "python -m pasta", "pasta.app"]
 
