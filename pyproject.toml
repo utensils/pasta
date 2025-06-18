@@ -119,6 +119,7 @@ module = [
     "pyperclip.*",
     "pyautogui.*",
     "PIL.*",
+    "keyboard.*",
 ]
 ignore_missing_imports = true
 

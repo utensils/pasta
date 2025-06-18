@@ -66,12 +66,12 @@ class StorageManager:
             with open(key_file, "rb") as f:
                 return f.read()
         else:
-            key = Fernet.generate_key()
+            key: bytes = Fernet.generate_key()
             with open(key_file, "wb") as f:
                 f.write(key)
             # Set restrictive permissions
             os.chmod(key_file, 0o600)
-            return key  # type: ignore[no-any-return]
+            return key
 
     def _init_database(self) -> None:
         """Initialize database schema."""

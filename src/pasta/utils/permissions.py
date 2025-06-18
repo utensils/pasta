@@ -3,7 +3,6 @@
 import os
 import platform
 import subprocess
-import sys
 import threading
 from typing import Optional
 
@@ -96,15 +95,11 @@ class PermissionChecker:
         Returns:
             True if user has necessary permissions
         """
-        # Early return for Windows or if grp module not available
-        if sys.platform == "win32":
-            return True
-
-        if not HAS_GRP:
+        # Check if user is in input group (for device access)
+        if not HAS_GRP or grp is None:
             return True  # Can't check without grp module, assume OK
 
         try:
-            assert grp is not None  # Type assertion for mypy
             input_group = grp.getgrnam("input")
             user_groups = os.getgroups()
             return input_group.gr_gid in user_groups
