@@ -163,6 +163,11 @@ Desktop.ini
 # UV
 uv.lock
 
+# Nix
+result
+result-*
+.direnv/
+
 # Project specific
 pasta-prd.md
 .pasta/

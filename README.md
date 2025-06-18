@@ -82,6 +82,8 @@ To use typing mode:
 
 ## Development
 
+### Using UV (Recommended)
+
 ```bash
 # Setup development environment
 uv sync --all-extras --dev
@@ -96,6 +98,41 @@ uv run ruff check . --fix
 uv run ruff format .
 uv run mypy src/
 ```
+
+### Using Nix (NixOS/Nix Package Manager)
+
+For NixOS users or those with Nix package manager installed, a development flake is provided:
+
+```bash
+# Enter development shell with all dependencies
+nix develop
+
+# Or with direnv (after 'direnv allow')
+cd pasta  # Environment loads automatically
+
+# Use the interactive menu
+menu  # Shows all available commands
+
+# Quick commands in Nix shell
+setup        # Initial project setup
+run-pasta    # Run the application
+test         # Run all tests
+lint         # Check code quality
+dev          # Run with auto-reload
+```
+
+The Nix development environment includes:
+- Python 3.11 with all dependencies
+- Qt6 and GUI libraries
+- Platform-specific tools (xdotool, xclip, etc.)
+- Development tools (ruff, mypy, pytest)
+- Pre-configured environment variables
+- Interactive command menu
+
+Available Nix shells:
+- `nix develop` - Full development environment with menu
+- `nix develop .#minimal` - Minimal shell without menu
+- `nix develop .#ci` - CI/CD environment (headless)
 
 ## Architecture
 
