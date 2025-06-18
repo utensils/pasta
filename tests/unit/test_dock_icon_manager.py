@@ -1,10 +1,17 @@
 """Tests for macOS dock icon visibility management."""
 
+import os
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 
+
+# Skip these tests in CI on non-macOS platforms to avoid AppKit import issues
+@pytest.mark.skipif(
+    sys.platform != "darwin" and os.environ.get("CI") == "true", reason="DockIconManager tests require macOS or mocked environment"
+)
 class TestDockIconManager(unittest.TestCase):
     """Test dock icon visibility management on macOS."""
 
@@ -190,6 +197,9 @@ class TestDockIconManager(unittest.TestCase):
         self.assertFalse(manager.is_visible())
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin" and os.environ.get("CI") == "true", reason="DockIconManager tests require macOS or mocked environment"
+)
 class TestDockIconIntegration(unittest.TestCase):
     """Test dock icon integration with windows."""
 

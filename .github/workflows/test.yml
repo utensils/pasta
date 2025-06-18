@@ -51,6 +51,7 @@ jobs:
         xvfb-run -a uv run pytest -v --cov=pasta --cov-report=xml --cov-report=term-missing
       env:
         QT_QPA_PLATFORM: offscreen
+        CI: true
 
     - name: Run tests with coverage (Windows/macOS)
       if: runner.os != 'Linux'
@@ -58,6 +59,7 @@ jobs:
         uv run pytest -v --cov=pasta --cov-report=xml --cov-report=term-missing
       env:
         QT_QPA_PLATFORM: offscreen
+        CI: true
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
