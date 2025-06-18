@@ -228,7 +228,9 @@ class TestSystemTrayIntegration:
         mock_qapp.instance.return_value = None
         mock_qapp.return_value = mock_app
 
-        with patch("pasta.gui.tray_pyside6.PySide6HistoryWindow") as mock_history:
+        from pasta.gui.history_pyside6 import HistoryWindow as PySide6HistoryWindow
+
+        with patch("pasta.gui.tray_pyside6.PySide6HistoryWindow", PySide6HistoryWindow) as mock_history:
             mock_window = Mock()
             mock_history.return_value = mock_window
 

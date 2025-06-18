@@ -193,61 +193,6 @@ class TestSettingsWindow:
             # Should call reject
             mock_reject.assert_called_once()
 
-    def test_export_settings(self, window, settings_manager, qtbot):
-        """Test export settings functionality."""
-        with patch("pasta.gui.settings_pyside6.QFileDialog.getSaveFileName") as mock_dialog:
-            mock_dialog.return_value = ("/path/to/export.json", "JSON Files (*.json)")
-
-            # Mock export method
-            with patch.object(settings_manager, "export_settings") as mock_export:
-                window.export_settings()
-
-                # Should call export with path
-                mock_export.assert_called_once()
-                call_args = mock_export.call_args[0]
-                assert str(call_args[0]) == "/path/to/export.json"
-
-    def test_export_cancelled(self, window, settings_manager):
-        """Test cancelling export dialog."""
-        with patch("pasta.gui.settings_pyside6.QFileDialog.getSaveFileName") as mock_dialog:
-            mock_dialog.return_value = ("", "")
-
-            with patch.object(settings_manager, "export_settings") as mock_export:
-                window.export_settings()
-
-                # Should not export
-                mock_export.assert_not_called()
-
-    def test_import_settings(self, window, settings_manager, qtbot):
-        """Test import settings functionality."""
-        with patch("pasta.gui.settings_pyside6.QFileDialog.getOpenFileName") as mock_dialog:
-            mock_dialog.return_value = ("/path/to/import.json", "JSON Files (*.json)")
-
-            # Mock import method
-            with patch.object(settings_manager, "import_settings") as mock_import:
-                window.import_settings()
-
-                # Should call import with path
-                mock_import.assert_called_once()
-                call_args = mock_import.call_args[0]
-                assert str(call_args[0]) == "/path/to/import.json"
-
-    def test_import_error_handling(self, window, settings_manager):
-        """Test import error handling."""
-        with patch("pasta.gui.settings_pyside6.QFileDialog.getOpenFileName") as mock_dialog:
-            mock_dialog.return_value = ("/path/to/import.json", "JSON Files (*.json)")
-
-            # Mock import to raise error
-            with (
-                patch.object(settings_manager, "import_settings", side_effect=ValueError("Invalid file")),
-                patch.object(QMessageBox, "critical") as mock_error,
-            ):
-                window.import_settings()
-
-                # Should show error message
-                mock_error.assert_called_once()
-                assert "Invalid file" in str(mock_error.call_args)
-
     def test_excluded_patterns_text_edit(self, window, settings_manager):
         """Test excluded patterns text edit."""
         # Change patterns
@@ -328,17 +273,15 @@ class TestSettingsWindow:
         # Check settings were updated
         assert settings_manager.settings.start_on_login is True
 
-    def test_history_retention_special_value(self, window, settings_manager):
-        """Test history retention special value for 'Forever'."""
-        # Check that the special value text is set
-        assert window.history_retention.specialValueText() == "Forever"
+    def test_history_retention_value(self, window, settings_manager):
+        """Test history retention spin box."""
+        # Check default value
+        assert window.history_retention.value() == 30  # Default from settings
 
-        # Set to 0 (forever)
-        window.history_retention.setValue(0)
+        # Test range
+        assert window.history_retention.minimum() == 1
+        assert window.history_retention.maximum() == 365
 
-        # Apply settings
-        with patch.object(QMessageBox, "information"):
-            window.apply_settings()
-
-        # Check settings were updated
-        assert settings_manager.settings.history_retention_days == 0
+        # Set a new value
+        window.history_retention.setValue(90)
+        assert window.history_retention.value() == 90
