@@ -370,7 +370,9 @@ class SettingsWindow(QMainWindow):
         # Get excluded apps
         excluded_apps = []
         for i in range(self.excluded_apps_list.count()):
-            excluded_apps.append(self.excluded_apps_list.item(i).text())
+            item = self.excluded_apps_list.item(i)
+            if item is not None:
+                excluded_apps.append(item.text())
 
         return {
             # Performance
@@ -426,7 +428,13 @@ class SettingsWindow(QMainWindow):
     def _add_excluded_app(self) -> None:
         """Add app to excluded list."""
         app_name = self.excluded_app_input.text().strip()
-        if app_name and app_name not in [self.excluded_apps_list.item(i).text() for i in range(self.excluded_apps_list.count())]:
+        existing_apps = []
+        for i in range(self.excluded_apps_list.count()):
+            item = self.excluded_apps_list.item(i)
+            if item is not None:
+                existing_apps.append(item.text())
+
+        if app_name and app_name not in existing_apps:
             self.excluded_apps_list.addItem(app_name)
             self.excluded_app_input.clear()
             self._on_setting_changed()

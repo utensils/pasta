@@ -71,7 +71,7 @@ class StorageManager:
                 f.write(key)
             # Set restrictive permissions
             os.chmod(key_file, 0o600)
-            return key  # type: ignore
+            return key  # type: ignore[no-any-return]
 
     def _init_database(self) -> None:
         """Initialize database schema."""

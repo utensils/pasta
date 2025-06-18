@@ -9,8 +9,11 @@ from typing import Optional
 
 try:
     import grp
+
+    HAS_GRP = True
 except ImportError:
     grp = None  # type: ignore[assignment]  # Not available on Windows
+    HAS_GRP = False
 
 
 class PermissionChecker:
@@ -93,11 +96,15 @@ class PermissionChecker:
         Returns:
             True if user has necessary permissions
         """
-        # Check if user is in input group (for device access)
-        if sys.platform == "win32" or grp is None:
-            return True  # Can't check on Windows, assume OK
+        # Early return for Windows or if grp module not available
+        if sys.platform == "win32":
+            return True
+
+        if not HAS_GRP:
+            return True  # Can't check without grp module, assume OK
 
         try:
+            assert grp is not None  # Type assertion for mypy
             input_group = grp.getgrnam("input")
             user_groups = os.getgroups()
             return input_group.gr_gid in user_groups
