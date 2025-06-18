@@ -66,7 +66,7 @@ class TestAppLaunch:
         )
 
         assert tray is not None
-        assert tray.icon is not None
+        assert hasattr(tray, "tray_icon")
 
     @pytest.mark.skipif(sys.platform != "darwin", reason="macOS-specific regression test")
     def test_macos_no_corefoundation_crash(self):
@@ -172,7 +172,8 @@ class TestAppLaunch:
         import contextlib
 
         with (
-            patch("pasta.gui.tray.pystray.Icon"),
+            patch("pasta.gui.tray_pyside6.QApplication"),
+            patch("pasta.gui.tray_pyside6.QSystemTrayIcon"),
             patch("pasta.gui.tray.SystemTray.run"),
             patch("pasta.utils.permissions.PermissionChecker.check_permissions", return_value=True),
             patch("sys.exit"),

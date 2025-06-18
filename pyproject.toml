@@ -24,11 +24,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "pystray>=0.19.0",
     "pyperclip>=1.8.0",
     "pyautogui>=0.9.50",
     "pillow>=10.0.0",
-    "PyQt6>=6.4.0",
+    "PySide6>=6.4.0",
     "psutil>=5.9.0",
     "cryptography>=41.0.0",
     "keyboard>=0.13.5",
@@ -116,12 +115,12 @@ strict_equality = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pystray.*",
     "pyperclip.*",
     "pyautogui.*",
     "PIL.*",
     "keyboard.*",
     "grp",
+    "PyQt6.*",
 ]
 ignore_missing_imports = true
 

@@ -245,6 +245,18 @@ class SettingsManager:
         # Move temp file to final location
         temp_path.replace(self.settings_path)
 
+    def update_settings(self, new_settings: Settings) -> None:
+        """Update settings with a new Settings object.
+
+        Args:
+            new_settings: New settings to apply
+        """
+        with self._lock:
+            self.settings = new_settings
+
+        # Notify observers
+        self._notify_observers()
+
     def update(self, **kwargs: Any) -> None:
         """Update specific settings.
 

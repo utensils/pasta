@@ -283,6 +283,24 @@ class StorageManager:
             )
             conn.commit()
 
+    def get_history(self, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
+        """Get clipboard history entries.
+
+        Args:
+            limit: Maximum number of entries to return
+            offset: Number of entries to skip
+
+        Returns:
+            List of history entries
+        """
+        return self.get_entries(limit=limit, offset=offset)
+
+    def clear_history(self) -> None:
+        """Clear all clipboard history."""
+        with self._lock, self._get_connection() as conn:
+            conn.execute("DELETE FROM clipboard_history")
+            conn.commit()
+
     def get_statistics(self) -> dict[str, Any]:
         """Get storage statistics.
 

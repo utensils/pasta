@@ -1,20 +1,5 @@
-"""History window for viewing clipboard history."""
+"""History window for viewing clipboard history - redirects to PySide6 implementation."""
 
-from PyQt6.QtWidgets import QMainWindow
+from pasta.gui.history_pyside6 import HistoryWindow  # noqa: F401
 
-from pasta.core.storage import StorageManager
-
-
-class HistoryWindow(QMainWindow):
-    """Window for viewing clipboard history."""
-
-    def __init__(self, storage_manager: StorageManager) -> None:
-        """Initialize the history window.
-
-        Args:
-            storage_manager: StorageManager instance
-        """
-        super().__init__()
-        self.storage_manager = storage_manager
-        self.setWindowTitle("Pasta - History")
-        self.resize(600, 400)
+__all__ = ["HistoryWindow"]
