@@ -835,6 +835,18 @@ class SettingsWindow(QDialog):
         else:
             event.accept()
 
+    def show(self) -> None:
+        """Show the dialog and bring it to front."""
+        # Call parent show
+        super().show()
+
+        # Ensure window is not minimized
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+
+        # Bring window to front
+        self.raise_()
+        self.activateWindow()
+
     def _apply_stylesheet(self) -> None:
         """Apply modern stylesheet to the window."""
         self.setStyleSheet(
