@@ -149,7 +149,7 @@ warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config --timeout=30"
+addopts = "-ra --strict-markers --strict-config --timeout=30"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"

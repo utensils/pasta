@@ -96,7 +96,7 @@ uv run pre-commit install
 uv run pytest
 
 # Run tests with coverage report
-uv run pytest --cov=src/pasta --cov-report=term --cov-report=html
+uv run pytest -v --cov=src/pasta --cov-report=term-missing --cov-report=html
 
 # Code quality
 uv run ruff check . --fix
