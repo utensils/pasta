@@ -7,7 +7,7 @@ import webbrowser
 from pathlib import Path
 from typing import Any, Optional, cast
 
-from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
@@ -243,7 +243,7 @@ class SystemTray(QObject):
         # Paste last item
         paste_action = QAction(f"Paste Last Item ({self.paste_mode})", self)
         paste_action.setEnabled(self.enabled)
-        paste_action.triggered.connect(self.paste_last_item)
+        paste_action.triggered.connect(lambda: QTimer.singleShot(100, self.paste_last_item))
         menu.addAction(paste_action)
 
         # Enabled toggle
@@ -325,8 +325,11 @@ class SystemTray(QObject):
             return
 
         entry = entries[0]
-        if entry.get("content_type") == "text" and entry.get("content"):
-            with contextlib.suppress(Exception):
+        content_type = entry.get("content_type")
+        if content_type in ("text", "multiline", "large_text") and entry.get("content"):
+            # Note: The menu action is already deferred by QTimer.singleShot
+            # which allows the menu to close and focus to return properly
+            try:
                 # Determine paste method based on mode
                 if self.paste_mode == "typing":
                     self.keyboard_engine.paste_text(entry["content"], method="typing")
@@ -335,6 +338,9 @@ class SystemTray(QObject):
                 else:
                     # Auto mode - use clipboard by default
                     self.keyboard_engine.paste_text(entry["content"], method="clipboard")
+            except Exception:
+                # Silently handle exceptions to avoid disrupting user experience
+                pass
 
     def toggle_enabled(self) -> None:
         """Toggle paste functionality on/off."""

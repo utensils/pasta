@@ -157,8 +157,15 @@ class PastaKeyboardEngine:
             Success status
         """
         try:
+            # Normalize line endings (handle \r\n and \r)
+            text = text.replace("\r\n", "\n").replace("\r", "\n")
+
             # Handle multiline text
             lines = text.split("\n")
+
+            # Small delay before starting to type (helps with focus issues)
+            if len(lines) > 1:
+                time.sleep(0.2)  # Increased delay for multi-line
 
             for i, line in enumerate(lines):
                 # Type line in chunks
@@ -184,7 +191,11 @@ class PastaKeyboardEngine:
 
                 # Add newline if not last line
                 if i < len(lines) - 1:
+                    # Small delay before pressing enter for multi-line
+                    time.sleep(0.05)
                     pyautogui.press("enter")
+                    # Small delay after enter to ensure it registers
+                    time.sleep(0.05)
 
             return True
         except Exception:
