@@ -291,7 +291,7 @@ print('Check your system tray for the Pasta icon.')
 
             # Testing Commands
             {
-              name = "test";
+              name = "run-tests";
               category = "testing";
               help = "Run all tests";
               command = "uv run pytest -xvs";
@@ -504,7 +504,7 @@ else:
                   echo ""
                   echo "Quick commands:"
                   echo "  • run        - Start the application"
-                  echo "  • test       - Run tests"
+                  echo "  • run-tests  - Run tests"
                   echo "  • lint       - Check code quality"
                   echo "  • dev        - Run with auto-reload"
                 else
