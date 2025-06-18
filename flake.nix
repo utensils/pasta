@@ -294,19 +294,37 @@ print('Check your system tray for the Pasta icon.')
               name = "run-tests";
               category = "testing";
               help = "Run all tests";
-              command = "uv run pytest -xvs";
+              command = ''
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
+                export QT_QPA_PLATFORM=offscreen
+                uv run pytest -xvs
+              '';
             }
             {
               name = "test-unit";
               category = "testing";
               help = "Run unit tests only";
-              command = "uv run pytest tests/unit/ -xvs";
+              command = ''
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
+                export QT_QPA_PLATFORM=offscreen
+                uv run pytest tests/unit/ -xvs
+              '';
             }
             {
               name = "test-integration";
               category = "testing";
               help = "Run integration tests";
-              command = "uv run pytest tests/integration/ -xvs";
+              command = ''
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
+                export QT_QPA_PLATFORM=offscreen
+                uv run pytest tests/integration/ -xvs
+              '';
             }
             {
               name = "test-gui";
@@ -314,6 +332,9 @@ print('Check your system tray for the Pasta icon.')
               help = "Run GUI tests";
               command = ''
                 echo "🖥️ Running GUI tests..."
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
                 uv run pytest tests/unit/test_*pyside6*.py -xvs
               '';
@@ -322,7 +343,13 @@ print('Check your system tray for the Pasta icon.')
               name = "test-cov";
               category = "testing";
               help = "Run tests with coverage report";
-              command = "uv run pytest --cov=pasta --cov-report=html --cov-report=term";
+              command = ''
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
+                export QT_QPA_PLATFORM=offscreen
+                uv run pytest --cov=pasta --cov-report=html --cov-report=term
+              '';
             }
             {
               name = "test-watch";
@@ -330,7 +357,8 @@ print('Check your system tray for the Pasta icon.')
               help = "Run tests in watch mode";
               command = ''
                 if command -v entr &> /dev/null; then
-                  find src tests -name "*.py" | entr -c uv run pytest -xvs
+                  # Unset Qt paths to avoid conflicts with venv PySide6
+                  find src tests -name "*.py" | entr -c bash -c "unset QT_PLUGIN_PATH; unset QT_QPA_PLATFORM_PLUGIN_PATH; export QT_QPA_PLATFORM=offscreen; uv run pytest -xvs"
                 else
                   echo "Install entr for watch mode (already in shell)"
                 fi
@@ -421,6 +449,9 @@ print('Check your system tray for the Pasta icon.')
                 uv run mypy src/
                 echo ""
                 echo "🧪 Running tests..."
+                # Unset Qt paths to avoid conflicts with venv PySide6
+                unset QT_PLUGIN_PATH
+                unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
                 uv run pytest
                 echo ""
