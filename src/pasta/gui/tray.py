@@ -14,6 +14,7 @@ from pystray import Menu, MenuItem
 from pasta.core.clipboard import ClipboardManager
 from pasta.core.hotkeys import HotkeyManager
 from pasta.core.keyboard import PastaKeyboardEngine
+from pasta.core.settings import Settings, SettingsManager
 from pasta.core.storage import StorageManager
 from pasta.gui.history import HistoryWindow
 from pasta.gui.settings import SettingsWindow
@@ -41,6 +42,7 @@ class SystemTray:
         keyboard_engine: PastaKeyboardEngine,
         storage_manager: StorageManager,
         permission_checker: PermissionChecker,
+        settings_manager: Optional[SettingsManager] = None,
     ) -> None:
         """Initialize the SystemTray.
 
@@ -49,15 +51,17 @@ class SystemTray:
             keyboard_engine: PastaKeyboardEngine instance
             storage_manager: StorageManager instance
             permission_checker: PermissionChecker instance
+            settings_manager: SettingsManager instance (optional)
         """
         self.clipboard_manager = clipboard_manager
         self.keyboard_engine = keyboard_engine
         self.storage_manager = storage_manager
         self.permission_checker = permission_checker
+        self.settings_manager = settings_manager or SettingsManager()
 
-        # State
-        self.enabled = True
-        self.paste_mode = "auto"
+        # State - use settings
+        self.enabled = self.settings_manager.settings.monitoring_enabled
+        self.paste_mode = self.settings_manager.settings.paste_mode
         self._lock = threading.Lock()
 
         # Qt application for windows
@@ -75,6 +79,9 @@ class SystemTray:
 
         # Set up icon click handler
         self.icon.on_clicked = self._on_icon_clicked
+
+        # Register as settings observer
+        self.settings_manager.add_observer(self._on_settings_changed)
 
     def _create_icon(self) -> pystray.Icon:
         """Create the system tray icon.
@@ -203,7 +210,7 @@ class SystemTray:
             self._qt_app = QApplication([])
 
         # Create and show settings window
-        window = SettingsWindow()
+        window = SettingsWindow(settings_manager=self.settings_manager)
         window.show()
 
         # Keep reference to prevent garbage collection
@@ -257,3 +264,19 @@ class SystemTray:
         # If pasting, emergency stop
         if self.keyboard_engine.is_pasting():
             self._on_emergency_stop()
+
+    def _on_settings_changed(self, settings: Settings) -> None:
+        """Handle settings changes.
+
+        Args:
+            settings: Updated Settings instance
+        """
+        # Update state from settings
+        self.enabled = settings.monitoring_enabled
+        self.paste_mode = settings.paste_mode
+
+        # Update hotkeys
+        self.hotkey_manager.abort_hotkey = settings.emergency_stop_hotkey
+
+        # Update menu
+        self._update_icon()

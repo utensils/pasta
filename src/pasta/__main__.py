@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pasta.core.clipboard import ClipboardManager
 from pasta.core.keyboard import PastaKeyboardEngine
+from pasta.core.settings import SettingsManager
 from pasta.core.storage import StorageManager
 from pasta.gui.tray import SystemTray
 from pasta.utils.permissions import PermissionChecker
@@ -49,12 +50,17 @@ def main() -> None:
 
     storage_manager = StorageManager(db_path)
 
+    # Create settings manager
+    settings_manager = SettingsManager()
+    settings_manager.load()  # Load saved settings
+
     # Create system tray
     tray = SystemTray(
         clipboard_manager=clipboard_manager,
         keyboard_engine=keyboard_engine,
         storage_manager=storage_manager,
         permission_checker=permission_checker,
+        settings_manager=settings_manager,
     )
 
     print("\n✅ Pasta is running in the system tray!")
