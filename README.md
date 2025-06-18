@@ -14,6 +14,9 @@ A cross-platform system tray application that converts clipboard content into si
 - ✅ Cross-platform permission handling
 - ✅ Secure storage with encryption
 - ✅ System tray integration
+- ✅ Settings UI with comprehensive configuration
+- ✅ Security features (sensitive data detection, rate limiting, privacy mode)
+- ✅ Snippet management system
 
 ## Features
 
@@ -26,6 +29,9 @@ A cross-platform system tray application that converts clipboard content into si
 - ⏱️ **Rate Limiting**: Prevents abuse with configurable limits
 - 💼 **System Tray Integration**: Minimal UI that stays out of your way
 - ⚡ **Emergency Stop**: Double ESC or click tray icon to instantly abort pasting
+- ⚙️ **Settings UI**: Configure all aspects of Pasta through an intuitive interface
+- 🔍 **Sensitive Data Detection**: Automatically identifies and protects sensitive information
+- 📝 **Snippet Management**: Save and organize frequently used text snippets
 
 ## Installation
 
@@ -90,8 +96,8 @@ uv run python test_pasta.py
 - **Paste Mode**: Choose between Auto/Clipboard/Typing methods
 - **Enabled**: Toggle Pasta on/off
 - **Emergency Stop**: Abort current paste operation
-- **History**: View clipboard history (coming soon)
-- **Settings**: Configure Pasta (coming soon)
+- **History**: View clipboard history
+- **Settings**: Configure Pasta
 - **About**: Project information
 - **Quit**: Exit Pasta
 
@@ -99,13 +105,29 @@ uv run python test_pasta.py
 
 - **Double ESC**: Emergency stop (abort current paste)
 
-## Configuration (Coming Soon)
+## Configuration
 
-Planned settings:
-- **Typing Speed**: Adjust character-per-second rate
-- **History Size**: Number of clipboard entries to keep
-- **Privacy Mode**: Temporarily disable all monitoring
-- **Excluded Apps**: Applications to ignore for clipboard monitoring
+Access settings through the system tray menu → Settings:
+
+### Performance Settings
+- **Typing Speed**: Adjust character-per-second rate (1-1000)
+- **Chunk Size**: Size of text chunks for typing (10-1000 characters)
+- **Adaptive Delay**: Automatically adjust speed based on system load
+
+### History Settings
+- **History Size**: Number of clipboard entries to keep (1-10000)
+- **Retention Days**: How long to keep history (0 for forever)
+- **Encrypt Sensitive**: Automatically encrypt sensitive clipboard data
+
+### Privacy Settings
+- **Privacy Mode**: Temporarily disable all clipboard monitoring
+- **Excluded Apps**: Applications to ignore (e.g., password managers)
+- **Excluded Patterns**: Regex patterns to exclude from capture
+
+### Hotkey Configuration
+- **Emergency Stop**: Default: Double ESC
+- **Quick Paste**: Assignable hotkey for quick paste
+- **Toggle Monitoring**: Assignable hotkey to enable/disable monitoring
 
 ## Development
 
