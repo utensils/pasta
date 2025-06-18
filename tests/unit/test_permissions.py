@@ -1,6 +1,7 @@
 """Tests for the PermissionChecker module."""
 
 import subprocess
+import sys
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -105,6 +106,7 @@ class TestPermissionChecker:
         # Should not raise exception
         checker.request_permissions()
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="grp module not available on Windows")
     @patch("platform.system", return_value="Linux")
     @patch("os.getgroups")
     @patch("grp.getgrnam")
@@ -119,6 +121,7 @@ class TestPermissionChecker:
 
         assert result is True
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="grp module not available on Windows")
     @patch("platform.system", return_value="Linux")
     @patch("os.getgroups")
     @patch("grp.getgrnam")
@@ -133,6 +136,7 @@ class TestPermissionChecker:
 
         assert result is False
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="grp module not available on Windows")
     @patch("platform.system", return_value="Linux")
     @patch("grp.getgrnam")
     def test_linux_input_group_not_exists(self, mock_getgrnam, mock_system):

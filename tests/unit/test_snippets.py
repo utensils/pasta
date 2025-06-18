@@ -98,8 +98,13 @@ class TestSnippet:
 
     def test_snippet_update(self):
         """Test updating snippet."""
+        import time
+
         snippet = Snippet(name="Test", content="Content")
         original_updated = snippet.updated_at
+
+        # Small delay to ensure timestamp difference
+        time.sleep(0.001)
 
         # Update content
         snippet.update(content="New Content", tags=["new"])
