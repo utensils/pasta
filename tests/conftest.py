@@ -63,6 +63,9 @@ def kill_existing_pasta_processes():
                 lines = result.stdout.strip().split("\n")
                 for line in lines:
                     if "pasta" in line.lower() and "__main__" in line:
+                        # Don't kill test processes
+                        if any(skip in line.lower() for skip in ["pytest", "test", "coverage"]):
+                            continue
                         # Extract PID from line
                         parts = line.split()
                         if parts:
@@ -77,16 +80,18 @@ def kill_existing_pasta_processes():
                 lines = result.stdout.strip().split("\n")
                 for line in lines:
                     if "python" in line and ("pasta" in line or "pasta/__main__.py" in line):
-                        # Don't kill the test runner itself
-                        if "pytest" in line:
+                        # Don't kill the test runner itself or CI processes
+                        if any(skip in line for skip in ["pytest", "xvfb", "coverage", "cov", "test"]):
                             continue
-                        # Extract PID (second column)
-                        parts = line.split()
-                        if len(parts) > 1:
-                            pid = parts[1]
-                            if pid.isdigit():
-                                with contextlib.suppress(ProcessLookupError, PermissionError):
-                                    os.kill(int(pid), signal.SIGTERM)
+                        # Only kill if it's actually running the pasta module
+                        if "-m pasta" in line or "pasta/__main__.py" in line:
+                            # Extract PID (second column)
+                            parts = line.split()
+                            if len(parts) > 1:
+                                pid = parts[1]
+                                if pid.isdigit():
+                                    with contextlib.suppress(ProcessLookupError, PermissionError):
+                                        os.kill(int(pid), signal.SIGTERM)
     except Exception:
         # Silently ignore any errors
         pass
