@@ -195,10 +195,10 @@ class SettingsManager:
 
         self.settings = Settings()
         self.observers: list[Callable[[Settings], None]] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # Use RLock to allow reentrant locking
 
         # Load existing settings
-        # Don't auto-load in constructor to avoid issues with tests
+        # Don't auto-load in constructor to match test expectations
         # self.load()
 
     def load(self) -> None:
@@ -230,7 +230,7 @@ class SettingsManager:
 
     def save(self) -> None:
         """Save settings to file."""
-        # Get data under lock
+        # RLock allows reentrant locking
         with self._lock:
             data = self.settings.to_dict()
 

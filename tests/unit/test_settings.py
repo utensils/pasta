@@ -280,6 +280,7 @@ class TestSettingsManager:
         temp_settings_file.write_text(json.dumps(old_data))
 
         manager = SettingsManager(settings_path=temp_settings_file)
+        manager.load()  # Need to explicitly load
 
         # Should migrate old fields
         assert manager.settings.typing_speed == 150
@@ -365,6 +366,7 @@ class TestSettingsManager:
         temp_settings_file.write_text(json.dumps(partial_data))
 
         manager = SettingsManager(settings_path=temp_settings_file)
+        manager.load()  # Need to explicitly load
 
         # Should load provided values
         assert manager.settings.typing_speed == 200
