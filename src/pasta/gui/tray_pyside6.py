@@ -123,9 +123,9 @@ class SystemTray(QObject):
                 try:
                     # Try to set the app to run as accessory (no dock icon)
                     # This only works when running as a proper app bundle
-                    from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
+                    import AppKit  # type: ignore[import-untyped]
 
-                    NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+                    AppKit.NSApplication.sharedApplication().setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
                 except ImportError:
                     # PyObjC not available, will rely on Info.plist LSUIElement
                     pass
