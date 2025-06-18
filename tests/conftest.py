@@ -1,7 +1,11 @@
 """Pytest configuration and shared fixtures."""
 
+import contextlib
 import os
+import signal
+import subprocess
 import sys
+import time
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, Mock
@@ -18,6 +22,102 @@ sys.modules["keyboard"] = keyboard_mock
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+
+def kill_existing_pasta_processes():
+    """Kill any existing Pasta processes to prevent test interference."""
+    # Different process names to check
+    process_names = ["pasta", "Pasta", "python -m pasta", "pasta.app"]
+
+    if sys.platform == "darwin":  # macOS
+        for name in process_names:
+            with contextlib.suppress(subprocess.SubprocessError):
+                # Use pkill to find and kill processes
+                subprocess.run(["pkill", "-f", name], capture_output=True, text=True)
+
+        # Also check for the app bundle
+        with contextlib.suppress(subprocess.SubprocessError):
+            # Kill by app bundle identifier if running as .app
+            subprocess.run(["pkill", "-f", "pasta.app/Contents/MacOS/pasta"], capture_output=True, text=True)
+
+    elif sys.platform == "win32":  # Windows
+        for name in process_names:
+            with contextlib.suppress(subprocess.SubprocessError):
+                # Use taskkill to find and kill processes
+                subprocess.run(["taskkill", "/F", "/IM", f"{name}.exe"], capture_output=True, text=True)
+
+    else:  # Linux and others
+        for name in process_names:
+            with contextlib.suppress(subprocess.SubprocessError):
+                # Use pkill to find and kill processes
+                subprocess.run(["pkill", "-f", name], capture_output=True, text=True)
+
+    # Also try to find Python processes running pasta module
+    try:
+        if sys.platform == "win32":
+            # Windows: find python processes with pasta in command line
+            result = subprocess.run(
+                ["wmic", "process", "where", "name='python.exe'", "get", "processid,commandline"], capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                lines = result.stdout.strip().split("\n")
+                for line in lines:
+                    if "pasta" in line.lower() and "__main__" in line:
+                        # Extract PID from line
+                        parts = line.split()
+                        if parts:
+                            pid = parts[-1]
+                            if pid.isdigit():
+                                with contextlib.suppress(subprocess.SubprocessError):
+                                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+        else:
+            # Unix-like: use ps and grep
+            result = subprocess.run(["ps", "aux"], capture_output=True, text=True)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split("\n")
+                for line in lines:
+                    if "python" in line and ("pasta" in line or "pasta/__main__.py" in line):
+                        # Don't kill the test runner itself
+                        if "pytest" in line:
+                            continue
+                        # Extract PID (second column)
+                        parts = line.split()
+                        if len(parts) > 1:
+                            pid = parts[1]
+                            if pid.isdigit():
+                                with contextlib.suppress(ProcessLookupError, PermissionError):
+                                    os.kill(int(pid), signal.SIGTERM)
+    except Exception:
+        # Silently ignore any errors
+        pass
+
+    # Wait a moment for processes to terminate
+    time.sleep(0.5)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_no_pasta_running():
+    """Ensure no Pasta instances are running before tests start."""
+    print("\n🔍 Checking for existing Pasta processes...")
+    kill_existing_pasta_processes()
+    print("✅ Ready to run tests")
+
+    yield
+
+    # Optionally kill again after tests (in case tests leave processes running)
+    kill_existing_pasta_processes()
+
+
+@pytest.fixture(scope="function")
+def cleanup_pasta_processes():
+    """Fixture to kill Pasta processes before and after individual tests that launch the app."""
+    # Kill before test
+    kill_existing_pasta_processes()
+
+    yield
+
+    # Kill after test
+    kill_existing_pasta_processes()
 
 
 @pytest.fixture
@@ -157,3 +257,33 @@ def reset_keyboard_mock():
     keyboard_mock.add_hotkey.reset_mock()
     keyboard_mock.remove_hotkey.reset_mock()
     yield
+
+
+# Qt-specific configuration
+def pytest_configure(config):
+    """Configure pytest for Qt testing."""
+    # Set Qt to use offscreen platform for headless testing
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
+    # Disable Qt accessibility features that might interfere
+    os.environ["QT_ACCESSIBILITY"] = "0"
+
+    # Set a consistent Qt style
+    os.environ["QT_STYLE_OVERRIDE"] = "fusion"
+
+
+# Add markers
+def pytest_collection_modifyitems(config, items):
+    """Add markers to test items."""
+    for item in items:
+        # Mark integration tests
+        if "integration" in str(item.fspath):
+            item.add_marker(pytest.mark.integration)
+
+        # Mark unit tests
+        elif "unit" in str(item.fspath):
+            item.add_marker(pytest.mark.unit)
+
+        # Mark tests that require display
+        if "gui" in item.name or "window" in item.name or "tray" in item.name:
+            item.add_marker(pytest.mark.gui)

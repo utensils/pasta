@@ -15,6 +15,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 class TestAppLaunch:
     """Test cases for app launch and initialization."""
 
+    @pytest.fixture(autouse=True)
+    def setup(self, cleanup_pasta_processes):
+        """Ensure no Pasta processes are running before each test."""
+        # The cleanup_pasta_processes fixture handles killing processes
+        pass
+
     def test_components_can_initialize(self):
         """Test that all components can be initialized without crashing."""
         from pasta.core.clipboard import ClipboardManager
