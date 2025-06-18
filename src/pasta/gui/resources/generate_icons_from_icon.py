@@ -1,4 +1,4 @@
-"""Generate icons from logo.png for Pasta application."""
+"""Generate icons from icon.png for Pasta application."""
 
 import os
 import subprocess
@@ -7,10 +7,10 @@ from PIL import Image
 
 
 def create_icon_set_from_logo(logo_path: str) -> None:
-    """Create all required icons from the logo.
+    """Create all required icons from the icon.
 
     Args:
-        logo_path: Path to the logo.png file
+        logo_path: Path to the icon.png file
     """
     # Load the logo
     logo = Image.open(logo_path)
@@ -100,12 +100,12 @@ def create_macos_icns(logo: Image.Image) -> None:
 
 
 def main() -> None:
-    """Generate all required icons from logo."""
-    logo_path = "logo.png"
+    """Generate all required icons from icon."""
+    logo_path = "icon.png"  # Use icon.png for app icons (no text)
 
     if not os.path.exists(logo_path):
         print(f"Error: {logo_path} not found!")
-        print("Make sure logo.png is in the same directory as this script.")
+        print("Make sure icon.png is in the same directory as this script.")
         return
 
     create_icon_set_from_logo(logo_path)
