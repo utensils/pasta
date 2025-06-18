@@ -17,10 +17,15 @@
 
         # Python 3.11 with common build dependencies
         python = pkgs.python311;
+        pythonWithPackages = pkgs.python311.withPackages (ps: with ps; [
+          pip
+          wheel
+          setuptools
+        ]);
 
         # Build tools for native extensions
         buildTools = with pkgs; [
-          gcc
+          # gcc is included via stdenv, no need to add it explicitly
           gnumake
           pkg-config
           openssl
@@ -101,19 +106,13 @@
           # Packages available in the shell
           packages = builtins.filter (p: p != null) (with pkgs; [
             # Python and build tools
-            python
+            # Use the python with packages instead of bare python to avoid conflicts
+            pythonWithPackages
             uv
             ruff
 
-            # Install UV via pip for now
-            (python311.withPackages (ps: with ps; [
-              pip
-              wheel
-              setuptools
-            ]))
-
             # PyInstaller dependencies
-            binutils
+            # binutils is included via stdenv
             patchelf
             # upx  # Not available on all platforms
           ] ++ buildTools ++ guiDeps ++ platformDeps ++ devTools);
@@ -521,7 +520,7 @@ else:
         # Alternative shell with minimal setup (no devshell menu)
         devShells.minimal = pkgs.mkShell {
           buildInputs = with pkgs; [
-            python
+            pythonWithPackages
             uv
             ruff
           ] ++ buildTools ++ guiDeps ++ platformDeps ++ devTools;
@@ -545,7 +544,7 @@ else:
         # Shell specifically for CI/CD environments
         devShells.ci = pkgs.mkShell {
           buildInputs = with pkgs; [
-            python
+            pythonWithPackages
             uv
             ruff
           ] ++ buildTools ++ guiDeps;
