@@ -108,6 +108,12 @@ class SystemTray(QObject):
     def _init_qt_app(self) -> None:
         """Initialize Qt application if needed."""
         if QApplication.instance() is None:
+            # Set platform plugin explicitly for macOS
+            if sys.platform == "darwin":
+                import os
+
+                os.environ["QT_QPA_PLATFORM"] = "cocoa"
+
             self._app = QApplication(sys.argv)
             # Set application name so dialogs show "Pasta" instead of "python"
             self._app.setApplicationName("Pasta")

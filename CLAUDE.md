@@ -203,3 +203,4 @@ When implementing features:
 - Clipboard monitoring should ONLY save to history, never auto-paste
 - History should be saved even when monitoring is disabled
 - On macOS, ensure dialogs respond to Cmd+W and have proper window controls
+- Qt platform plugin is explicitly set to "cocoa" on macOS to prevent XCB errors in nix environments
