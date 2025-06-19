@@ -178,13 +178,14 @@ When implementing features:
   - "Paste Last Item" menu option respects current paste mode
 
 ### CI/CD Status
-- ✅ All GitHub Actions passing on all platforms (Ubuntu, Windows, macOS)
+- ✅ Core tests passing on all platforms (Ubuntu, Windows, macOS)
 - ✅ All Python versions tested (3.9, 3.10, 3.11, 3.12)
-- ✅ 617+ tests passing with 92% code coverage
+- ✅ 600+ tests passing with 92% code coverage
 - ✅ Type checking (mypy) passing on all platforms
 - ✅ Code quality checks (ruff) passing
 - ✅ Cross-platform compatibility verified
 - ✅ Security module fully implemented and tested
+- ⚠️ Some macOS UI tests have Qt platform issues (non-critical)
 
 ### Next Steps (per PRD)
 - [x] Phase 10: Write end-to-end integration tests ✅ (97 tests passing)
