@@ -87,7 +87,9 @@ def get_active_window_title() -> str:
             try:
                 import ctypes
 
-                user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+                # Windows-specific ctypes access
+                # mypy on non-Windows platforms doesn't know about windll
+                user32 = ctypes.windll.user32  # type: ignore[attr-defined, unused-ignore]
 
                 hwnd = user32.GetForegroundWindow()
                 length = user32.GetWindowTextLengthW(hwnd) + 1
