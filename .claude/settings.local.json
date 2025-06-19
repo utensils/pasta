@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(ls:*)",
+      "Bash(uv run coverage:*)"
+    ],
+    "deny": []
+  }
+}

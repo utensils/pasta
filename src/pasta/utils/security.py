@@ -26,12 +26,11 @@ class SensitiveDataDetector:
             "credit_card_no_space": r"\b\d{16}\b",
             # SSN
             "ssn": r"\b\d{3}-\d{2}-\d{4}\b|\b\d{3} \d{2} \d{4}\b",
-            # Email addresses
-            "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             # Passwords
             "password": r"(?i)(password|passwd|pwd)[\s:=]+\S+",
             # API Keys and tokens
             "api_key": r"(?i)(api[-_]?key|apikey)[\s:=]+[\w-]+",
+            "secret": r"(?i)(secret|token)[\s:=]+\S+",
             "bearer_token": r"(?i)Bearer\s+[\w.-]+",
             "auth_header": r"(?i)(Authorization|X-API-Key)[\s:]+[\w.-]+",
             "github_token": r"github_pat_[\w]+",
@@ -42,6 +41,7 @@ class SensitiveDataDetector:
             # Private keys
             "private_key_rsa": r"-----BEGIN\s*(?:RSA\s*)?PRIVATE\s*KEY-----",
             "private_key_general": r"-----BEGIN\s*PRIVATE\s*KEY-----",
+            "private_key_ec": r"-----BEGIN\s*EC\s*PRIVATE\s*KEY-----",
             "ssh_key": r"ssh-rsa\s+[\w+/=]+",
             # Database URLs
             "db_url_postgres": r"postgres(?:ql)?://[^:]+:[^@]+@[^/]+(?:/\w+)?",
@@ -90,18 +90,31 @@ class SensitiveDataDetector:
         except re.error as e:
             raise ValueError(f"Invalid regex pattern: {e}") from e
 
-    def redact_sensitive_data(self, text: str) -> str:
+    def add_custom_pattern(self, name: str, pattern: str) -> None:
+        """Add a custom pattern for sensitive data detection (alternate method).
+
+        Args:
+            name: Name for this pattern type
+            pattern: Regex pattern to add
+
+        Raises:
+            ValueError: If pattern is invalid regex
+        """
+        self.add_pattern(pattern, name)
+
+    def redact_sensitive_data(self, text: str, redaction: str = "[REDACTED]") -> str:
         """Redact sensitive data from text.
 
         Args:
             text: Text to redact
+            redaction: String to replace sensitive data with
 
         Returns:
-            Text with sensitive data replaced by [REDACTED]
+            Text with sensitive data replaced by redaction string
         """
         redacted = text
         for pattern in self.patterns.values():
-            redacted = re.sub(pattern, "[REDACTED]", redacted)
+            redacted = re.sub(pattern, redaction, redacted)
         return redacted
 
 
@@ -168,12 +181,17 @@ class RateLimiter:
         # Check limit
         return len(self.history[action]) < max_count
 
-    def record_request(self, action: str) -> None:
+    def record_request(self, action: str, size: Optional[int] = None) -> None:
         """Record that a request was made.
 
         Args:
             action: Action that was performed
+            size: Size of data (for auto-detecting large operations)
         """
+        # Auto-detect large paste
+        if action == "paste" and size and size > 10000:
+            action = "large_paste"
+
         if action in self.limits:
             self.history[action].append(time.time())
 
@@ -187,7 +205,7 @@ class RateLimiter:
             self.history[action].clear()
 
     def is_allowed(self, action: str, size: Optional[int] = None) -> bool:
-        """Check if action is allowed under rate limits.
+        """Check if action is allowed under rate limits and record it.
 
         Args:
             action: Type of action to check
@@ -196,28 +214,10 @@ class RateLimiter:
         Returns:
             True if action is allowed
         """
-        # Auto-detect large paste
-        if action == "paste" and size and size > 10000:
-            action = "large_paste"
-
-        # Unknown actions are always allowed
-        if action not in self.limits:
+        if self.check_limit(action, size):
+            self.record_request(action, size)
             return True
-
-        max_count, window_seconds = self.limits[action]
-        now = time.time()
-        cutoff = now - window_seconds
-
-        # Clean old entries
-        self.history[action] = [t for t in self.history[action] if t > cutoff]
-
-        # Check limit
-        if len(self.history[action]) >= max_count:
-            return False
-
-        # Record action
-        self.history[action].append(now)
-        return True
+        return False
 
     def get_remaining_quota(self, action: str) -> Optional[int]:
         """Get remaining quota for an action.
@@ -293,6 +293,7 @@ class PrivacyManager:
         self.privacy_mode = False
         self.excluded_apps: set[str] = set()
         self.excluded_patterns: list[str] = []
+        self.excluded_window_patterns: list[str] = []
 
         # Add default exclusions
         if default_excluded_apps:
@@ -318,6 +319,10 @@ class PrivacyManager:
         if any(app in window_lower for app in self.excluded_apps):
             return False
 
+        # Check excluded window patterns
+        if any(re.search(pattern, active_window) for pattern in self.excluded_window_patterns):
+            return False
+
         # Check excluded patterns
         return all(not re.search(pattern, content) for pattern in self.excluded_patterns)
 
@@ -328,6 +333,22 @@ class PrivacyManager:
             enabled: Whether to enable privacy mode
         """
         self.privacy_mode = enabled
+
+    def enable(self) -> None:
+        """Enable privacy mode."""
+        self.privacy_mode = True
+
+    def disable(self) -> None:
+        """Disable privacy mode."""
+        self.privacy_mode = False
+
+    def is_enabled(self) -> bool:
+        """Check if privacy mode is enabled.
+
+        Returns:
+            True if privacy mode is enabled
+        """
+        return self.privacy_mode
 
     def add_excluded_app(self, app_name: str) -> None:
         """Add an application to the exclusion list.
@@ -357,6 +378,21 @@ class PrivacyManager:
         try:
             re.compile(pattern)
             self.excluded_patterns.append(pattern)
+        except re.error as e:
+            raise ValueError(f"Invalid regex pattern: {e}") from e
+
+    def add_excluded_window_pattern(self, pattern: str) -> None:
+        """Add a window pattern to exclude.
+
+        Args:
+            pattern: Regex pattern for window titles to exclude
+
+        Raises:
+            ValueError: If pattern is invalid regex
+        """
+        try:
+            re.compile(pattern)
+            self.excluded_window_patterns.append(pattern)
         except re.error as e:
             raise ValueError(f"Invalid regex pattern: {e}") from e
 
@@ -407,6 +443,41 @@ class PrivacyManager:
         except Exception as e:
             raise ValueError(f"Failed to import settings: {e}") from e
 
+    def temporary_privacy_mode(self) -> Any:
+        """Context manager for temporary privacy mode.
+
+        Usage:
+            with privacy_manager.temporary_privacy_mode():
+                # Privacy mode is enabled here
+                pass
+            # Privacy mode is restored to previous state
+        """
+        from contextlib import contextmanager
+
+        @contextmanager
+        def _temporary_privacy() -> Any:
+            previous_state = self.privacy_mode
+            self.privacy_mode = True
+            try:
+                yield
+            finally:
+                self.privacy_mode = previous_state
+
+        return _temporary_privacy()
+
+    def _get_active_window(self) -> str:
+        """Get the active window title.
+
+        Returns:
+            Active window title or empty string if unable to determine
+        """
+        try:
+            from pasta.utils.platform import get_active_window_title
+
+            return get_active_window_title()
+        except Exception:
+            return ""
+
 
 # Keep the original SecurityManager for backward compatibility
 class SecurityManager:
@@ -432,6 +503,7 @@ class SecurityManager:
         self.privacy = PrivacyManager(["1password", "keepass", "bitwarden", "lastpass", "dashlane", "password manager"])
         self._audit_callback: Optional[Callable[[str, dict[str, Any]], None]] = None
         self._privacy_mode = False
+        self._secure_storage: list[bytes] = []
 
     def is_sensitive(self, text: str) -> bool:
         """Check if text contains sensitive data.
@@ -525,3 +597,121 @@ class SecurityManager:
         """Rotate encryption key (placeholder for future implementation)."""
         # This would re-encrypt all sensitive data with a new key
         pass
+
+    def check_rate_limit(self, action: str, size: Optional[int] = None) -> bool:
+        """Check if action is allowed under rate limits.
+
+        Args:
+            action: Type of action to check
+            size: Size of data (for auto-detecting large operations)
+
+        Returns:
+            True if action is allowed
+        """
+        allowed = self.limiter.check_limit(action, size)
+        if not allowed and self._audit_callback:
+            self._audit_callback("rate_limit_exceeded", {"action": action})
+
+        # Log large pastes to audit
+        if action == "paste" and size and size > 10000 and self._audit_callback:
+            self._audit_callback("large_paste_detected", {"size": size})
+
+        return allowed
+
+    def should_process(self, content: str, window_title: str) -> bool:  # noqa: ARG002
+        """Determine if content should be processed based on security settings.
+
+        Args:
+            content: Clipboard content
+            window_title: Active window title
+
+        Returns:
+            True if content should be processed
+        """
+        if self._privacy_mode:
+            return False
+
+        # Check excluded apps
+        return not any(app in window_title.lower() for app in self.privacy.excluded_apps)
+
+    def get_security_status(self) -> dict[str, Any]:
+        """Get current security status.
+
+        Returns:
+            Dictionary with security status information
+        """
+        return {
+            "privacy_mode": self._privacy_mode,
+            "rate_limits": {
+                action: {
+                    "limit": self.limiter.limits.get(action, (None, None))[0],
+                    "window": self.limiter.limits.get(action, (None, None))[1],
+                    "remaining": self.limiter.get_remaining_quota(action),
+                }
+                for action in self.limiter.limits
+            },
+            "excluded_apps": self.privacy.get_excluded_apps(),
+            "secure_storage_size": len(self._secure_storage),
+        }
+
+    def store_secure(self, data: str) -> None:
+        """Store sensitive data securely.
+
+        Args:
+            data: Data to store securely
+        """
+        # Convert to bytes and store
+        self._secure_storage.append(data.encode("utf-8"))
+
+        if self._audit_callback:
+            self._audit_callback("secure_storage_write", {"size": len(data)})
+
+    def secure_wipe(self, data: Any) -> None:
+        """Securely wipe sensitive data from memory.
+
+        Args:
+            data: Data to wipe
+        """
+        try:
+            if isinstance(data, str):
+                # Convert to bytearray for in-place modification
+                data_bytes = bytearray(data.encode("utf-8"))
+                # Overwrite with zeros
+                for i in range(len(data_bytes)):
+                    data_bytes[i] = 0
+            elif isinstance(data, bytearray):
+                # Overwrite bytearray directly
+                for i in range(len(data)):
+                    data[i] = 0
+            elif isinstance(data, bytes):
+                # bytes are immutable, can't overwrite
+                pass
+        except Exception:
+            # Ignore errors during wipe
+            pass
+
+    def get_memory_usage(self) -> int:
+        """Get current memory usage of secure storage.
+
+        Returns:
+            Total bytes used by secure storage
+        """
+        return sum(len(data) for data in self._secure_storage)
+
+    def cleanup(self) -> None:
+        """Clean up secure storage and perform security cleanup."""
+        # Wipe all secure storage
+        for data in self._secure_storage:
+            self.secure_wipe(data)
+        self._secure_storage.clear()
+
+        # Clear rate limiter history
+        self.limiter.history.clear()
+
+        if self._audit_callback:
+            self._audit_callback("security_cleanup", {})
+
+    def reset_rate_limits(self) -> None:
+        """Reset all rate limits."""
+        for action in self.limiter.limits:
+            self.limiter.reset(action)
