@@ -35,18 +35,44 @@ class TestSystemTrayIntegration:
         """Create SystemTray with real components."""
         with (
             patch("pasta.gui.tray_pyside6.QApplication") as mock_qapp,
-            patch("pasta.gui.tray_pyside6.QSystemTrayIcon"),
+            patch("pasta.gui.tray_pyside6.QSystemTrayIcon") as mock_tray_icon,
             patch("pasta.gui.tray_pyside6.QThread") as mock_qthread,
-            patch("pasta.gui.tray_pyside6.QIcon"),
+            patch("pasta.gui.tray_pyside6.QIcon") as mock_qicon,
             patch("pasta.gui.tray_pyside6.QMenu"),
             patch("pasta.gui.tray_pyside6.QAction"),
             patch("pasta.gui.tray_pyside6.ClipboardWorker") as mock_worker,
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
-            patch("pasta.gui.tray_pyside6.QPixmap"),
-            patch("pasta.gui.tray_pyside6.QPainter"),
+            patch("pasta.gui.tray_pyside6.QPixmap") as mock_pixmap,
+            patch("pasta.gui.tray_pyside6.QPainter") as mock_painter,
+            patch("pasta.gui.tray_pyside6.QPen"),
+            patch("pasta.gui.tray_pyside6.QBrush"),
+            patch("pasta.gui.tray_pyside6.QColor"),
         ):
             # Mock QApplication instance
             mock_qapp.instance.return_value = None
+
+            # Mock QPixmap to prevent display issues
+            mock_pixmap_instance = Mock()
+            mock_pixmap_instance.fill = Mock()
+            mock_pixmap_instance.width = Mock(return_value=22)
+            mock_pixmap_instance.height = Mock(return_value=22)
+            mock_pixmap.return_value = mock_pixmap_instance
+
+            # Mock QPainter
+            mock_painter_instance = Mock()
+            mock_painter_instance.__enter__ = Mock(return_value=mock_painter_instance)
+            mock_painter_instance.__exit__ = Mock(return_value=None)
+            mock_painter.return_value = mock_painter_instance
+
+            # Mock QIcon
+            mock_qicon_instance = Mock()
+            mock_qicon.return_value = mock_qicon_instance
+
+            # Mock tray icon
+            mock_tray_icon_instance = Mock()
+            mock_tray_icon_instance.setIcon = Mock()
+            mock_tray_icon_instance.setToolTip = Mock()
+            mock_tray_icon.return_value = mock_tray_icon_instance
 
             # Mock QThread properly
             mock_thread_instance = Mock()
@@ -264,8 +290,27 @@ class TestSystemTrayIntegration:
         # Change settings
         tray.set_paste_mode("clipboard")
 
-        # Create new tray instance
-        with patch("pasta.gui.tray_pyside6.QApplication"), patch("pasta.gui.tray_pyside6.QSystemTrayIcon"):
+        # Create new tray instance with comprehensive mocking
+        with (
+            patch("pasta.gui.tray_pyside6.QApplication"),
+            patch("pasta.gui.tray_pyside6.QSystemTrayIcon"),
+            patch("pasta.gui.tray_pyside6.QThread"),
+            patch("pasta.gui.tray_pyside6.QIcon"),
+            patch("pasta.gui.tray_pyside6.QMenu"),
+            patch("pasta.gui.tray_pyside6.QAction"),
+            patch("pasta.gui.tray_pyside6.ClipboardWorker"),
+            patch("pasta.gui.tray_pyside6.HotkeyManager"),
+            patch("pasta.gui.tray_pyside6.QPixmap") as mock_pixmap,
+            patch("pasta.gui.tray_pyside6.QPainter"),
+            patch("pasta.gui.tray_pyside6.QPen"),
+            patch("pasta.gui.tray_pyside6.QBrush"),
+            patch("pasta.gui.tray_pyside6.QColor"),
+        ):
+            # Mock QPixmap to prevent display issues
+            mock_pixmap_instance = Mock()
+            mock_pixmap_instance.fill = Mock()
+            mock_pixmap.return_value = mock_pixmap_instance
+
             new_tray = SystemTray(**components)
 
             # Should remember paste mode (once settings are implemented)
