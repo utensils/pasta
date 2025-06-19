@@ -81,18 +81,18 @@ from pasta.core.clipboard import ClipboardManager
 
 class TestClipboardManager:
     """Test cases for ClipboardManager."""
-    
+
     @pytest.fixture
     def manager(self):
         """Create a ClipboardManager instance for testing."""
         return ClipboardManager(history_size=10)
-    
+
     def test_initialization(self, manager):
         """Test ClipboardManager initializes correctly."""
         assert manager.history == []
         assert manager.history_size == 10
         assert not manager.monitoring
-        
+
     def test_clipboard_monitoring_starts(self, manager):
         """Test that clipboard monitoring can be started."""
         with patch('threading.Thread') as mock_thread:
@@ -115,19 +115,19 @@ import pyperclip
 
 class ClipboardManager:
     """Manages clipboard monitoring and history.
-    
+
     This class provides clipboard monitoring functionality with history
     tracking and change detection.
-    
+
     Attributes:
         history: List of clipboard entries
         history_size: Maximum number of entries to keep
         monitoring: Whether monitoring is active
     """
-    
+
     def __init__(self, history_size: int = 100) -> None:
         """Initialize the ClipboardManager.
-        
+
         Args:
             history_size: Maximum number of clipboard entries to store
         """

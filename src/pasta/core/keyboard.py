@@ -1,4 +1,5 @@
 """Keyboard simulation and text input module."""
+# mypy: disable-error-code="unreachable"
 
 import platform
 import threading
@@ -82,6 +83,8 @@ class PastaKeyboardEngine:
         self._abort_event = threading.Event()
         self._is_pasting = False
         self._paste_lock = threading.Lock()
+        self._abort_callback = None
+        self._original_clipboard = None
 
     def paste_text(self, text: str, method: str = "auto") -> bool:
         """Paste text using specified method.
@@ -132,6 +135,7 @@ class PastaKeyboardEngine:
         try:
             # Store original clipboard content
             original = pyperclip.paste()
+            self._original_clipboard = original
 
             # Copy new text to clipboard
             pyperclip.copy(text)
@@ -144,6 +148,9 @@ class PastaKeyboardEngine:
             pyperclip.copy(original)
 
             return True
+        except KeyboardInterrupt:
+            # Emergency stop via keyboard interrupt
+            return False
         except Exception:
             return False
 
@@ -172,6 +179,8 @@ class PastaKeyboardEngine:
                 for j in range(0, len(line), self.chunk_size):
                     # Check abort event
                     if self._abort_event.is_set():
+                        if self._abort_callback:
+                            self._abort_callback()
                         return False
 
                     # Check fail-safe
@@ -187,6 +196,8 @@ class PastaKeyboardEngine:
 
                     # Check abort again after chunk
                     if self._abort_event.is_set():
+                        if self._abort_callback:
+                            self._abort_callback()
                         return False
 
                 # Add newline if not last line
@@ -198,6 +209,9 @@ class PastaKeyboardEngine:
                     time.sleep(0.05)
 
             return True
+        except KeyboardInterrupt:
+            # Emergency stop via keyboard interrupt
+            return False
         except Exception:
             return False
 
@@ -225,6 +239,11 @@ class PastaKeyboardEngine:
     def abort_paste(self) -> None:
         """Abort any ongoing paste operation immediately."""
         self._abort_event.set()
+        # Reset pasting state
+        with self._paste_lock:
+            self._is_pasting = False
+        if self._abort_callback:
+            self._abort_callback()
 
     def is_pasting(self) -> bool:
         """Check if currently pasting.

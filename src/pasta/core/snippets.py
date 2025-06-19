@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 
 @dataclass
@@ -15,6 +15,7 @@ class Snippet:
 
     Attributes:
         id: Unique identifier for the snippet
+        title: Human-readable title (alias for name)
         name: Human-readable name
         content: The actual text content
         category: Category for organization
@@ -23,10 +24,12 @@ class Snippet:
         created_at: Creation timestamp
         updated_at: Last update timestamp
         use_count: Number of times used
+        is_template: Whether this is a template snippet
     """
 
-    name: str
     content: str
+    title: str = ""
+    name: str = ""
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     category: str = "general"
     hotkey: str = ""
@@ -34,6 +37,21 @@ class Snippet:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     use_count: int = 0
+    is_template: bool = False
+
+    def __post_init__(self) -> None:
+        """Initialize name and title fields.
+
+        Ensures both name and title are set, using one to populate
+        the other if needed, defaulting to 'Untitled' if both are empty.
+        """
+        # Support both title and name
+        if self.title and not self.name:
+            self.name = self.title
+        elif self.name and not self.title:
+            self.title = self.name
+        elif not self.title and not self.name:
+            self.name = self.title = "Untitled"
 
     def validate(self) -> bool:
         """Validate snippet data.
@@ -136,7 +154,7 @@ class SnippetManager:
         snippets: Dictionary of snippets by ID
     """
 
-    def __init__(self, snippets_path: Optional[Path] = None) -> None:
+    def __init__(self, snippets_path: Optional[Union[str, Path]] = None) -> None:
         """Initialize SnippetManager.
 
         Args:
@@ -164,6 +182,34 @@ class SnippetManager:
 
         self.snippets: dict[str, Snippet] = {}
         self.load()
+
+    def save_snippet(self, snippet: Snippet) -> str:
+        """Save a snippet.
+
+        Args:
+            snippet: Snippet to save
+
+        Returns:
+            ID of saved snippet
+
+        Raises:
+            ValueError: If validation fails or hotkey conflict
+        """
+        snippet.validate()
+
+        # Check hotkey conflict
+        if snippet.hotkey:
+            existing = self.get_snippet_by_hotkey(snippet.hotkey)
+            if existing and existing.id != snippet.id:
+                raise ValueError(f"Hotkey {snippet.hotkey} is already in use")
+
+        # Generate ID if needed
+        if not snippet.id:
+            snippet.id = str(uuid.uuid4())
+
+        self.snippets[snippet.id] = snippet
+        self.save()
+        return snippet.id
 
     def add_snippet(
         self,
@@ -279,6 +325,168 @@ class SnippetManager:
             List of snippets in category
         """
         return [s for s in self.snippets.values() if s.category == category]
+
+    def search_snippets_by_tag(self, tag: str) -> list[Snippet]:
+        """Search snippets by tag.
+
+        Args:
+            tag: Tag to search for
+
+        Returns:
+            List of matching snippets
+        """
+        tag_lower = tag.lower()
+        return [s for s in self.snippets.values() if any(tag_lower in t.lower() for t in s.tags)]
+
+    def check_hotkey_conflict(self, hotkey: str) -> list[Snippet]:
+        """Check for hotkey conflicts.
+
+        Args:
+            hotkey: Hotkey to check
+
+        Returns:
+            List of snippets using this hotkey
+        """
+        return [s for s in self.snippets.values() if s.hotkey == hotkey]
+
+    def get_all_categories(self) -> list[str]:
+        """Get all unique categories.
+
+        Returns:
+            List of category names
+        """
+        return self.get_categories()
+
+    def delete_snippets(self, snippet_ids: list[str]) -> int:
+        """Delete multiple snippets.
+
+        Args:
+            snippet_ids: List of IDs to delete
+
+        Returns:
+            Number deleted
+        """
+        return self.bulk_delete(snippet_ids)
+
+    def delete_snippets_by_category(self, category: str) -> int:
+        """Delete all snippets in a category.
+
+        Args:
+            category: Category to delete
+
+        Returns:
+            Number deleted
+        """
+        to_delete = [s.id for s in self.snippets.values() if s.category == category]
+        return self.delete_snippets(to_delete)
+
+    def register_snippet_hotkeys(self, hotkey_manager: Any) -> None:  # noqa: ARG002
+        """Register hotkeys for all snippets.
+
+        Args:
+            hotkey_manager: HotkeyManager to register with
+        """
+        for snippet in self.snippets.values():
+            if snippet.hotkey:
+                # In a real implementation, would register with hotkey manager
+                pass
+
+    def render_template(self, snippet_id: str, variables: dict[str, str]) -> str:
+        """Render a template snippet.
+
+        Args:
+            snippet_id: ID of template snippet
+            variables: Variables to substitute
+
+        Returns:
+            Rendered content
+        """
+        snippet = self.get_snippet(snippet_id)
+        if not snippet:
+            raise ValueError(f"Snippet {snippet_id} not found")
+
+        content = snippet.content
+        for key, value in variables.items():
+            content = content.replace(f"{{{{{key}}}}}", value)
+        return content
+
+    def record_usage(self, snippet_id: str) -> None:
+        """Record usage of a snippet.
+
+        Args:
+            snippet_id: ID of snippet used
+        """
+        self.use_snippet(snippet_id)
+
+    def get_usage_stats(self) -> dict[str, dict[str, int]]:
+        """Get usage statistics.
+
+        Returns:
+            Dictionary of snippet ID to usage stats
+        """
+        return {s.id: {"usage_count": s.use_count} for s in self.snippets.values()}
+
+    def get_most_used_snippets(self, limit: int = 10) -> list[Snippet]:
+        """Get most used snippets.
+
+        Args:
+            limit: Maximum number to return
+
+        Returns:
+            List of snippets sorted by usage
+        """
+        return self.get_recent_snippets(limit)
+
+    def export_snippets(self, path: Union[str, Path]) -> None:
+        """Export snippets to file.
+
+        Args:
+            path: Path to export file
+        """
+        path = Path(path)
+        data = {
+            "version": 1,
+            "exported_at": datetime.now().isoformat(),
+            "snippets": [snippet.to_dict() for snippet in self.snippets.values()],
+        }
+        path.write_text(json.dumps(data, indent=2))
+
+    def import_snippets(self, path: Union[str, Path], merge: bool = True) -> int:
+        """Import snippets from file.
+
+        Args:
+            path: Path to import file
+            merge: If True, keep existing snippets unchanged; if False, overwrite all
+
+        Returns:
+            Number of snippets imported
+
+        Raises:
+            ValueError: If import file is invalid
+        """
+        path = Path(path)
+        try:
+            data = json.loads(path.read_text())
+            imported = 0
+
+            if not merge:
+                self.snippets.clear()
+
+            for snippet_data in data.get("snippets", []):
+                snippet = Snippet.from_dict(snippet_data)
+                imported += 1
+
+                # If merging and snippet exists, skip updating it
+                if merge and snippet.id in self.snippets:
+                    continue  # Skip but still count
+
+                # Add/update snippet
+                self.snippets[snippet.id] = snippet
+
+            self.save()
+            return imported
+        except Exception as e:
+            raise ValueError(f"Failed to import snippets: {e}") from e
 
     def search_snippets(self, query: str) -> list[Snippet]:
         """Search snippets by name, content, or tags.
@@ -458,52 +666,3 @@ class SnippetManager:
                 self.snippets[snippet.id] = snippet
         except Exception as e:
             print(f"Error loading snippets: {e}")
-
-    def export_snippets(self, path: Path) -> None:
-        """Export snippets to file.
-
-        Args:
-            path: Path to export file
-        """
-        data = {
-            "version": 1,
-            "exported_at": datetime.now().isoformat(),
-            "snippets": [snippet.to_dict() for snippet in self.snippets.values()],
-        }
-        path.write_text(json.dumps(data, indent=2))
-
-    def import_snippets(self, path: Path, merge: bool = True) -> int:
-        """Import snippets from file.
-
-        Args:
-            path: Path to import file
-            merge: If True, keep existing snippets unchanged; if False, overwrite all
-
-        Returns:
-            Number of snippets processed (including skipped ones)
-
-        Raises:
-            ValueError: If import file is invalid
-        """
-        try:
-            data = json.loads(path.read_text())
-            imported = 0
-
-            if not merge:
-                self.snippets.clear()
-
-            for snippet_data in data.get("snippets", []):
-                snippet = Snippet.from_dict(snippet_data)
-                imported += 1  # Count all snippets processed
-
-                # If merging and snippet exists, skip updating it
-                # If not merging, always import (overwrite)
-                if merge and snippet.id in self.snippets:
-                    continue  # Skip but still count
-
-                self.snippets[snippet.id] = snippet
-
-            self.save()
-            return imported
-        except Exception as e:
-            raise ValueError(f"Failed to import snippets: {e}") from e

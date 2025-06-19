@@ -132,6 +132,7 @@ class TestMacOSUIIntegration(unittest.TestCase):
         # App should still be running
         assert self.app is not None
 
+    @patch("pasta.gui.tray_pyside6.QApplication")
     @patch("pasta.gui.tray_pyside6.QSystemTrayIcon")
     @patch("pasta.gui.tray_pyside6.QThread")
     @patch("pasta.gui.tray_pyside6.QMenu")
@@ -139,9 +140,16 @@ class TestMacOSUIIntegration(unittest.TestCase):
     @patch("pasta.gui.tray_pyside6.QAction")
     @patch("pasta.gui.tray_pyside6.ClipboardWorker")
     @patch("pasta.gui.tray_pyside6.HotkeyManager")
-    def test_system_tray_app_configuration(self, mock_hotkey, mock_worker, mock_action, mock_icon, mock_menu, mock_thread, mock_tray_icon):
+    def test_system_tray_app_configuration(
+        self, mock_hotkey, mock_worker, mock_action, mock_icon, mock_menu, mock_thread, mock_tray_icon, mock_qapp
+    ):
         """Test system tray app configuration."""
         from pasta.gui.tray_pyside6 import SystemTray
+
+        # Set up QApplication mock
+        mock_app_instance = Mock()
+        mock_qapp.instance.return_value = None  # Trigger app creation
+        mock_qapp.return_value = mock_app_instance
 
         # Create mock components
         mock_clipboard = Mock()
@@ -163,13 +171,11 @@ class TestMacOSUIIntegration(unittest.TestCase):
             settings_manager=mock_settings,
         )
 
-        # Test app configuration
-        app = QApplication.instance()
-        assert app is not None
-        assert app.applicationName() == "Pasta"
-        assert app.applicationDisplayName() == "Pasta"
-        assert app.organizationName() == "Utensils"
-        assert app.quitOnLastWindowClosed() is False
+        # Test app configuration - verify the calls were made
+        mock_app_instance.setApplicationName.assert_called_with("Pasta")
+        mock_app_instance.setApplicationDisplayName.assert_called_with("Pasta")
+        mock_app_instance.setOrganizationName.assert_called_with("Utensils")
+        mock_app_instance.setQuitOnLastWindowClosed.assert_called_with(False)
 
 
 if __name__ == "__main__":

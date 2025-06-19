@@ -5,7 +5,7 @@ import re
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
 
 class SensitiveDataDetector:
@@ -21,12 +21,29 @@ class SensitiveDataDetector:
     def __init__(self) -> None:
         """Initialize the sensitive data detector."""
         self.patterns: dict[str, str] = {
-            "credit_card": r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b",
+            # Credit cards
+            "credit_card": r"\b(?:\d{4}[\s-]?){3}\d{4}\b",
+            "credit_card_no_space": r"\b\d{16}\b",
+            # SSN
             "ssn": r"\b\d{3}-\d{2}-\d{4}\b|\b\d{3} \d{2} \d{4}\b",
-            "email": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
+            # Passwords
             "password": r"(?i)(password|passwd|pwd)[\s:=]+\S+",
-            "api_key": r"(?i)(api[-_]?key|apikey|secret)[\s:=]+\S+",
-            "private_key": r"-----BEGIN\s+(RSA|EC|OPENSSH)?\s*PRIVATE KEY-----",
+            # API Keys and tokens
+            "api_key": r"(?i)(api[-_]?key|apikey)[\s:=]+[\w-]+",
+            "bearer_token": r"(?i)Bearer\s+[\w.-]+",
+            "auth_header": r"(?i)(Authorization|X-API-Key)[\s:]+[\w.-]+",
+            "github_token": r"github_pat_[\w]+",
+            "gitlab_token": r"glpat-[\w-]+",
+            "slack_token": r"xox[baprs]-[\w-]+",
+            "aws_key": r"AKIA[0-9A-Z]{16}",
+            "aws_secret": r"(?i)aws_secret_access_key[\s=]+[\w/+=]+",
+            # Private keys
+            "private_key_rsa": r"-----BEGIN\s*(?:RSA\s*)?PRIVATE\s*KEY-----",
+            "private_key_general": r"-----BEGIN\s*PRIVATE\s*KEY-----",
+            "ssh_key": r"ssh-rsa\s+[\w+/=]+",
+            # Database URLs
+            "db_url_postgres": r"postgres(?:ql)?://[^:]+:[^@]+@[^/]+(?:/\w+)?",
+            "db_url_mysql": r"mysql://[^:]+:[^@]+@[^/]+(?:/\w+)?",
         }
 
     def is_sensitive(self, text: str) -> bool:
@@ -105,10 +122,67 @@ class RateLimiter:
         """
         self.limits = limits or {
             "paste": (30, 60),  # 30 pastes per 60 seconds
-            "clipboard": (100, 60),  # 100 clipboard reads per 60 seconds
+            "clipboard_read": (100, 60),  # 100 clipboard reads per 60 seconds
             "large_paste": (5, 300),  # 5 large pastes per 5 minutes
         }
         self.history: dict[str, list[float]] = defaultdict(list)
+        self._state_file: Optional[Path] = None
+
+    def set_limit(self, action: str, max_requests: int, window_seconds: int) -> None:
+        """Set rate limit for an action.
+
+        Args:
+            action: Action to limit
+            max_requests: Maximum requests allowed
+            window_seconds: Time window in seconds
+        """
+        self.limits[action] = (max_requests, window_seconds)
+
+    def check_limit(self, action: str, size: Optional[int] = None) -> bool:
+        """Check if action is allowed under rate limits.
+
+        Args:
+            action: Type of action to check
+            size: Size of data (for auto-detecting large operations)
+
+        Returns:
+            True if action is allowed
+        """
+        # Auto-detect large paste
+        if action == "paste" and size and size > 10000:
+            action = "large_paste"
+
+        # Unknown actions are always allowed
+        if action not in self.limits:
+            return True
+
+        max_count, window_seconds = self.limits[action]
+        now = time.time()
+        cutoff = now - window_seconds
+
+        # Clean old entries
+        self.history[action] = [t for t in self.history[action] if t > cutoff]
+
+        # Check limit
+        return len(self.history[action]) < max_count
+
+    def record_request(self, action: str) -> None:
+        """Record that a request was made.
+
+        Args:
+            action: Action that was performed
+        """
+        if action in self.limits:
+            self.history[action].append(time.time())
+
+    def reset(self, action: str) -> None:
+        """Reset rate limit for specific action.
+
+        Args:
+            action: Action to reset
+        """
+        if action in self.history:
+            self.history[action].clear()
 
     def is_allowed(self, action: str, size: Optional[int] = None) -> bool:
         """Check if action is allowed under rate limits.
@@ -171,6 +245,29 @@ class RateLimiter:
         """
         if action in self.history:
             self.history[action].clear()
+
+    def save_state(self, file_path: str) -> None:
+        """Save rate limiter state to file.
+
+        Args:
+            file_path: Path to save state file
+        """
+        state = {"limits": self.limits, "history": {k: list(v) for k, v in self.history.items()}}
+        Path(file_path).write_text(json.dumps(state, indent=2))
+
+    def load_state(self, file_path: str) -> None:
+        """Load rate limiter state from file.
+
+        Args:
+            file_path: Path to load state file
+        """
+        try:
+            state = json.loads(Path(file_path).read_text())
+            self.limits = state.get("limits", self.limits)
+            self.history = defaultdict(list, {k: list(v) for k, v in state.get("history", {}).items()})
+        except Exception:
+            # If loading fails, start fresh
+            pass
 
 
 class PrivacyManager:
@@ -330,7 +427,9 @@ class SecurityManager:
         self.encryption_key = encryption_key
         self.detector = SensitiveDataDetector()
         self.limiter = RateLimiter()
-        self.privacy = PrivacyManager()
+        self.privacy = PrivacyManager(["1password", "keepass", "bitwarden", "lastpass", "dashlane", "password manager"])
+        self._audit_callback: Optional[Callable[[str, dict[str, Any]], None]] = None
+        self._privacy_mode = False
 
     def is_sensitive(self, text: str) -> bool:
         """Check if text contains sensitive data.
@@ -341,4 +440,86 @@ class SecurityManager:
         Returns:
             True if text contains sensitive data
         """
-        return self.detector.is_sensitive(text)
+        is_sensitive = self.detector.is_sensitive(text)
+        if is_sensitive and self._audit_callback:
+            self._audit_callback("sensitive_data_detected", {"content_length": len(text)})
+        return is_sensitive
+
+    def enable_privacy_mode(self) -> None:
+        """Enable privacy mode."""
+        self._privacy_mode = True
+        self.privacy.set_privacy_mode(True)
+        if self._audit_callback:
+            self._audit_callback("privacy_mode_enabled", {})
+
+    def disable_privacy_mode(self) -> None:
+        """Disable privacy mode."""
+        self._privacy_mode = False
+        self.privacy.set_privacy_mode(False)
+        if self._audit_callback:
+            self._audit_callback("privacy_mode_disabled", {})
+
+    def is_privacy_mode_enabled(self) -> bool:
+        """Check if privacy mode is enabled.
+
+        Returns:
+            True if privacy mode is enabled
+        """
+        return self._privacy_mode
+
+    def add_excluded_app(self, app_name: str) -> None:
+        """Add an app to the exclusion list.
+
+        Args:
+            app_name: Name of app to exclude
+        """
+        self.privacy.add_excluded_app(app_name)
+        if self._audit_callback:
+            self._audit_callback("excluded_app_added", {"app": app_name})
+
+    def is_app_excluded(self, app_name: str) -> bool:
+        """Check if an app is excluded.
+
+        Args:
+            app_name: Name of app to check
+
+        Returns:
+            True if app is excluded
+        """
+        return app_name.lower() in self.privacy.excluded_apps
+
+    def should_process_clipboard(self) -> bool:
+        """Check if clipboard should be processed.
+
+        Returns:
+            True if clipboard should be processed
+        """
+        if self._privacy_mode:
+            return False
+
+        try:
+            from pasta.utils.platform import get_active_window_title
+
+            active_window = get_active_window_title()
+            return not any(app in active_window.lower() for app in self.privacy.excluded_apps)
+        except Exception:
+            return True
+
+    def set_audit_callback(self, callback: Optional[Callable[[str, dict[str, Any]], None]]) -> None:
+        """Set callback for security events.
+
+        Args:
+            callback: Function to call for security events
+        """
+        self._audit_callback = callback
+
+    def secure_cleanup(self) -> None:
+        """Perform secure cleanup of sensitive data."""
+        # In a real implementation, this would clear sensitive data from memory
+        # For now, just clear histories
+        self.limiter.history.clear()
+
+    def rotate_encryption_key(self) -> None:
+        """Rotate encryption key (placeholder for future implementation)."""
+        # This would re-encrypt all sensitive data with a new key
+        pass

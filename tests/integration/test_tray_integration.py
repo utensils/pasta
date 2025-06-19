@@ -44,9 +44,6 @@ class TestSystemTrayIntegration:
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap") as mock_pixmap,
             patch("pasta.gui.tray_pyside6.QPainter") as mock_painter,
-            patch("pasta.gui.tray_pyside6.QPen"),
-            patch("pasta.gui.tray_pyside6.QBrush"),
-            patch("pasta.gui.tray_pyside6.QColor"),
         ):
             # Mock QApplication instance
             mock_qapp.instance.return_value = None
@@ -302,9 +299,6 @@ class TestSystemTrayIntegration:
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap") as mock_pixmap,
             patch("pasta.gui.tray_pyside6.QPainter"),
-            patch("pasta.gui.tray_pyside6.QPen"),
-            patch("pasta.gui.tray_pyside6.QBrush"),
-            patch("pasta.gui.tray_pyside6.QColor"),
         ):
             # Mock QPixmap to prevent display issues
             mock_pixmap_instance = Mock()

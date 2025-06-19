@@ -43,6 +43,8 @@ class HotkeyManager:
         self.abort_hotkey = "esc+esc"  # Double ESC for emergency stop
         self._registered = False
         self._lock = threading.Lock()
+        self._last_esc_time = 0.0
+        self._double_esc_timeout = 0.5  # 500ms timeout for double ESC
 
     def set_abort_callback(self, callback: Callable[[], None]) -> None:
         """Set the callback for emergency abort.
@@ -64,8 +66,8 @@ class HotkeyManager:
                 return
 
             try:
-                # Register double ESC for emergency stop
-                keyboard.add_hotkey(self.abort_hotkey, self._on_abort_hotkey, suppress=False)  # type: ignore[attr-defined]
+                # Register ESC hotkey for double-press detection
+                keyboard.add_hotkey("esc", self._check_double_esc, suppress=False)  # type: ignore[attr-defined]
                 self._registered = True
             except Exception:
                 # Hotkey registration failed
@@ -95,3 +97,19 @@ class HotkeyManager:
             with contextlib.suppress(Exception):
                 # Don't let callback errors crash hotkey handling
                 self.abort_callback()
+
+    def _check_double_esc(self) -> None:
+        """Check for double ESC press pattern."""
+        import time
+
+        current_time = time.time()
+
+        if current_time - self._last_esc_time < self._double_esc_timeout:
+            # Double ESC detected
+            if self.abort_callback:
+                with contextlib.suppress(Exception):
+                    self.abort_callback()
+            self._last_esc_time = 0  # Reset to prevent triple-ESC
+        else:
+            # First ESC press
+            self._last_esc_time = current_time

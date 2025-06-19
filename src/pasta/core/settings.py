@@ -1,5 +1,6 @@
 """Settings management for Pasta."""
 
+import contextlib
 import json
 import os
 import platform
@@ -224,6 +225,10 @@ class SettingsManager:
                 with self._lock:
                     self.settings = Settings()
                 self.save()  # Save defaults
+            except FileNotFoundError:
+                # File was deleted/moved during concurrent access
+                # Use current settings without loading
+                pass
         else:
             # Create default settings file
             self.save()
@@ -239,11 +244,16 @@ class SettingsManager:
         data["last_updated"] = datetime.now().isoformat()
 
         # Write to temp file first for atomic operation
-        temp_path = self.settings_path.with_suffix(".tmp")
-        temp_path.write_text(json.dumps(data, indent=2))
+        temp_path = self.settings_path.with_suffix(f".tmp.{os.getpid()}")
+        try:
+            temp_path.write_text(json.dumps(data, indent=2))
 
-        # Move temp file to final location
-        temp_path.replace(self.settings_path)
+            # Use shutil.move for more robust atomic operation
+            shutil.move(str(temp_path), str(self.settings_path))
+        except Exception:
+            # If move fails, try to clean up temp file
+            with contextlib.suppress(Exception):
+                temp_path.unlink()
 
     def update_settings(self, new_settings: Settings) -> None:
         """Update settings with a new Settings object.

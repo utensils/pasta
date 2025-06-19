@@ -3,7 +3,6 @@
 import contextlib
 import json
 import os
-import re
 import sqlite3
 import threading
 from datetime import datetime, timedelta
@@ -11,6 +10,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from cryptography.fernet import Fernet
+
+from pasta.utils.security import SecurityManager
 
 
 class StorageManager:
@@ -42,14 +43,8 @@ class StorageManager:
         # Initialize encryption
         self.cipher = Fernet(self._get_or_create_key())
 
-        # Sensitive data patterns
-        self.sensitive_patterns = [
-            r"\b\d{3}-\d{2}-\d{4}\b",  # SSN
-            r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b",  # Credit card
-            r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",  # Email
-            r"(?i)(password|passwd|pwd)[\s:=]+\S+",  # Passwords
-            r"(?i)(api[_-]?key|secret|token)[\s:=]+\S+",  # API keys/secrets
-        ]
+        # Use SecurityManager for sensitive data detection
+        self._security_manager = SecurityManager()
 
         # Initialize database
         self._init_database()
@@ -130,7 +125,7 @@ class StorageManager:
         Returns:
             True if sensitive data detected
         """
-        return any(re.search(pattern, content, re.IGNORECASE) for pattern in self.sensitive_patterns)
+        return self._security_manager.is_sensitive(content)
 
     def save_entry(self, entry: dict[str, Any]) -> Optional[int]:
         """Save clipboard entry to database.
@@ -367,3 +362,36 @@ class StorageManager:
                 count += 1
 
         return count
+
+    def rotate_encryption_key(self) -> None:
+        """Rotate encryption key and re-encrypt all sensitive data.
+
+        This method generates a new encryption key and re-encrypts
+        all sensitive data in the database with the new key.
+        """
+        # Generate new key
+        new_key = Fernet.generate_key()
+        new_cipher = Fernet(new_key)
+
+        # Re-encrypt all sensitive entries
+        with self._lock, self._get_connection() as conn:
+            cursor = conn.execute("SELECT id, content FROM clipboard_history WHERE encrypted = 1")
+
+            for row in cursor.fetchall():
+                # Decrypt with old key
+                decrypted = self.cipher.decrypt(row["content"].encode()).decode()
+
+                # Encrypt with new key
+                encrypted = new_cipher.encrypt(decrypted.encode()).decode()
+
+                # Update in database
+                conn.execute("UPDATE clipboard_history SET content = ? WHERE id = ?", (encrypted, row["id"]))
+
+            conn.commit()
+
+        # Update cipher and save new key
+        self.cipher = new_cipher
+        key_file = Path(self.db_path).parent / ".pasta_key"
+        with open(key_file, "wb") as f:
+            f.write(new_key)
+        os.chmod(key_file, 0o600)

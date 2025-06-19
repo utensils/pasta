@@ -41,19 +41,19 @@ class TestSettingsPersistenceE2E:
         manager1 = SettingsManager(settings_path=temp_settings_file)
 
         # Modify all settings
-        manager1.settings.auto_start = True
-        manager1.settings.start_minimized = False
+        manager1.settings.start_on_login = True
+        manager1.settings.monitoring_enabled = False
         manager1.settings.paste_mode = "typing"
         manager1.settings.typing_speed = 150
         manager1.settings.chunk_size = 300
-        manager1.settings.max_history_size = 200
-        manager1.settings.clear_history_on_exit = True
+        manager1.settings.history_size = 200
+        manager1.settings.encrypt_sensitive = False
         manager1.settings.excluded_apps = ["Terminal", "iTerm"]
-        manager1.settings.sensitive_data_detection = False
+        manager1.settings.adaptive_delay = False
         manager1.settings.privacy_mode = True
-        manager1.settings.rate_limit_enabled = False
-        manager1.settings.hotkeys_enabled = True
-        manager1.settings.snippet_hotkey_prefix = "cmd+shift"
+        manager1.settings.history_retention_days = 14
+        manager1.settings.emergency_stop_hotkey = "ctrl+shift+x"
+        manager1.settings.quick_paste_hotkey = "cmd+shift"
 
         # Save settings
         manager1.save()
@@ -66,19 +66,19 @@ class TestSettingsPersistenceE2E:
         manager2.load()
 
         # Verify all settings were preserved
-        assert manager2.settings.auto_start is True
-        assert manager2.settings.start_minimized is False
+        assert manager2.settings.start_on_login is True
+        assert manager2.settings.monitoring_enabled is False
         assert manager2.settings.paste_mode == "typing"
         assert manager2.settings.typing_speed == 150
         assert manager2.settings.chunk_size == 300
-        assert manager2.settings.max_history_size == 200
-        assert manager2.settings.clear_history_on_exit is True
+        assert manager2.settings.history_size == 200
+        assert manager2.settings.encrypt_sensitive is False
         assert manager2.settings.excluded_apps == ["Terminal", "iTerm"]
-        assert manager2.settings.sensitive_data_detection is False
+        assert manager2.settings.adaptive_delay is False
         assert manager2.settings.privacy_mode is True
-        assert manager2.settings.rate_limit_enabled is False
-        assert manager2.settings.hotkeys_enabled is True
-        assert manager2.settings.snippet_hotkey_prefix == "cmd+shift"
+        assert manager2.settings.history_retention_days == 14
+        assert manager2.settings.emergency_stop_hotkey == "ctrl+shift+x"
+        assert manager2.settings.quick_paste_hotkey == "cmd+shift"
 
     def test_settings_file_corruption_recovery(self, temp_settings_file):
         """Test recovery from corrupted settings file."""
@@ -91,7 +91,7 @@ class TestSettingsPersistenceE2E:
         manager.load()  # Should not crash
 
         # Should have default settings
-        assert manager.settings.auto_start is False
+        assert manager.settings.start_on_login is False
         assert manager.settings.paste_mode == "auto"
 
         # Should be able to save new settings
@@ -107,7 +107,7 @@ class TestSettingsPersistenceE2E:
         """Test migration from older settings format."""
         # Write old format settings
         old_settings = {
-            "auto_start": True,
+            "start_on_login": True,
             "paste_mode": "clipboard",
             # Missing newer fields
         }
@@ -120,12 +120,12 @@ class TestSettingsPersistenceE2E:
         manager.load()
 
         # Should have old values
-        assert manager.settings.auto_start is True
+        assert manager.settings.start_on_login is True
         assert manager.settings.paste_mode == "clipboard"
 
         # Should have defaults for new fields
         assert manager.settings.privacy_mode is False
-        assert manager.settings.snippet_hotkey_prefix == "ctrl+shift"
+        assert manager.settings.quick_paste_hotkey == ""
 
         # Save and verify all fields are present
         manager.save()
@@ -133,12 +133,16 @@ class TestSettingsPersistenceE2E:
         with open(temp_settings_file) as f:
             data = json.load(f)
             assert "privacy_mode" in data
-            assert "snippet_hotkey_prefix" in data
+            assert "quick_paste_hotkey" in data
 
     def test_settings_concurrent_access(self, temp_settings_file):
         """Test concurrent access to settings file."""
         import threading
         import time
+
+        # Create initial settings file
+        initial_manager = SettingsManager(settings_path=temp_settings_file)
+        initial_manager.save()
 
         # Create multiple managers
         managers = [SettingsManager(settings_path=temp_settings_file) for _ in range(5)]
@@ -183,7 +187,7 @@ class TestSettingsPersistenceE2E:
         settings_manager = SettingsManager(settings_path=temp_settings_file)
         settings_manager.settings.paste_mode = "typing"
         settings_manager.settings.typing_speed = 200
-        settings_manager.settings.max_history_size = 50
+        settings_manager.settings.history_size = 50
         settings_manager.save()
 
         # Create components
@@ -202,8 +206,11 @@ class TestSettingsPersistenceE2E:
         assert tray.paste_mode == "typing"
 
         # Test that keyboard engine uses settings
-        with patch("pyautogui.write") as mock_write:
-            components["keyboard_engine"].paste_text("Test", mode="typing")
+        with (
+            patch("pasta.core.keyboard.pyautogui.write") as mock_write,
+            patch("pasta.core.keyboard.pyautogui.position", return_value=(100, 100)),
+        ):
+            components["keyboard_engine"].paste_text("Test", method="typing")
 
             # Should use configured typing speed
             if mock_write.call_args and "interval" in mock_write.call_args[1]:
@@ -258,7 +265,7 @@ class TestSettingsPersistenceE2E:
         invalid_settings = {
             "typing_speed": -50,  # Should be positive
             "chunk_size": 0,  # Should be positive
-            "max_history_size": "not a number",  # Should be int
+            "history_size": "not a number",  # Should be int
             "paste_mode": "invalid_mode",  # Should be valid mode
         }
 
@@ -272,14 +279,14 @@ class TestSettingsPersistenceE2E:
         # Should have valid defaults instead of invalid values
         assert manager.settings.typing_speed > 0
         assert manager.settings.chunk_size > 0
-        assert isinstance(manager.settings.max_history_size, int)
+        assert isinstance(manager.settings.history_size, int)
         assert manager.settings.paste_mode in ["auto", "typing", "clipboard"]
 
     def test_settings_backwards_compatibility(self, temp_settings_file):
         """Test loading settings from different app versions."""
         # Simulate settings from older version
         v1_settings = {
-            "auto_start": True,
+            "start_on_login": True,
             "paste_mode": "typing",
             "typing_speed": 100,
         }
@@ -292,13 +299,13 @@ class TestSettingsPersistenceE2E:
         manager.load()
 
         # Old settings should be preserved
-        assert manager.settings.auto_start is True
+        assert manager.settings.start_on_login is True
         assert manager.settings.paste_mode == "typing"
         assert manager.settings.typing_speed == 100
 
         # New fields should have defaults
         assert hasattr(manager.settings, "privacy_mode")
-        assert hasattr(manager.settings, "rate_limit_enabled")
+        assert hasattr(manager.settings, "history_retention_days")
 
         # Save and reload
         manager.save()
@@ -339,7 +346,7 @@ class TestSettingsPersistenceE2E:
         # First app instance
         settings1 = SettingsManager(settings_path=temp_settings_file)
         settings1.settings.paste_mode = "typing"
-        settings1.settings.max_history_size = 75
+        settings1.settings.history_size = 75
         settings1.settings.excluded_apps = ["Password Manager"]
         settings1.save()
 
@@ -362,7 +369,7 @@ class TestSettingsPersistenceE2E:
 
         # Verify settings persisted
         assert settings2.settings.paste_mode == "typing"
-        assert settings2.settings.max_history_size == 75
+        assert settings2.settings.history_size == 75
         assert settings2.settings.excluded_apps == ["Password Manager"]
 
         # Create second tray instance

@@ -84,9 +84,10 @@ class TestSnippet:
         snippet = Snippet(name="Test", content="Content")
         assert snippet.validate() is True
 
-        # Empty name
-        with pytest.raises(ValueError, match="Snippet name cannot be empty"):
-            Snippet(name="", content="Content").validate()
+        # Empty name - should default to "Untitled"
+        snippet = Snippet(name="", content="Content")
+        assert snippet.name == "Untitled"
+        assert snippet.validate() is True
 
         # Empty content
         with pytest.raises(ValueError, match="Snippet content cannot be empty"):

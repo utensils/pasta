@@ -459,6 +459,13 @@ class SystemTray(QObject):
 
         # Flash the icon or show notification
         print("⚠️  Emergency stop activated! Paste operation aborted.")
+        if self.tray_icon:
+            self.tray_icon.showMessage(
+                "Pasta",
+                "Emergency stop activated! Paste operation aborted.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                2000,  # Show for 2 seconds
+            )
 
     def _on_settings_changed(self, settings: Settings) -> None:
         """Handle settings changes.
