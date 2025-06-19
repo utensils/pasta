@@ -1,5 +1,6 @@
 """Comprehensive tests for __main__ module to improve coverage."""
 
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -154,6 +155,7 @@ class TestMainModule:
         # Verify shutdown message
         assert any("Shutting down Pasta" in str(call) for call in mock_print.call_args_list)
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="macOS-specific test")
     @patch("pasta.__main__.SystemTray")
     @patch("pasta.__main__.SettingsManager")
     @patch("pasta.__main__.StorageManager")
@@ -232,6 +234,7 @@ class TestMainModule:
         assert "Pasta" in storage_path
         assert storage_path.endswith("history.db")
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="Linux-specific test")
     @patch("pasta.__main__.SystemTray")
     @patch("pasta.__main__.SettingsManager")
     @patch("pasta.__main__.StorageManager")

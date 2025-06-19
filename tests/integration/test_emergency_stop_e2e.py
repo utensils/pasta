@@ -215,7 +215,7 @@ class TestEmergencyStopE2E:
                 results["errors"].append(str(e))
 
         def stop_operation():
-            time.sleep(0.05)  # Small delay
+            time.sleep(0.02)  # Shorter delay to ensure stop happens during paste
             keyboard_engine._abort_event.set()
 
         # Run paste and stop concurrently

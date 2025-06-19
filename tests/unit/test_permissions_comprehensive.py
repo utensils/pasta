@@ -105,7 +105,7 @@ class TestPermissionChecker:
     @patch("platform.system")
     @patch("pasta.utils.permissions.HAS_GRP", True)
     @patch("pasta.utils.permissions.grp")
-    @patch("os.getgroups")
+    @patch("os.getgroups", create=True)  # create=True for Windows compatibility
     def test_linux_permissions_in_input_group(self, mock_getgroups, mock_grp, mock_system):
         """Test Linux permissions when user is in input group."""
         mock_system.return_value = "Linux"
@@ -127,7 +127,7 @@ class TestPermissionChecker:
     @patch("platform.system")
     @patch("pasta.utils.permissions.HAS_GRP", True)
     @patch("pasta.utils.permissions.grp")
-    @patch("os.getgroups")
+    @patch("os.getgroups", create=True)  # create=True for Windows compatibility
     def test_linux_permissions_not_in_input_group(self, mock_getgroups, mock_grp, mock_system):
         """Test Linux permissions when user is not in input group."""
         mock_system.return_value = "Linux"
