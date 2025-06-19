@@ -293,11 +293,12 @@ class TestPastaKeyboardEngineExtended:
 
     def test_concurrent_paste_operations(self):
         """Test thread safety of paste operations."""
-        engine = PastaKeyboardEngine()
+        # Create separate engine instances for true concurrent testing
+        engines = [PastaKeyboardEngine() for _ in range(5)]
         results = []
         results_lock = threading.Lock()
 
-        def paste_worker(text, method):
+        def paste_worker(engine, text, method):
             with (
                 patch("pyautogui.write"),
                 patch("pyautogui.position", return_value=(100, 100)),
@@ -309,11 +310,11 @@ class TestPastaKeyboardEngineExtended:
                 with results_lock:
                     results.append(result)
 
-        # Start multiple paste operations
+        # Start multiple paste operations with separate engines
         threads = []
         for i in range(5):
             method = "typing" if i % 2 == 0 else "clipboard"
-            t = threading.Thread(target=paste_worker, args=(f"Text {i}", method))
+            t = threading.Thread(target=paste_worker, args=(engines[i], f"Text {i}", method))
             threads.append(t)
             t.start()
 
@@ -321,6 +322,6 @@ class TestPastaKeyboardEngineExtended:
         for t in threads:
             t.join(timeout=5.0)
 
-        # All should complete successfully
+        # All should complete successfully with separate engines
         assert len(results) == 5
         assert all(results)
