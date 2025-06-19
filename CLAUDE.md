@@ -39,7 +39,8 @@ uv run pre-commit install
 
 #### Running with Nix (macOS only currently)
 ```bash
-# Run Pasta directly with Nix (limited functionality)
+# Run Pasta directly with Nix
+# Note: Limited to clipboard mode due to pyautogui unavailability
 nix run .
 ```
 
@@ -235,3 +236,4 @@ When implementing features:
 - Qt platform plugin is explicitly set to "cocoa" on macOS to prevent XCB errors in nix environments
 - **Nix Users**: Use `nix develop` for full development environment, `nix run .` for quick testing (macOS only)
 - **PyAutoGUI on macOS**: Falls back to osascript-based keyboard simulation when pyautogui is not available
+- **Nix on macOS**: PyAutoGUI is not available in the Nix build due to Linux-only dependencies (scrot). The application automatically falls back to osascript-based clipboard pasting which works for clipboard mode but has limited typing mode functionality

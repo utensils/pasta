@@ -43,7 +43,7 @@ def test_history_window_loads_entries_with_datetime_timestamps(tmp_path):
         elif isinstance(timestamp, str):
             # ISO format string
             dt = datetime.fromisoformat(timestamp)
-        elif isinstance(timestamp, (int, float)):
+        elif isinstance(timestamp, int | float):
             # Unix timestamp
             dt = datetime.fromtimestamp(timestamp)
         else:

@@ -100,9 +100,11 @@
           cryptography
           click
           psutil
+          # Note: pyautogui is not available on macOS via nix due to scrot dependency
+          # The application will fall back to osascript-based keyboard simulation
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          ps."pyobjc-core"
-          ps."pyobjc-framework-Cocoa"
+          ps.pyobjc-core
+          ps.pyobjc-framework-Cocoa
         ]);
 
         # Create the pasta app
@@ -129,7 +131,7 @@
           '';
 
           meta = with pkgs.lib; {
-            description = "Cross-platform clipboard manager (limited functionality without pyautogui/pystray)";
+            description = "Cross-platform clipboard manager";
             homepage = "https://github.com/jamesbrink/pasta";
             license = licenses.mit;
             platforms = [ "aarch64-darwin" "x86_64-darwin" ];

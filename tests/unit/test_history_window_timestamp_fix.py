@@ -25,7 +25,7 @@ def test_timestamp_handling_logic():
             elif isinstance(timestamp, str):
                 # ISO format string
                 dt = datetime.fromisoformat(timestamp)
-            elif isinstance(timestamp, (int, float)):
+            elif isinstance(timestamp, int | float):
                 # Unix timestamp
                 dt = datetime.fromtimestamp(timestamp)
             else:
