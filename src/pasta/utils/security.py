@@ -4,8 +4,9 @@ import json
 import re
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 class SensitiveDataDetector:
@@ -129,7 +130,7 @@ class RateLimiter:
         history: Dictionary tracking action timestamps
     """
 
-    def __init__(self, limits: Optional[dict[str, tuple[int, int]]] = None) -> None:
+    def __init__(self, limits: dict[str, tuple[int, int]] | None = None) -> None:
         """Initialize the rate limiter.
 
         Args:
@@ -141,7 +142,7 @@ class RateLimiter:
             "large_paste": (5, 300),  # 5 large pastes per 5 minutes
         }
         self.history: dict[str, list[float]] = defaultdict(list)
-        self._state_file: Optional[Path] = None
+        self._state_file: Path | None = None
 
     def set_limit(self, action: str, max_requests: int, window_seconds: int) -> None:
         """Set rate limit for an action.
@@ -153,7 +154,7 @@ class RateLimiter:
         """
         self.limits[action] = (max_requests, window_seconds)
 
-    def check_limit(self, action: str, size: Optional[int] = None) -> bool:
+    def check_limit(self, action: str, size: int | None = None) -> bool:
         """Check if action is allowed under rate limits.
 
         Args:
@@ -181,7 +182,7 @@ class RateLimiter:
         # Check limit
         return len(self.history[action]) < max_count
 
-    def record_request(self, action: str, size: Optional[int] = None) -> None:
+    def record_request(self, action: str, size: int | None = None) -> None:
         """Record that a request was made.
 
         Args:
@@ -204,7 +205,7 @@ class RateLimiter:
         if action in self.history:
             self.history[action].clear()
 
-    def is_allowed(self, action: str, size: Optional[int] = None) -> bool:
+    def is_allowed(self, action: str, size: int | None = None) -> bool:
         """Check if action is allowed under rate limits and record it.
 
         Args:
@@ -219,7 +220,7 @@ class RateLimiter:
             return True
         return False
 
-    def get_remaining_quota(self, action: str) -> Optional[int]:
+    def get_remaining_quota(self, action: str) -> int | None:
         """Get remaining quota for an action.
 
         Args:
@@ -284,7 +285,7 @@ class PrivacyManager:
         excluded_patterns: List of regex patterns to exclude
     """
 
-    def __init__(self, default_excluded_apps: Optional[list[str]] = None) -> None:
+    def __init__(self, default_excluded_apps: list[str] | None = None) -> None:
         """Initialize the privacy manager.
 
         Args:
@@ -491,7 +492,7 @@ class SecurityManager:
         privacy: PrivacyManager instance
     """
 
-    def __init__(self, encryption_key: Optional[bytes] = None) -> None:
+    def __init__(self, encryption_key: bytes | None = None) -> None:
         """Initialize the SecurityManager.
 
         Args:
@@ -501,7 +502,7 @@ class SecurityManager:
         self.detector = SensitiveDataDetector()
         self.limiter = RateLimiter()
         self.privacy = PrivacyManager(["1password", "keepass", "bitwarden", "lastpass", "dashlane", "password manager"])
-        self._audit_callback: Optional[Callable[[str, dict[str, Any]], None]] = None
+        self._audit_callback: Callable[[str, dict[str, Any]], None] | None = None
         self._privacy_mode = False
         self._secure_storage: list[bytes] = []
 
@@ -579,7 +580,7 @@ class SecurityManager:
         except Exception:
             return True
 
-    def set_audit_callback(self, callback: Optional[Callable[[str, dict[str, Any]], None]]) -> None:
+    def set_audit_callback(self, callback: Callable[[str, dict[str, Any]], None] | None) -> None:
         """Set callback for security events.
 
         Args:
@@ -598,7 +599,7 @@ class SecurityManager:
         # This would re-encrypt all sensitive data with a new key
         pass
 
-    def check_rate_limit(self, action: str, size: Optional[int] = None) -> bool:
+    def check_rate_limit(self, action: str, size: int | None = None) -> bool:
         """Check if action is allowed under rate limits.
 
         Args:

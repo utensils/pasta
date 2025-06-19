@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 
 @dataclass
@@ -154,7 +154,7 @@ class SnippetManager:
         snippets: Dictionary of snippets by ID
     """
 
-    def __init__(self, snippets_path: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, snippets_path: str | Path | None = None) -> None:
         """Initialize SnippetManager.
 
         Args:
@@ -217,7 +217,7 @@ class SnippetManager:
         content: str,
         category: str = "general",
         hotkey: str = "",
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
     ) -> Snippet:
         """Add a new snippet.
 
@@ -253,7 +253,7 @@ class SnippetManager:
         self.save()
         return snippet
 
-    def get_snippet(self, snippet_id: str) -> Optional[Snippet]:
+    def get_snippet(self, snippet_id: str) -> Snippet | None:
         """Get snippet by ID.
 
         Args:
@@ -264,7 +264,7 @@ class SnippetManager:
         """
         return self.snippets.get(snippet_id)
 
-    def update_snippet(self, snippet_id: str, **kwargs: Any) -> Optional[Snippet]:
+    def update_snippet(self, snippet_id: str, **kwargs: Any) -> Snippet | None:
         """Update an existing snippet.
 
         Args:
@@ -437,7 +437,7 @@ class SnippetManager:
         """
         return self.get_recent_snippets(limit)
 
-    def export_snippets(self, path: Union[str, Path]) -> None:
+    def export_snippets(self, path: str | Path) -> None:
         """Export snippets to file.
 
         Args:
@@ -451,7 +451,7 @@ class SnippetManager:
         }
         path.write_text(json.dumps(data, indent=2))
 
-    def import_snippets(self, path: Union[str, Path], merge: bool = True) -> int:
+    def import_snippets(self, path: str | Path, merge: bool = True) -> int:
         """Import snippets from file.
 
         Args:
@@ -517,7 +517,7 @@ class SnippetManager:
 
         return results
 
-    def get_snippet_by_hotkey(self, hotkey: str) -> Optional[Snippet]:
+    def get_snippet_by_hotkey(self, hotkey: str) -> Snippet | None:
         """Get snippet by hotkey.
 
         Args:

@@ -2,7 +2,6 @@
 
 import sys
 from datetime import datetime
-from typing import Optional
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
@@ -31,7 +30,7 @@ class HistoryWindow(QMainWindow):
     # Signal emitted when window is closed
     closed = Signal()
 
-    def __init__(self, storage_manager: StorageManager, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, storage_manager: StorageManager, parent: QWidget | None = None) -> None:
         """Initialize the history window.
 
         Args:
@@ -200,7 +199,7 @@ class HistoryWindow(QMainWindow):
             elif isinstance(timestamp, str):
                 # ISO format string
                 dt = datetime.fromisoformat(timestamp)
-            elif isinstance(timestamp, (int, float)):
+            elif isinstance(timestamp, int | float):
                 # Unix timestamp
                 dt = datetime.fromtimestamp(timestamp)
             else:

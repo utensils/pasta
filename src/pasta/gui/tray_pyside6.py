@@ -5,7 +5,7 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QPainter, QPixmap
@@ -57,7 +57,7 @@ class SystemTray(QObject):
         keyboard_engine: PastaKeyboardEngine,
         storage_manager: StorageManager,
         permission_checker: PermissionChecker,
-        settings_manager: Optional[SettingsManager] = None,
+        settings_manager: SettingsManager | None = None,
     ) -> None:
         """Initialize the SystemTray.
 
@@ -81,7 +81,7 @@ class SystemTray(QObject):
         self._lock = threading.Lock()
 
         # Qt application
-        self._app: Optional[QApplication] = None
+        self._app: QApplication | None = None
         self._init_qt_app()
 
         # Hotkey manager
@@ -102,8 +102,8 @@ class SystemTray(QObject):
         self.settings_manager.add_observer(self._on_settings_changed)
 
         # References to windows
-        self._history_window: Optional[Any] = None  # Will be PySide6HistoryWindow
-        self._settings_window: Optional[Any] = None  # Will be PySide6SettingsWindow
+        self._history_window: Any | None = None  # Will be PySide6HistoryWindow
+        self._settings_window: Any | None = None  # Will be PySide6SettingsWindow
 
     def _init_qt_app(self) -> None:
         """Initialize Qt application if needed."""
@@ -136,7 +136,7 @@ class SystemTray(QObject):
                     # PyObjC not available, will rely on Info.plist LSUIElement
                     pass
         else:
-            self._app = cast(Optional[QApplication], QApplication.instance())
+            self._app = cast(QApplication | None, QApplication.instance())
 
     def _setup_tray_icon(self) -> None:
         """Set up the system tray icon."""

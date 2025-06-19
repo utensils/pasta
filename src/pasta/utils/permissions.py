@@ -4,7 +4,6 @@ import os
 import platform
 import subprocess
 import threading
-from typing import Optional
 
 try:
     import grp
@@ -29,7 +28,7 @@ class PermissionChecker:
         """Initialize the PermissionChecker."""
         self.platform = platform.system()
         self._permission_lock = threading.Lock()
-        self._cached_result: Optional[bool] = None
+        self._cached_result: bool | None = None
 
     def check_permissions(self) -> bool:
         """Check if necessary permissions are granted.

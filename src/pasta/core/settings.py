@@ -6,10 +6,11 @@ import os
 import platform
 import shutil
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 @dataclass
@@ -169,7 +170,7 @@ class SettingsManager:
         observers: List of observer callbacks
     """
 
-    def __init__(self, settings_path: Optional[Path] = None) -> None:
+    def __init__(self, settings_path: Path | None = None) -> None:
         """Initialize SettingsManager.
 
         Args:

@@ -15,9 +15,9 @@
           overlays = [ devshell.overlays.default ];
         };
 
-        # Python 3.11 with common build dependencies
-        python = pkgs.python311;
-        pythonWithPackages = pkgs.python311.withPackages (ps: with ps; [
+        # Python 3.13 with common build dependencies
+        python = pkgs.python313;
+        pythonWithPackages = pkgs.python313.withPackages (ps: with ps; [
           pip
           wheel
           setuptools
@@ -73,7 +73,7 @@
           xclip
           wl-clipboard
           libevdev
-          python311Packages.evdev
+          python313Packages.evdev
         ] else [];
 
         # Development tools
@@ -91,8 +91,60 @@
           pandoc
         ];
 
+        # Build a minimal Python environment for macOS
+        pythonEnv = python.withPackages (ps: with ps; [
+          # Core dependencies that work on macOS
+          pyperclip
+          pillow
+          pyside6
+          cryptography
+          click
+          psutil
+        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          ps."pyobjc-core"
+          ps."pyobjc-framework-Cocoa"
+        ]);
+
+        # Create the pasta app
+        pastaApp = pkgs.stdenv.mkDerivation {
+          pname = "pasta";
+          version = "0.1.0";
+          src = ./.;
+
+          nativeBuildInputs = [ pkgs.makeWrapper pkgs.qt6.wrapQtAppsHook ];
+          buildInputs = guiDeps;
+
+          dontBuild = true;
+          dontWrapQtApps = true;  # We'll handle wrapping manually
+
+          installPhase = ''
+            mkdir -p $out/share/pasta
+            cp -r src/* $out/share/pasta/
+
+            mkdir -p $out/bin
+            makeWrapper ${pythonEnv}/bin/python $out/bin/pasta \
+              --add-flags "-m pasta" \
+              --prefix PYTHONPATH : "$out/share/pasta" \
+              --set QT_QPA_PLATFORM "cocoa"
+          '';
+
+          meta = with pkgs.lib; {
+            description = "Cross-platform clipboard manager (limited functionality without pyautogui/pystray)";
+            homepage = "https://github.com/jamesbrink/pasta";
+            license = licenses.mit;
+            platforms = [ "aarch64-darwin" "x86_64-darwin" ];
+            mainProgram = "pasta";
+          };
+        };
+
       in
       {
+        # Make the package available for nix run
+        packages.default = pastaApp;
+        apps.default = flake-utils.lib.mkApp {
+          drv = pastaApp;
+        };
+
         devShells.default = pkgs.devshell.mkShell {
           name = "pasta-dev";
 
@@ -137,7 +189,7 @@
             }
             {
               name = "UV_PYTHON";
-              value = "${python}/bin/python3.11";
+              value = "${python}/bin/python3.13";
             }
             {
               name = "PYTHON_KEYRING_BACKEND";
@@ -497,11 +549,11 @@ else:
                 echo "🍝 Pasta Development Environment"
                 echo "================================"
                 echo ""
-                echo "🐍 Python: $(${python}/bin/python3.11 --version)"
+                echo "🐍 Python: $(${python}/bin/python3.13 --version)"
                 echo "📦 UV: $(uv --version)"
                 echo "🎨 Ruff: $(ruff --version)"
                 echo ""
-                echo "📍 Python path: ${python}/bin/python3.11"
+                echo "📍 Python path: ${python}/bin/python3.13"
                 echo "📍 Project root: $PWD"
                 echo ""
                 echo "🖥️ GUI Backend: PySide6/Qt6"
@@ -568,7 +620,7 @@ else:
             export PYTHONPATH="$PWD/src:$PYTHONPATH"
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath (buildTools ++ guiDeps ++ platformDeps)}:$LD_LIBRARY_PATH"
             export UV_SYSTEM_PYTHON=1
-            export UV_PYTHON="${python}/bin/python3.11"
+            export UV_PYTHON="${python}/bin/python3.13"
             export QT_QPA_PLATFORM_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins/platforms"
 
             # Check if in project
@@ -588,7 +640,7 @@ else:
 
           shellHook = ''
             export UV_SYSTEM_PYTHON=1
-            export UV_PYTHON="${python}/bin/python3.11"
+            export UV_PYTHON="${python}/bin/python3.13"
             export QT_QPA_PLATFORM=offscreen
             export PYTHONPATH="$PWD/src:$PYTHONPATH"
           '';

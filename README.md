@@ -2,7 +2,7 @@
 [![Tests](https://github.com/utensils/pasta/actions/workflows/test.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/utensils/pasta)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/utensils/pasta)
 
 <p align="center">
@@ -25,6 +25,7 @@ A cross-platform system tray application that converts clipboard content into si
 
 ## Quick Start
 
+### Option 1: Using UV (All Platforms)
 ```bash
 # Install UV package manager
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -35,6 +36,21 @@ cd pasta
 uv sync --all-extras
 
 # Run Pasta
+uv run python -m pasta
+```
+
+### Option 2: Using Nix (macOS - Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/utensils/pasta.git
+cd pasta
+
+# Run directly with Nix (no setup required!)
+nix run .
+
+# Or enter development environment
+nix develop
+uv sync --all-extras
 uv run python -m pasta
 ```
 
@@ -111,6 +127,9 @@ uv run mypy src/
 For NixOS users or those with Nix package manager installed, a development flake is provided:
 
 ```bash
+# Quick run (macOS only - limited functionality)
+nix run .
+
 # Enter development shell with all dependencies
 nix develop
 
@@ -128,13 +147,16 @@ lint         # Check code quality
 dev          # Run with auto-reload
 ```
 
+**Note**: The `nix run .` command provides a standalone package with limited functionality (no pyautogui/pystray on macOS). For full functionality, use the development shell.
+
 The Nix development environment includes:
-- Python 3.11 with all dependencies
+- Python 3.13 with all dependencies
 - Qt6 and GUI libraries
 - Platform-specific tools (xdotool, xclip, etc.)
 - Development tools (ruff, mypy, pytest)
 - Pre-configured environment variables
 - Interactive command menu
+- UV package manager pre-installed
 
 Available Nix shells:
 - `nix develop` - Full development environment with menu
@@ -147,6 +169,7 @@ Available Nix shells:
 - **GUI**: PySide6-based tray, settings, and history windows
 - **Security**: Fernet encryption, sensitive data detection
 - **Platform**: OS-specific permission and feature handling
+- **Python**: Requires Python 3.13+ for latest features and performance
 
 ## Security Features
 

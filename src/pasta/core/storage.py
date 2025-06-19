@@ -7,7 +7,7 @@ import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from cryptography.fernet import Fernet
 
@@ -25,7 +25,7 @@ class StorageManager:
         encryption_key: Key for encrypting sensitive data
     """
 
-    def __init__(self, db_path: str, encryption_key: Optional[bytes] = None) -> None:
+    def __init__(self, db_path: str, encryption_key: bytes | None = None) -> None:
         """Initialize the StorageManager.
 
         Args:
@@ -127,7 +127,7 @@ class StorageManager:
         """
         return self._security_manager.is_sensitive(content)
 
-    def save_entry(self, entry: dict[str, Any]) -> Optional[int]:
+    def save_entry(self, entry: dict[str, Any]) -> int | None:
         """Save clipboard entry to database.
 
         Args:
@@ -165,7 +165,7 @@ class StorageManager:
         except sqlite3.Error:
             return None
 
-    def get_entry(self, entry_id: int) -> Optional[dict[str, Any]]:
+    def get_entry(self, entry_id: int) -> dict[str, Any] | None:
         """Get a specific entry by ID.
 
         Args:

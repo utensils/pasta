@@ -3,7 +3,8 @@
 import contextlib
 import sys
 import threading
-from typing import TYPE_CHECKING, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import keyboard as keyboard_typing
@@ -39,7 +40,7 @@ class HotkeyManager:
 
     def __init__(self) -> None:
         """Initialize the HotkeyManager."""
-        self.abort_callback: Optional[Callable[[], None]] = None
+        self.abort_callback: Callable[[], None] | None = None
         self.abort_hotkey = "esc+esc"  # Double ESC for emergency stop
         self._registered = False
         self._lock = threading.Lock()

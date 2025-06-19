@@ -6,8 +6,91 @@ import threading
 import time
 
 import psutil
-import pyautogui
 import pyperclip
+
+# Try to import pyautogui, fall back to pyperclip-only mode if not available
+try:
+    import pyautogui
+
+    PYAUTOGUI_AVAILABLE = True
+except ImportError:
+    PYAUTOGUI_AVAILABLE = False
+
+    # Create a dummy pyautogui module with the methods we need
+    class DummyPyAutoGUI:
+        """Fallback implementation of pyautogui for when the module is not available."""
+
+        PAUSE = 0.01
+        FAILSAFE = True
+
+        @staticmethod
+        def typewrite(text: str, interval: float = 0) -> None:  # noqa: ARG004
+            """Simulate typing by falling back to clipboard method.
+
+            Args:
+                text: Text to type
+                interval: Delay between keystrokes (ignored in fallback)
+            """
+            # Fall back to clipboard method
+            pyperclip.copy(text)
+            if platform.system() == "Darwin":
+                # On macOS, we can use osascript to simulate Cmd+V
+                import subprocess
+
+                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
+            else:
+                # On other systems, just copy to clipboard
+                pass
+
+        @staticmethod
+        def write(text: str, interval: float = 0.005) -> None:
+            """Write text (alias for typewrite).
+
+            Args:
+                text: Text to write
+                interval: Delay between keystrokes
+            """
+            DummyPyAutoGUI.typewrite(text, interval)
+
+        @staticmethod
+        def hotkey(*keys: str) -> None:
+            """Simulate hotkey press.
+
+            Args:
+                *keys: Keys to press together
+            """
+            if platform.system() == "Darwin" and keys == ("cmd", "v"):
+                import subprocess
+
+                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
+            elif keys == ("ctrl", "v"):
+                # For other systems, we'd need platform-specific implementations
+                pass
+
+        @staticmethod
+        def press(key: str) -> None:
+            """Simulate key press.
+
+            Args:
+                key: Key to press
+            """
+            if key == "enter" and platform.system() == "Darwin":
+                import subprocess
+
+                subprocess.run(["osascript", "-e", 'tell application "System Events" to key code 36'], check=False)
+            # For other systems, we'd need platform-specific implementations
+
+        @staticmethod
+        def position() -> tuple[int, int]:
+            """Get current mouse position.
+
+            Returns:
+                Tuple of (x, y) coordinates
+            """
+            # Return a dummy position
+            return (0, 0)
+
+    pyautogui = DummyPyAutoGUI()
 
 
 class AdaptiveTypingEngine:

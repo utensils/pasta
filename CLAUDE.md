@@ -9,15 +9,38 @@ Pasta is a cross-platform system tray application that converts clipboard conten
 ## Common Development Commands
 
 ### Environment Setup
+
+#### Using Nix (Recommended for development)
 ```bash
-# Install UV package manager (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Enter development shell with all tools pre-installed
+nix develop
 
 # Initialize project and install dependencies
 uv sync --all-extras --dev
 
 # Install pre-commit hooks
 uv run pre-commit install
+```
+
+#### Using UV directly
+```bash
+# Install UV package manager (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment with Python 3.13
+uv venv --python 3.13
+
+# Initialize project and install dependencies
+uv sync --all-extras --dev
+
+# Install pre-commit hooks
+uv run pre-commit install
+```
+
+#### Running with Nix (macOS only currently)
+```bash
+# Run Pasta directly with Nix (limited functionality)
+nix run .
 ```
 
 ### Development Workflow
@@ -49,14 +72,16 @@ uv run pyinstaller --onefile --windowed src/pasta/__main__.py
 ## High-Level Architecture
 
 ### Core Technology Stack
-- **Language**: Python 3.9+ (recommended: 3.11)
+- **Language**: Python 3.13+ (required)
 - **Package Manager**: UV (not pip)
-- **System Tray**: pystray
-- **Keyboard Simulation**: PyAutoGUI
+- **System Tray**: PySide6 (QSystemTrayIcon)
+- **GUI Framework**: PySide6 (Qt6)
+- **Keyboard Simulation**: PyAutoGUI (with macOS fallback via osascript)
 - **Clipboard Access**: pyperclip
 - **Testing**: pytest with pytest-qt
 - **Code Quality**: Ruff (includes Black, isort, pylint functionality)
 - **Line Length**: 140 characters
+- **Build System**: Nix flakes for reproducible environments
 
 ### Project Structure
 ```
@@ -70,9 +95,9 @@ pasta/
 │   │   ├── settings.py     # Settings data model and manager
 │   │   └── snippets.py     # Snippet management system
 │   ├── gui/            # User interface components
-│   │   ├── tray.py        # System tray implementation (pystray)
-│   │   ├── settings.py    # Settings window (PyQt6)
-│   │   ├── history.py     # History browser window (PyQt6)
+│   │   ├── tray.py        # System tray implementation (PySide6)
+│   │   ├── settings.py    # Settings window (PySide6)
+│   │   ├── history.py     # History browser window (PySide6)
 │   │   └── resources/     # Icons and images
 │   └── utils/          # Platform-specific utilities
 │       ├── platform.py     # Platform detection and utilities
@@ -179,12 +204,13 @@ When implementing features:
 
 ### CI/CD Status
 - ✅ Core tests passing on all platforms (Ubuntu, Windows, macOS)
-- ✅ All Python versions tested (3.9, 3.10, 3.11, 3.12)
+- ✅ Python 3.13 support (upgraded from 3.9-3.12)
 - ✅ 600+ tests passing with 92% code coverage
 - ✅ Type checking (mypy) passing on all platforms
 - ✅ Code quality checks (ruff) passing
 - ✅ Cross-platform compatibility verified
 - ✅ Security module fully implemented and tested
+- ✅ Nix flake support for reproducible builds (macOS)
 - ⚠️ Some macOS UI tests have Qt platform issues (non-critical)
 
 ### Next Steps (per PRD)
@@ -197,6 +223,7 @@ When implementing features:
 
 ## Important Reminders
 
+- **Python Version**: Project requires Python 3.13+
 - When running tests, use pytest with timeout to prevent hanging: `uv run pytest --timeout=30`
 - For CI/CD issues, check all platforms (Ubuntu, Windows, macOS) separately
 - Use skipif markers for platform-specific tests that require modules not available on all platforms
@@ -206,3 +233,5 @@ When implementing features:
 - History should be saved even when monitoring is disabled
 - On macOS, ensure dialogs respond to Cmd+W and have proper window controls
 - Qt platform plugin is explicitly set to "cocoa" on macOS to prevent XCB errors in nix environments
+- **Nix Users**: Use `nix develop` for full development environment, `nix run .` for quick testing (macOS only)
+- **PyAutoGUI on macOS**: Falls back to osascript-based keyboard simulation when pyautogui is not available

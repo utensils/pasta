@@ -234,7 +234,7 @@ def temp_db_path(tmp_path: Any) -> str:
 
 
 @pytest.fixture
-def mock_platform(monkeypatch: pytest.MonkeyPatch) -> Generator[Mock, None, None]:
+def mock_platform(monkeypatch: pytest.MonkeyPatch) -> Generator[Mock]:
     """Mock platform detection.
 
     Args:

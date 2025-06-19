@@ -3,7 +3,7 @@ name = "pasta"
 version = "0.1.0"
 description = "Cross-platform clipboard history manager with system tray interface"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 license = {text = "MIT"}
 authors = [
     {name = "James Brink", email = "your.email@example.com"}
@@ -15,10 +15,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Desktop Environment",
     "Topic :: Utilities",
 ]
@@ -73,7 +70,7 @@ include = [
 ]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py312"
 line-length = 140
 src = ["src"]
 
@@ -111,7 +108,7 @@ known-first-party = ["pasta"]
 convention = "google"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

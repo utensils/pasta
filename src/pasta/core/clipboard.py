@@ -3,8 +3,9 @@
 import hashlib
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any
 
 import pyperclip
 
@@ -32,7 +33,7 @@ class ClipboardManager:
         self.monitoring = False
         self.callbacks: list[Callable] = []
         self._last_hash = ""
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self._lock = threading.Lock()  # Thread safety
 
     def start_monitoring(self) -> None:
@@ -143,7 +144,7 @@ class ClipboardManager:
         """
         self.callbacks.append(callback)
 
-    def get_history(self, limit: Optional[int] = None) -> list[dict[str, Any]]:
+    def get_history(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Get clipboard history.
 
         Args:

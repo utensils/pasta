@@ -1,7 +1,5 @@
 """Generate icons for Pasta application."""
 
-from typing import Union
-
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
 from PIL.ImageFont import ImageFont as DefaultImageFont
@@ -37,7 +35,7 @@ def create_pasta_icon(size: int, enabled: bool = True) -> Image.Image:
     try:
         # Try to use a nice font
         font_size = size // 2
-        font: Union[FreeTypeFont, DefaultImageFont] = ImageFont.truetype("Arial.ttf", font_size)
+        font: FreeTypeFont | DefaultImageFont = ImageFont.truetype("Arial.ttf", font_size)
     except Exception:
         # Fall back to default font
         font = ImageFont.load_default()

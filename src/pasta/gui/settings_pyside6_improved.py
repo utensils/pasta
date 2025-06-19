@@ -3,7 +3,6 @@
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QIcon, QKeySequence, QShortcut
@@ -41,7 +40,7 @@ class SettingsWindow(QDialog):
     # Signal emitted when window is closed
     closed = Signal()
 
-    def __init__(self, settings_manager: SettingsManager, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, settings_manager: SettingsManager, parent: QWidget | None = None) -> None:
         """Initialize the improved settings window.
 
         Args:
