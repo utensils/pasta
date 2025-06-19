@@ -1,6 +1,8 @@
 """Tests for improved settings UI/UX."""
 
 import json
+import os
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +11,15 @@ from PySide6.QtGui import QShortcut
 from PySide6.QtWidgets import QLabel, QMessageBox, QPushButton
 
 from pasta.core.settings import Settings, SettingsManager
+
+# Mock DockIconManager in Nix environment to prevent AppKit conflicts
+if os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1":
+    sys.modules["pasta.utils.dock_manager"] = type(sys)("mock_dock_manager")
+    sys.modules["pasta.utils.dock_manager"].DockIconManager = lambda: None
+    sys.modules["pasta.utils.dock_manager"].DockIconManager.get_instance = lambda: type(
+        "MockDockIcon", (), {"add_reference": lambda self, x: None, "remove_reference": lambda self, x: None}
+    )()
+
 from pasta.gui.settings_pyside6_improved import SettingsWindow
 
 

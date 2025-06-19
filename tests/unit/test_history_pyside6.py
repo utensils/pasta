@@ -1,10 +1,18 @@
 """Tests for the PySide6 History window module."""
 
+import os
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
+
+# Mock DockIconManager in Nix environment to prevent AppKit conflicts
+if os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1":
+    sys.modules["pasta.utils.dock_manager"] = Mock()
+    sys.modules["pasta.utils.dock_manager"].DockIconManager = Mock()
+    sys.modules["pasta.utils.dock_manager"].DockIconManager.get_instance.return_value = Mock()
 
 from pasta.gui.history_pyside6 import HistoryWindow
 

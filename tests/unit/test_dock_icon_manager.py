@@ -10,7 +10,8 @@ import pytest
 
 # Skip these tests in CI on non-macOS platforms to avoid AppKit import issues
 @pytest.mark.skipif(
-    sys.platform != "darwin" and os.environ.get("CI") == "true", reason="DockIconManager tests require macOS or mocked environment"
+    (sys.platform != "darwin" and os.environ.get("CI") == "true") or os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1",
+    reason="DockIconManager tests require macOS or mocked environment without PASTA_TEST_SKIP_APPKIT",
 )
 class TestDockIconManager(unittest.TestCase):
     """Test dock icon visibility management on macOS."""
@@ -178,6 +179,7 @@ class TestDockIconManager(unittest.TestCase):
             manager.add_reference("test")
             self.assertFalse(manager.is_visible())
 
+    @pytest.mark.skipif(os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1", reason="Skip when dock manager is mocked")
     def test_appkit_not_available(self):
         """Test behavior when AppKit is not available."""
         from pasta.utils.dock_manager import DockIconManager

@@ -12,6 +12,15 @@ from PySide6.QtWidgets import QApplication
 
 from pasta.core.settings import Settings, SettingsManager
 from pasta.core.storage import StorageManager
+
+# Mock DockIconManager in Nix environment to prevent AppKit conflicts
+if os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1":
+    mock_module = type(sys)("mock_dock_manager")
+    mock_manager = MagicMock()
+    mock_manager.get_instance.return_value = MagicMock()
+    mock_module.DockIconManager = mock_manager
+    sys.modules["pasta.utils.dock_manager"] = mock_module
+
 from pasta.gui.history_pyside6 import HistoryWindow
 from pasta.gui.settings_pyside6_improved import SettingsWindow
 
