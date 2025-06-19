@@ -284,6 +284,12 @@ class TestEmergencyStopE2E:
         if sys.platform == "darwin":
             pytest.skip("Keyboard module disabled on macOS")
 
+        # Also skip if keyboard module is not available
+        from pasta.core.hotkeys import KEYBOARD_AVAILABLE
+
+        if not KEYBOARD_AVAILABLE:
+            pytest.skip("Keyboard module not available")
+
         with patch("pasta.core.hotkeys.keyboard.add_hotkey", side_effect=mock_add_hotkey):
             hotkey_manager.register_hotkeys()
 

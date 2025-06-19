@@ -26,7 +26,7 @@ class TestHotkeyManagerCoverage:
         manager.register_hotkeys()
 
         # Should call keyboard.add_hotkey with suppress=False
-        mock_keyboard.add_hotkey.assert_called_once_with("esc+esc", manager._on_abort_hotkey, suppress=False)
+        mock_keyboard.add_hotkey.assert_called_once_with("esc", manager._check_double_esc, suppress=False)
         assert manager._registered is True
 
     @patch("pasta.core.hotkeys.KEYBOARD_AVAILABLE", True)

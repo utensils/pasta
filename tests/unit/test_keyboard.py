@@ -79,7 +79,8 @@ class TestPastaKeyboardEngine:
         mock_copy.assert_called_with("original content")
 
     @patch("pyautogui.write")
-    def test_paste_via_typing(self, mock_write, engine):
+    @patch("pyautogui.position", return_value=(100, 100))
+    def test_paste_via_typing(self, mock_position, mock_write, engine):
         """Test paste using typing method."""
         result = engine.paste_text("small text", method="typing")
 
@@ -87,8 +88,9 @@ class TestPastaKeyboardEngine:
         mock_write.assert_called_once_with("small text", interval=0.005)
 
     @patch("pyautogui.write")
+    @patch("pyautogui.position", return_value=(100, 100))
     @patch("time.sleep")
-    def test_paste_large_text_chunking(self, mock_sleep, mock_write, engine):
+    def test_paste_large_text_chunking(self, mock_sleep, mock_position, mock_write, engine):
         """Test large text is chunked properly."""
         large_text = "x" * 1000
 
@@ -147,7 +149,8 @@ class TestPastaKeyboardEngine:
 
     @patch("pyautogui.write")
     @patch("pyautogui.press")
-    def test_multiline_text_handling(self, mock_press, mock_write, engine):
+    @patch("pyautogui.position", return_value=(100, 100))
+    def test_multiline_text_handling(self, mock_position, mock_press, mock_write, engine):
         """Test handling of multiline text."""
         multiline = "line1\nline2\nline3"
 
@@ -198,7 +201,8 @@ class TestPastaKeyboardEngine:
         assert engine.chunk_size == 100
 
     @patch("pyautogui.write")
-    def test_special_characters_handling(self, mock_write, engine):
+    @patch("pyautogui.position", return_value=(100, 100))
+    def test_special_characters_handling(self, mock_position, mock_write, engine):
         """Test handling of special characters."""
         special_text = "Test with @#$%^&*() special chars"
 
@@ -222,8 +226,9 @@ class TestPastaKeyboardEngine:
         assert engine._abort_event.is_set()
 
     @patch("pyautogui.write")
+    @patch("pyautogui.position", return_value=(100, 100))
     @patch("time.sleep")
-    def test_typing_aborted_by_event(self, mock_sleep, mock_write, engine):
+    def test_typing_aborted_by_event(self, mock_sleep, mock_position, mock_write, engine):
         """Test typing stops when abort event is set."""
 
         # Set abort event after first write
@@ -249,7 +254,8 @@ class TestPastaKeyboardEngine:
         assert callable(engine.is_pasting)
 
     @patch("pyautogui.write")
-    def test_unicode_text_handling(self, mock_write, engine):
+    @patch("pyautogui.position", return_value=(100, 100))
+    def test_unicode_text_handling(self, mock_position, mock_write, engine):
         """Test handling of Unicode text."""
         unicode_text = "Hello 世界 🌍 Привет"
 
@@ -272,8 +278,9 @@ class TestPastaKeyboardEngine:
             assert engine.paste_text("test", method="invalid") is True
 
     @patch("pyautogui.write")
+    @patch("pyautogui.position", return_value=(100, 100))
     @patch("time.sleep")
-    def test_chunk_boundary_handling(self, mock_sleep, mock_write, engine):
+    def test_chunk_boundary_handling(self, mock_sleep, mock_position, mock_write, engine):
         """Test that text is chunked at appropriate boundaries."""
         # Text exactly at chunk size
         text = "x" * 200

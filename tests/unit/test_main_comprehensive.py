@@ -88,8 +88,12 @@ class TestMainModule:
         mock_permission_checker.get_permission_instructions.return_value = "Do this to fix"
         mock_permission_checker_class.return_value = mock_permission_checker
 
-        # Run main
-        main()
+        # Make sys.exit raise an exception to stop execution
+        mock_exit.side_effect = SystemExit(1)
+
+        # Run main and expect SystemExit
+        with pytest.raises(SystemExit):
+            main()
 
         # Verify permission checker was called
         mock_permission_checker.check_permissions.assert_called_once()

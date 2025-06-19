@@ -44,7 +44,7 @@ class TestHotkeyManager:
 
         with patch("pasta.core.hotkeys.keyboard") as mock_keyboard:
             manager.register_hotkeys()
-            mock_keyboard.add_hotkey.assert_called_once_with("esc+esc", manager._on_abort_hotkey, suppress=False)
+            mock_keyboard.add_hotkey.assert_called_once_with("esc", manager._check_double_esc, suppress=False)
             assert manager._registered
 
     def test_register_hotkeys_idempotent(self, manager):

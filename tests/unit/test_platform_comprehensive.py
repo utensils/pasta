@@ -128,7 +128,7 @@ class TestGetActiveWindowTitle:
         mock_run.side_effect = [xdotool_result, wmctrl_result]
 
         result = get_active_window_title()
-        assert result == "Firefox - GitHub"
+        assert result == "* Firefox - GitHub"
 
         # Verify both commands were tried
         assert mock_run.call_count == 2

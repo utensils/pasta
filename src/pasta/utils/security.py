@@ -26,6 +26,8 @@ class SensitiveDataDetector:
             "credit_card_no_space": r"\b\d{16}\b",
             # SSN
             "ssn": r"\b\d{3}-\d{2}-\d{4}\b|\b\d{3} \d{2} \d{4}\b",
+            # Email addresses
+            "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             # Passwords
             "password": r"(?i)(password|passwd|pwd)[\s:=]+\S+",
             # API Keys and tokens
