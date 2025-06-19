@@ -299,6 +299,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest -xvs
               '';
             }
@@ -311,6 +312,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest tests/unit/ -xvs
               '';
             }
@@ -323,6 +325,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest tests/integration/ -xvs
               '';
             }
@@ -336,6 +339,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest tests/unit/test_*pyside6*.py -xvs
               '';
             }
@@ -348,6 +352,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest -v --cov=src/pasta --cov-report=term-missing --cov-report=html
               '';
             }
@@ -358,7 +363,7 @@ print('Check your system tray for the Pasta icon.')
               command = ''
                 if command -v entr &> /dev/null; then
                   # Unset Qt paths to avoid conflicts with venv PySide6
-                  find src tests -name "*.py" | entr -c bash -c "unset QT_PLUGIN_PATH; unset QT_QPA_PLATFORM_PLUGIN_PATH; export QT_QPA_PLATFORM=offscreen; uv run pytest -xvs"
+                  find src tests -name "*.py" | entr -c bash -c "unset QT_PLUGIN_PATH; unset QT_QPA_PLATFORM_PLUGIN_PATH; export QT_QPA_PLATFORM=offscreen; export PASTA_TEST_SKIP_APPKIT=1; uv run pytest -xvs"
                 else
                   echo "Install entr for watch mode (already in shell)"
                 fi
@@ -453,6 +458,7 @@ print('Check your system tray for the Pasta icon.')
                 unset QT_PLUGIN_PATH
                 unset QT_QPA_PLATFORM_PLUGIN_PATH
                 export QT_QPA_PLATFORM=offscreen
+                export PASTA_TEST_SKIP_APPKIT=1
                 uv run pytest
                 echo ""
                 echo "✅ CI pipeline passed!"

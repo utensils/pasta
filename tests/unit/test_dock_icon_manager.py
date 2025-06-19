@@ -203,6 +203,9 @@ class TestDockIconManager(unittest.TestCase):
 class TestDockIconIntegration(unittest.TestCase):
     """Test dock icon integration with windows."""
 
+    @pytest.mark.skipif(
+        os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1", reason="Skip AppKit tests in Nix environment to avoid Qt conflicts"
+    )
     @patch("sys.platform", "darwin")
     @patch("pasta.utils.dock_manager.AppKit", create=True)
     def test_settings_window_shows_dock_icon(self, mock_appkit):
@@ -237,6 +240,9 @@ class TestDockIconIntegration(unittest.TestCase):
             # Verify dock icon was shown
             mock_manager.add_reference.assert_called_once_with("settings")
 
+    @pytest.mark.skipif(
+        os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1", reason="Skip AppKit tests in Nix environment to avoid Qt conflicts"
+    )
     @patch("sys.platform", "darwin")
     @patch("pasta.utils.dock_manager.AppKit", create=True)
     def test_history_window_shows_dock_icon(self, mock_appkit):
@@ -267,6 +273,9 @@ class TestDockIconIntegration(unittest.TestCase):
             # Verify dock icon was shown
             mock_manager.add_reference.assert_called_once_with("history")
 
+    @pytest.mark.skipif(
+        os.environ.get("PASTA_TEST_SKIP_APPKIT") == "1", reason="Skip AppKit tests in Nix environment to avoid Qt conflicts"
+    )
     @patch("sys.platform", "darwin")
     @patch("pasta.utils.dock_manager.AppKit", create=True)
     def test_closing_window_hides_dock_icon(self, mock_appkit):
