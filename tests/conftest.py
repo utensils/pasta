@@ -24,7 +24,25 @@ os.environ["PASTA_TESTING"] = "1"
 keyboard_mock = MagicMock()
 keyboard_mock.add_hotkey = MagicMock()
 keyboard_mock.remove_hotkey = MagicMock()
+keyboard_mock.unhook_all = MagicMock()
+keyboard_mock.is_pressed = MagicMock(return_value=False)
 sys.modules["keyboard"] = keyboard_mock
+
+# Mock pyautogui globally to prevent any actual keyboard/mouse interaction
+pyautogui_mock = MagicMock()
+pyautogui_mock.FAILSAFE = False
+pyautogui_mock.PAUSE = 0
+pyautogui_mock.write = MagicMock()
+pyautogui_mock.typewrite = MagicMock()
+pyautogui_mock.press = MagicMock()
+pyautogui_mock.hotkey = MagicMock()
+pyautogui_mock.click = MagicMock()
+pyautogui_mock.moveTo = MagicMock()
+pyautogui_mock.position = MagicMock(return_value=(0, 0))
+pyautogui_mock.screenshot = MagicMock()
+pyautogui_mock.keyDown = MagicMock()
+pyautogui_mock.keyUp = MagicMock()
+sys.modules["pyautogui"] = pyautogui_mock
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -274,6 +292,47 @@ def reset_keyboard_mock():
     yield
 
 
+@pytest.fixture(autouse=True)
+def mock_permission_checker_subprocess(monkeypatch: pytest.MonkeyPatch, request) -> None:
+    """Mock subprocess calls in PermissionChecker to prevent system dialogs.
+
+    This is applied automatically to all tests to ensure no test accidentally
+    opens System Preferences or makes actual system calls.
+    """
+    # Skip this fixture for unit tests that need to test subprocess behavior
+    if "test_permissions" in str(request.fspath) and "unit" in str(request.fspath):
+        # Unit tests handle their own mocking
+        return
+
+    import subprocess
+
+    original_run = subprocess.run
+
+    def mock_subprocess_run(cmd, *args, **kwargs):
+        """Mock subprocess.run to intercept permission-related calls."""
+        # Check if this is a permission-related call
+        if isinstance(cmd, list) and len(cmd) > 0:
+            # macOS osascript calls for checking/requesting permissions
+            if "osascript" in cmd[0]:
+                # Check if it's checking UI elements enabled
+                if any("UI elements enabled" in str(arg) for arg in cmd):
+                    # Return True for permission check
+                    return Mock(stdout="true\n", returncode=0)
+                # Check if it's opening System Preferences
+                elif any("System Preferences" in str(arg) for arg in cmd):
+                    # Don't actually open System Preferences
+                    return Mock(returncode=0)
+            # Windows/Linux permission-related calls
+            elif any(name in cmd[0] for name in ["pkill", "taskkill", "ps"]):
+                # Allow process management calls from conftest
+                return original_run(cmd, *args, **kwargs)
+
+        # For any other subprocess calls, return a safe mock
+        return Mock(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("subprocess.run", mock_subprocess_run)
+
+
 # Qt-specific configuration
 def pytest_configure(config):
     """Configure pytest for Qt testing."""
@@ -302,3 +361,66 @@ def pytest_collection_modifyitems(config, items):
         # Mark tests that require display
         if "gui" in item.name or "window" in item.name or "tray" in item.name:
             item.add_marker(pytest.mark.gui)
+
+
+@pytest.fixture(autouse=True)
+def mock_system_calls(monkeypatch):
+    """Automatically mock system calls that could interfere with the host system.
+
+    This fixture runs for ALL tests to prevent:
+    - Opening System Preferences
+    - Executing AppleScript commands
+    - Any subprocess calls that could affect the system
+    """
+    original_subprocess_run = subprocess.run
+
+    def mock_subprocess_run(cmd, *args, **kwargs):
+        """Mock subprocess.run to prevent system interference."""
+        # Check if this is a command that would open system preferences or execute AppleScript
+        if isinstance(cmd, list) and len(cmd) > 0:
+            cmd_str = " ".join(str(c) for c in cmd)
+
+            # Block osascript calls that open System Preferences
+            if "osascript" in cmd_str and any(x in cmd_str for x in ["System Preferences", "System Settings", "Security & Privacy"]):
+                # Return a mock response
+                mock_result = Mock()
+                mock_result.returncode = 0
+                mock_result.stdout = ""
+                mock_result.stderr = ""
+                return mock_result
+
+            # Block any command that tries to open System Preferences directly
+            if any(
+                x in cmd_str for x in ["open -b com.apple.preference", "open /System/Library/PreferencePanes", "x-apple.systempreferences"]
+            ):
+                mock_result = Mock()
+                mock_result.returncode = 0
+                mock_result.stdout = ""
+                mock_result.stderr = ""
+                return mock_result
+
+            # For test_permissions.py, let it use its own mocks
+            import inspect
+
+            frame = inspect.currentframe()
+            while frame:
+                filename = frame.f_code.co_filename
+                if "test_permissions.py" in filename:
+                    # Let the test use its own mock
+                    return original_subprocess_run(cmd, *args, **kwargs)
+                frame = frame.f_back
+
+        # For other safe commands, allow them through
+        if isinstance(cmd, list) and len(cmd) > 0:
+            safe_commands = ["which", "uname", "sw_vers", "id", "groups"]
+            if cmd[0] in safe_commands:
+                return original_subprocess_run(cmd, *args, **kwargs)
+
+        # Default: return empty result for safety
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        return mock_result
+
+    monkeypatch.setattr("subprocess.run", mock_subprocess_run)

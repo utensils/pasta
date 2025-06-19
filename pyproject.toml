@@ -152,6 +152,7 @@ warn_unused_ignores = false
 minversion = "7.0"
 addopts = "-ra --strict-markers --strict-config --timeout=30 --cov=src/pasta --cov-report=term-missing --cov-report=html"
 testpaths = ["tests"]
+# For safe local testing, use: uv run pytest -m "not system_interfering"
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -163,6 +164,7 @@ markers = [
     "unit: marks tests as unit tests",
     "gui: marks tests that require GUI",
     "requires_display: marks tests that require a display",
+    "system_interfering: marks tests that might interfere with the host system",
 ]
 
 [tool.coverage.run]

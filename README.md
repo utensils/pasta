@@ -93,9 +93,11 @@ uv sync --all-extras --dev
 uv run pre-commit install
 
 # Run tests
-uv run pytest
+uv run pytest                                    # All tests (coverage enabled by default)
+uv run pytest tests/unit/                       # Unit tests only (safest for local dev)
+uv run pytest -m "not system_interfering"       # Skip tests that might interfere with system
 
-# Run tests with coverage report
+# Run tests with explicit options
 uv run pytest -v --cov=src/pasta --cov-report=term-missing --cov-report=html
 
 # Code quality

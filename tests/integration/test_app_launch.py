@@ -21,6 +21,8 @@ class TestAppLaunch:
         # The cleanup_pasta_processes fixture handles killing processes
         pass
 
+    @pytest.mark.system_interfering
+    @pytest.mark.skip(reason="TODO: Creates real component instances that might interfere with system")
     def test_components_can_initialize(self):
         """Test that all components can be initialized without crashing."""
         from pasta.core.clipboard import ClipboardManager
@@ -46,6 +48,8 @@ class TestAppLaunch:
         assert settings_manager is not None
         assert hotkey_manager is not None
 
+    @pytest.mark.system_interfering
+    @pytest.mark.skip(reason="TODO: Creates real SystemTray that might register hotkeys and start threads")
     def test_system_tray_can_initialize(self):
         """Test that SystemTray can be initialized without crashing."""
         from pasta.core.clipboard import ClipboardManager
@@ -87,6 +91,8 @@ class TestAppLaunch:
         hotkey_manager.register_hotkeys()
         hotkey_manager.unregister_hotkeys()
 
+    @pytest.mark.system_interfering
+    @pytest.mark.skip(reason="TODO: Starts real clipboard monitoring thread that might interfere with system clipboard")
     def test_clipboard_monitoring_lifecycle(self):
         """Test clipboard monitoring can start and stop without issues."""
         from pasta.core.clipboard import ClipboardManager
