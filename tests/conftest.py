@@ -12,6 +12,12 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+# Set Qt to run in offscreen mode for all tests to prevent GUI windows
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
+# Ensure tests don't open real system dialogs
+os.environ["PASTA_TESTING"] = "1"
+
 # Mock the keyboard module to prevent import failures in test environments
 # This is necessary because the keyboard module can fail on some systems
 # (e.g., macOS without proper permissions, headless environments, etc.)

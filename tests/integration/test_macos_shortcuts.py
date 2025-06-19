@@ -107,12 +107,15 @@ class TestMacOSShortcuts(unittest.TestCase):
         mock_settings_manager.settings = create_mock_settings()
 
         window = SettingsWindow(mock_settings_manager)
-        window.show()
-        window.close()
+        # Don't actually show the window - just verify properties
+        # window.show()  # REMOVED: This opens a real window
 
-        # App should still be running
+        # Verify app configuration without showing window
         assert self.app is not None
         assert self.app.quitOnLastWindowClosed() is False
+
+        # Clean up
+        window.close()
 
 
 if __name__ == "__main__":

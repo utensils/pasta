@@ -150,7 +150,7 @@ warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra --strict-markers --strict-config --timeout=30"
+addopts = "-ra --strict-markers --strict-config --timeout=30 --cov=src/pasta --cov-report=term-missing --cov-report=html"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -162,26 +162,31 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "gui: marks tests that require GUI",
+    "requires_display: marks tests that require a display",
 ]
 
 [tool.coverage.run]
-source = ["src/pasta"]
 branch = true
+source = ["src/pasta"]
 omit = [
     "*/tests/*",
-    "*/__init__.py",
-    "*/__main__.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
-    "if __name__ == .__main__.:",
+    "if self.debug:",
+    "if settings.DEBUG",
     "raise AssertionError",
     "raise NotImplementedError",
-    "if TYPE_CHECKING:",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
-show_missing = true
-skip_covered = false
-precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
