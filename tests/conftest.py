@@ -424,3 +424,17 @@ def mock_system_calls(monkeypatch):
         return mock_result
 
     monkeypatch.setattr("subprocess.run", mock_subprocess_run)
+
+
+@pytest.fixture(scope="session")
+def qapp_session():
+    """Create a QApplication that lasts for the entire test session."""
+    # Only import when needed
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+        app.setQuitOnLastWindowClosed(False)
+    yield app
+    # Don't quit - let pytest handle cleanup
