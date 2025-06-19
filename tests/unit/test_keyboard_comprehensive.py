@@ -75,7 +75,7 @@ class TestPastaKeyboardEngineExtended:
         # Set abort event before paste
         engine._abort_event.set()
 
-        with patch("pyautogui.write"):
+        with patch("pyautogui.write"), patch("pyautogui.position", return_value=(100, 100)):
             result = engine.paste_text("test text", method="typing")
 
         assert result is False
@@ -100,7 +100,9 @@ class TestPastaKeyboardEngineExtended:
             if len(typed_chunks) == 1:
                 engine._abort_event.set()
 
-        with patch("pyautogui.write", side_effect=mock_write), patch("pyautogui.press"):
+        with patch("pyautogui.write", side_effect=mock_write), patch("pyautogui.press"), patch(
+            "pyautogui.position", return_value=(100, 100)
+        ):
             result = engine.paste_text(text, method="typing")
 
         assert result is False
@@ -128,7 +130,7 @@ class TestPastaKeyboardEngineExtended:
             if len(typed_chunks) == 1:
                 engine._abort_event.set()
 
-        with patch("pyautogui.write", side_effect=mock_write):
+        with patch("pyautogui.write", side_effect=mock_write), patch("pyautogui.position", return_value=(100, 100)):
             result = engine.paste_text(text, method="typing")
 
         assert result is False
@@ -184,7 +186,7 @@ class TestPastaKeyboardEngineExtended:
 
         # Start a paste in another thread
         def paste_worker():
-            with patch("pyautogui.write") as mock_write:
+            with patch("pyautogui.write") as mock_write, patch("pyautogui.position", return_value=(100, 100)):
                 # Make write slow so we can abort it
                 mock_write.side_effect = lambda t, i: time.sleep(0.1)
                 engine.paste_text("X" * 1000, method="typing")
@@ -242,7 +244,9 @@ class TestPastaKeyboardEngineExtended:
         def track_write(text, interval=0):
             typed_lines.append(text)
 
-        with patch("pyautogui.write", side_effect=track_write), patch("pyautogui.press"):
+        with patch("pyautogui.write", side_effect=track_write), patch("pyautogui.press"), patch(
+            "pyautogui.position", return_value=(100, 100)
+        ):
             engine.paste_text(text_crlf, method="typing")
 
         assert "Line 1" in typed_lines[0]
@@ -253,7 +257,9 @@ class TestPastaKeyboardEngineExtended:
         typed_lines.clear()
         text_cr = "Line 1\rLine 2\rLine 3"
 
-        with patch("pyautogui.write", side_effect=track_write), patch("pyautogui.press"):
+        with patch("pyautogui.write", side_effect=track_write), patch("pyautogui.press"), patch(
+            "pyautogui.position", return_value=(100, 100)
+        ):
             engine.paste_text(text_cr, method="typing")
 
         assert "Line 1" in typed_lines[0]
@@ -274,7 +280,13 @@ class TestPastaKeyboardEngineExtended:
         results = []
 
         def paste_worker(text, method):
-            with patch("pyautogui.write"), patch("pyperclip.copy"), patch("pyperclip.paste", return_value=""), patch("pyautogui.hotkey"):
+            with (
+                patch("pyautogui.write"),
+                patch("pyautogui.position", return_value=(100, 100)),
+                patch("pyperclip.copy"),
+                patch("pyperclip.paste", return_value=""),
+                patch("pyautogui.hotkey"),
+            ):
                 result = engine.paste_text(text, method)
                 results.append(result)
 
