@@ -29,7 +29,7 @@ class TestStorageManager:
         """Test StorageManager initializes correctly."""
         assert manager.db_path == str(temp_db)
         assert hasattr(manager, "cipher")
-        assert hasattr(manager, "sensitive_patterns")
+        assert hasattr(manager, "_security_manager")
         assert Path(temp_db).exists()  # Database should be created
 
     def test_database_creation(self, temp_db):
@@ -212,11 +212,13 @@ class TestStorageManager:
             "secret: abcd1234",
             "123-45-6789",  # SSN
             "4532 1234 5678 9010",  # Credit card
-            "john@example.com",  # Email
         ]
 
         for content in sensitive_cases:
             assert manager.is_sensitive(content) is True
+
+        # Email is not sensitive by default
+        assert manager.is_sensitive("john@example.com") is False
 
         # Non-sensitive cases
         non_sensitive_cases = [

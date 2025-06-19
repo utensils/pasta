@@ -174,8 +174,7 @@ class TestPermissionChecker:
     @patch("platform.system")
     @patch("pasta.utils.permissions.HAS_GRP", True)
     @patch("pasta.utils.permissions.grp")
-    @patch("os.getgroups", side_effect=AttributeError)
-    def test_linux_permissions_no_getgroups(self, mock_getgroups, mock_grp, mock_system):
+    def test_linux_permissions_no_getgroups(self, mock_grp, mock_system):
         """Test Linux permissions when os.getgroups not available."""
         mock_system.return_value = "Linux"
 
@@ -184,8 +183,11 @@ class TestPermissionChecker:
         mock_group.gr_gid = 1000
         mock_grp.getgrnam.return_value = mock_group
 
-        # Remove getgroups attribute
-        with patch("hasattr", return_value=False):
+        # Mock os module without getgroups
+        with patch("pasta.utils.permissions.os") as mock_os:
+            # Remove getgroups attribute
+            del mock_os.getgroups
+
             checker = PermissionChecker()
             result = checker.check_permissions()
 
@@ -250,7 +252,7 @@ class TestPermissionChecker:
         mock_system.return_value = "Linux"
         checker = PermissionChecker()
         msg = checker.get_permission_error_message()
-        assert "input group" in msg
+        assert "'input' group" in msg
 
         # Other
         mock_system.return_value = "FreeBSD"

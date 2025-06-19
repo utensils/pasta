@@ -192,26 +192,28 @@ class TestGetActiveWindowTitle:
                 assert result == "Notepad"
 
     @patch("pasta.utils.platform.get_platform")
-    def test_windows_import_error(self, mock_get_platform):
+    @patch("pasta.utils.platform.ctypes")
+    def test_windows_import_error(self, mock_ctypes, mock_get_platform):
         """Test Windows when ctypes import fails."""
         mock_get_platform.return_value = "Windows"
 
-        # Mock ctypes to raise ImportError
-        with patch("ctypes.windll", side_effect=ImportError("No ctypes")):
-            result = get_active_window_title()
-            assert result == ""
+        # Mock ctypes to raise exception
+        mock_ctypes.windll.side_effect = AttributeError("No windll")
+
+        result = get_active_window_title()
+        assert result == ""
 
     @patch("pasta.utils.platform.get_platform")
-    def test_windows_exception(self, mock_get_platform):
+    @patch("pasta.utils.platform.ctypes")
+    def test_windows_exception(self, mock_ctypes, mock_get_platform):
         """Test Windows exception handling."""
         mock_get_platform.return_value = "Windows"
 
         # Mock ctypes to raise exception
-        with patch("ctypes.windll") as mock_windll:
-            mock_windll.user32.GetForegroundWindow.side_effect = Exception("Windows API error")
+        mock_ctypes.windll.user32.GetForegroundWindow.side_effect = Exception("Windows API error")
 
-            result = get_active_window_title()
-            assert result == ""
+        result = get_active_window_title()
+        assert result == ""
 
     @patch("pasta.utils.platform.get_platform")
     def test_unknown_platform(self, mock_get_platform):
