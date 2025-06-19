@@ -295,6 +295,7 @@ class TestPastaKeyboardEngineExtended:
         """Test thread safety of paste operations."""
         engine = PastaKeyboardEngine()
         results = []
+        results_lock = threading.Lock()
 
         def paste_worker(text, method):
             with (
@@ -305,7 +306,8 @@ class TestPastaKeyboardEngineExtended:
                 patch("pyautogui.hotkey"),
             ):
                 result = engine.paste_text(text, method)
-                results.append(result)
+                with results_lock:
+                    results.append(result)
 
         # Start multiple paste operations
         threads = []
@@ -315,10 +317,10 @@ class TestPastaKeyboardEngineExtended:
             threads.append(t)
             t.start()
 
-        # Wait for all to complete
+        # Wait for all to complete with timeout
         for t in threads:
-            t.join()
+            t.join(timeout=5.0)
 
         # All should complete successfully
-        assert all(results)
         assert len(results) == 5
+        assert all(results)
