@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+from pathlib import Path
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -218,8 +219,11 @@ class TestPermissionChecker:
 
     @patch("platform.system", return_value="Linux")
     @patch("os.environ")
-    def test_linux_detect_wayland(self, mock_environ, mock_system):
+    @patch("pasta.utils.permissions.Path.home")
+    def test_linux_detect_wayland(self, mock_home, mock_environ, mock_system):
         """Test Wayland detection on Linux."""
+        # Mock home directory to avoid Windows issues
+        mock_home.return_value = Path("/tmp/fake_home")
         mock_environ.get.return_value = "wayland"
 
         with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
