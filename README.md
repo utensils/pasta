@@ -8,7 +8,7 @@ A lightweight system tray application that converts clipboard content into simul
 
 ## What is Pasta?
 
-Pasta monitors your clipboard and automatically types out the content when you copy text. It's perfect for applications that don't support standard paste operations, like remote desktop sessions, VMs, or certain secure input fields.
+Pasta allows you to paste clipboard content by simulating keyboard typing. When you click "Paste" from the system tray menu, it types out whatever text is currently in your clipboard. It's perfect for applications that don't support standard paste operations, like remote desktop sessions, VMs, or certain secure input fields.
 
 ## Features
 
@@ -16,7 +16,6 @@ Pasta monitors your clipboard and automatically types out the content when you c
 - 🎯 **Simple & Focused**: Does one thing exceptionally well
 - 🎨 **Native Look**: Follows system theme (light/dark mode)
 - ⚡ **Adjustable Speed**: Three typing speeds (Slow, Normal, Fast)
-- 🔒 **Privacy First**: No network access, no telemetry, no data collection
 - 🖥️ **Cross-Platform**: Works on macOS, Windows, and Linux
 
 ## Installation
@@ -54,12 +53,12 @@ cargo tauri build
 ## Usage
 
 1. **Launch Pasta** - It will appear in your system tray/menu bar
-2. **Copy any text** - Pasta will detect the clipboard change
-3. **Click where you want to type** - Position your cursor
-4. **Watch Pasta type** - Your clipboard content is typed automatically
+2. **Copy any text** - Use your normal copy methods (Ctrl+C, Cmd+C, etc.)
+3. **Click where you want to type** - Position your cursor in the target application
+4. **Click "Paste" in tray menu** - Pasta will type out your clipboard content
 
 ### Controls
-- **Enable/Disable**: Toggle monitoring from the tray menu
+- **Paste**: Click "Paste" in tray menu to type clipboard content
 - **Typing Speed**: Adjust speed in Settings or tray menu
 - **Settings**: Access configuration window from tray menu
 - **Quit**: Right-click tray icon and select Quit
@@ -87,30 +86,6 @@ cargo fmt
 cargo clippy -- -D warnings
 ```
 
-## Architecture
-
-Pasta uses a multi-threaded architecture for optimal performance:
-- **Main Thread**: UI and Tauri runtime
-- **Clipboard Thread**: Monitors clipboard with 500ms polling
-- **Keyboard Thread**: Handles text typing with chunking
-- **Minimal Frontend**: Vanilla HTML/CSS/JS for settings
-
-## Performance
-
-| Metric | Value |
-|--------|-------|
-| Memory Usage | ~20-50 MB |
-| Binary Size | ~10 MB |
-| Startup Time | <500ms |
-| CPU Usage (idle) | <0.1% |
-
-## Privacy & Security
-
-- **No Network Access**: Pasta works entirely offline
-- **No Data Collection**: Your clipboard data never leaves your device
-- **Open Source**: Audit the code yourself
-- **Minimal Permissions**: Only clipboard read and keyboard emulation
-
 ## Contributing
 
 Contributions are welcome! Please:
@@ -122,7 +97,7 @@ Contributions are welcome! Please:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
