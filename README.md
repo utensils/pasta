@@ -86,6 +86,37 @@ cargo fmt
 cargo clippy -- -D warnings
 ```
 
+### Using Nix (Optional)
+
+This project includes a Nix flake for reproducible development environments. If you have [Nix](https://nixos.org/) installed with flakes enabled:
+
+```bash
+# Enter development shell with all dependencies
+nix develop
+
+# Run the application directly
+nix run
+
+# Use the interactive development menu
+nix develop -c menu
+
+# Run specific commands in the Nix environment
+nix develop -c cargo test
+nix develop -c cargo fmt
+nix develop -c cargo clippy -- -D warnings
+
+# Alternative development shells
+nix develop .#ci      # Minimal CI environment
+nix develop .#minimal # Basic Rust toolchain only
+```
+
+The Nix flake provides:
+- All required dependencies and build tools
+- Rust toolchain with cross-compilation targets
+- Platform-specific frameworks and libraries
+- Development utilities (cargo-watch, rust-analyzer, etc.)
+- Interactive menu for common tasks
+
 ## Contributing
 
 Contributions are welcome! Please:

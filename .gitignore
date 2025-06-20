@@ -69,3 +69,8 @@ config.toml
 *.tmp
 *.temp
 .cache/
+
+# Nix
+result
+result-*
+.direnv/
