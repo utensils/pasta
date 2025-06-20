@@ -2,15 +2,21 @@ mod clipboard;
 mod config;
 mod keyboard;
 mod tray;
+mod window;
 
-use crate::clipboard::{ClipboardEvent, ClipboardMonitor};
-use crate::config::ConfigManager;
-use crate::keyboard::{KeyboardEmulator, TypingSpeed};
-use crate::tray::TrayManager;
-use log::{error, info};
 use std::sync::Arc;
-use tauri::{AppHandle, Listener, Manager, State};
+
+use log::{error, info};
+use tauri::{Listener, Manager, State};
 use tokio::sync::mpsc;
+
+use crate::{
+    clipboard::{ClipboardEvent, ClipboardMonitor},
+    config::ConfigManager,
+    keyboard::{KeyboardEmulator, TypingSpeed},
+    tray::TrayManager,
+    window::show_settings_window,
+};
 
 #[derive(Clone)]
 struct AppState {
@@ -42,15 +48,24 @@ async fn save_config(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
-    
+
     info!("Starting Pasta Rust");
 
     tauri::Builder::default()
         .setup(|app| {
+            // Hide dock icon on startup (macOS)
+            #[cfg(target_os = "macos")]
+            {
+                let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            }
+            
             // Initialize components
-            let config_manager = Arc::new(ConfigManager::new().expect("Failed to create config manager"));
-            let clipboard_monitor = Arc::new(ClipboardMonitor::new().expect("Failed to create clipboard monitor"));
-            let keyboard_emulator = Arc::new(KeyboardEmulator::new().expect("Failed to create keyboard emulator"));
+            let config_manager =
+                Arc::new(ConfigManager::new().expect("Failed to create config manager"));
+            let clipboard_monitor =
+                Arc::new(ClipboardMonitor::new().expect("Failed to create clipboard monitor"));
+            let keyboard_emulator =
+                Arc::new(KeyboardEmulator::new().expect("Failed to create keyboard emulator"));
 
             // Load config and apply settings
             let config = config_manager.get();
@@ -59,7 +74,7 @@ pub fn run() {
 
             // Setup system tray
             let tray_manager = TrayManager::new(config_manager.clone());
-            tray_manager.setup(&app.handle())?;
+            tray_manager.setup(app.handle())?;
 
             // Create app state
             let app_state = AppState {
@@ -73,12 +88,12 @@ pub fn run() {
             let (tx, mut rx) = mpsc::channel::<ClipboardEvent>(10);
             let clipboard_monitor_clone = clipboard_monitor.clone();
             let keyboard_emulator_clone = keyboard_emulator.clone();
-            
+
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(async move {
                     if let Err(e) = clipboard_monitor_clone.start_monitoring(tx).await {
-                        error!("Clipboard monitoring error: {:?}", e);
+                        error!("Clipboard monitoring error: {e:?}");
                     }
                 });
             });
@@ -92,7 +107,7 @@ pub fn run() {
                             ClipboardEvent::ContentChanged(text) => {
                                 info!("Clipboard changed, typing text");
                                 if let Err(e) = keyboard_emulator_clone.type_text(&text).await {
-                                    error!("Failed to type text: {:?}", e);
+                                    error!("Failed to type text: {e:?}");
                                 }
                             }
                         }
@@ -105,7 +120,7 @@ pub fn run() {
             let keyboard_emulator_clone = keyboard_emulator.clone();
             let config_manager_clone = config_manager.clone();
             let app_handle = app.handle();
-            
+
             app_handle.listen("config_changed", move |_event| {
                 let config = config_manager_clone.get();
                 clipboard_monitor_clone.set_enabled(config.enabled);
@@ -115,12 +130,8 @@ pub fn run() {
             // Show settings window when requested
             let app_handle_clone = app.handle().clone();
             app_handle.listen("show_settings", move |_event| {
-                if let Some(window) = app_handle_clone.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                } else {
-                    // Create settings window if it doesn't exist
-                    create_settings_window(&app_handle_clone);
+                if let Err(e) = show_settings_window(&app_handle_clone) {
+                    error!("Failed to show settings window: {e:?}");
                 }
             });
 
@@ -131,15 +142,3 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-fn create_settings_window(app: &AppHandle) {
-    tauri::WebviewWindowBuilder::new(
-        app,
-        "main",
-        tauri::WebviewUrl::App("index.html".into()),
-    )
-    .title("Pasta Settings")
-    .inner_size(400.0, 300.0)
-    .resizable(false)
-    .build()
-    .expect("Failed to create settings window");
-}

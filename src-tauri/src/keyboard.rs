@@ -1,6 +1,7 @@
+use std::time::Duration;
+
 use enigo::{Enigo, Key, Keyboard};
 use log::debug;
-use std::time::Duration;
 use tokio::sync::mpsc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -33,19 +34,19 @@ pub struct KeyboardEmulator {
 impl KeyboardEmulator {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let (tx, mut rx) = mpsc::channel::<KeyboardCommand>(10);
-        
+
         // Spawn a dedicated thread for keyboard operations
         std::thread::spawn(move || {
             let mut enigo = Enigo::new(&enigo::Settings::default()).unwrap();
             let mut current_speed = TypingSpeed::Normal;
-            
+
             while let Some(cmd) = rx.blocking_recv() {
                 match cmd {
                     KeyboardCommand::TypeText(text) => {
                         let delay = Duration::from_millis(current_speed.delay_ms());
-                        
-                        debug!("Typing text with {:?} speed", current_speed);
-                        
+
+                        debug!("Typing text with {current_speed:?} speed");
+
                         // Chunk text for better performance with long content
                         const CHUNK_SIZE: usize = 200;
                         let chars: Vec<char> = text.chars().collect();
@@ -93,9 +94,10 @@ impl KeyboardEmulator {
         let _ = self.tx.blocking_send(KeyboardCommand::SetSpeed(speed));
     }
 
-
     pub async fn type_text(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.tx.send(KeyboardCommand::TypeText(text.to_string())).await?;
+        self.tx
+            .send(KeyboardCommand::TypeText(text.to_string()))
+            .await?;
         Ok(())
     }
 }

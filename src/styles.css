@@ -4,8 +4,18 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+  /* Light theme colors */
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f6f6;
+  --border-color: #e0e0e0;
+  --accent-color: #007aff;
+  --accent-hover: #0051d5;
+  --accent-active: #0041c7;
+
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -67,7 +77,7 @@ h3 {
 
 .speed-display {
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -83,7 +93,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   color: #fff;
-  background-color: #396cd8;
+  background-color: var(--accent-color);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -91,32 +101,59 @@ button {
 }
 
 button:hover {
-  background-color: #2955c5;
+  background-color: var(--accent-hover);
 }
 
 button:active {
-  background-color: #1e44a8;
+  background-color: var(--accent-active);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f6f6f6;
-    background-color: #1e1e1e;
+    /* Dark theme colors */
+    --text-primary: #ffffff;
+    --text-secondary: #999999;
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #2a2a2a;
+    --border-color: #404040;
+    --accent-color: #0a84ff;
+    --accent-hover: #0972e7;
+    --accent-active: #0860cf;
   }
+}
 
-  .speed-display {
-    color: #999;
-  }
+/* Additional styling for better system integration */
+.container {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
 
-  button {
-    background-color: #4a7fff;
-  }
+/* Style checkboxes to match system appearance */
+input[type="checkbox"] {
+  accent-color: var(--accent-color);
+}
 
-  button:hover {
-    background-color: #3968e6;
-  }
+/* Style range slider */
+input[type="range"] {
+  accent-color: var(--accent-color);
+}
 
-  button:active {
-    background-color: #2855cc;
-  }
+/* Add subtle animations */
+.saved-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: var(--accent-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.saved-indicator.show {
+  opacity: 1;
+  transform: translateY(0);
 }

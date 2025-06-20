@@ -1,158 +1,128 @@
-# Pasta Rust - Experimental Tauri Implementation
+# Pasta - Clipboard to Keyboard
 
-This is an experimental Rust/Tauri implementation of Pasta, a cross-platform system tray application that converts clipboard content into simulated keyboard input.
+A lightweight system tray application that converts clipboard content into simulated keyboard input. Written in Rust using Tauri v2 for blazing fast performance and minimal resource usage.
 
-## Overview
+## What is Pasta?
 
-This branch contains a minimal MVP implementation of Pasta written in Rust using the Tauri v2 framework. It focuses on core functionality only - clipboard monitoring and keyboard typing simulation - without the advanced features of the Python version.
+Pasta monitors your clipboard and automatically types out the content when you copy text. It's perfect for applications that don't support standard paste operations, like remote desktop sessions, VMs, or certain secure input fields.
 
 ## Features
 
-### Implemented ✅
-- **System Tray Icon**: Native system tray with custom Pasta branding
-- **Clipboard Monitoring**: Background monitoring with 500ms polling interval
-- **Keyboard Typing**: Simulates keyboard input for clipboard content
-- **Typing Speed Control**: Three speed settings (Slow, Normal, Fast)
-- **Enable/Disable Toggle**: Turn monitoring on/off from tray menu
-- **Settings Window**: Simple GUI for configuration
-- **Configuration Persistence**: Settings saved to TOML file
-- **Cross-platform Support**: Works on Windows, macOS, and Linux
+- 🚀 **Lightweight & Fast**: ~20MB memory usage, <500ms startup time
+- 🎯 **Simple & Focused**: Does one thing exceptionally well
+- 🎨 **Native Look**: Follows system theme (light/dark mode)
+- ⚡ **Adjustable Speed**: Three typing speeds (Slow, Normal, Fast)
+- 🔒 **Privacy First**: No network access, no telemetry, no data collection
+- 🖥️ **Cross-Platform**: Works on macOS, Windows, and Linux
 
-### Not Implemented ❌
-- Clipboard history storage
-- Encryption of sensitive data
-- Hotkey support
-- Snippet management
-- Advanced paste modes (typing vs clipboard)
-- Rate limiting
-- Security features (password detection, etc.)
-- Emergency stop functionality
-- Multiple language support
+## Installation
 
-## Technology Stack
+### Download Pre-built Binaries
+Coming soon! For now, build from source.
 
-- **Language**: Rust
-- **Framework**: Tauri v2
-- **System Tray**: tauri-plugin-tray
-- **Clipboard**: arboard (cross-platform clipboard library)
-- **Keyboard**: enigo (cross-platform keyboard/mouse automation)
-- **Configuration**: TOML via serde
-- **Async Runtime**: Tokio
+### Build from Source
 
-## Building and Running
-
-### Prerequisites
-- Rust 1.70+ (install from https://rustup.rs)
-- Node.js 16+ (for frontend build tools)
+#### Prerequisites
+- [Rust](https://rustup.rs/) 1.70+
 - Platform-specific dependencies:
-  - **Linux**: `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`
   - **macOS**: Xcode Command Line Tools
+  - **Linux**: `sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev`
   - **Windows**: Windows SDK
 
-### Development
+#### Build Steps
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/pasta.git
+cd pasta
+
 # Install Tauri CLI
 cargo install tauri-cli --version '^2.0.0' --locked
 
-# Install frontend dependencies
-npm install
-
-# Run in development mode
-cargo tauri dev
-
-# The app will start with hot-reload enabled
-```
-
-### Building for Production
-```bash
-# Build optimized binary
+# Build the application
 cargo tauri build
 
-# Output locations:
+# The built application will be in:
 # macOS: src-tauri/target/release/bundle/macos/Pasta.app
-# Windows: src-tauri/target/release/bundle/msi/Pasta_0.1.0_x64.msi
-# Linux: src-tauri/target/release/bundle/deb/pasta-rust_0.1.0_amd64.deb
+# Windows: src-tauri/target/release/bundle/msi/
+# Linux: src-tauri/target/release/bundle/deb/
+```
+
+## Usage
+
+1. **Launch Pasta** - It will appear in your system tray/menu bar
+2. **Copy any text** - Pasta will detect the clipboard change
+3. **Click where you want to type** - Position your cursor
+4. **Watch Pasta type** - Your clipboard content is typed automatically
+
+### Controls
+- **Enable/Disable**: Toggle monitoring from the tray menu
+- **Typing Speed**: Adjust speed in Settings or tray menu
+- **Settings**: Access configuration window from tray menu
+- **Quit**: Right-click tray icon and select Quit
+
+## Configuration
+
+Settings are automatically saved to:
+- **macOS**: `~/Library/Application Support/com.pasta.rust/`
+- **Linux**: `~/.config/pasta-rust/`
+- **Windows**: `%APPDATA%\pasta-rust\`
+
+## Development
+
+```bash
+# Run in development mode with hot reload
+cargo tauri dev
+
+# Run tests
+cargo test
+
+# Format code
+cargo fmt
+
+# Lint code
+cargo clippy -- -D warnings
 ```
 
 ## Architecture
 
-### Project Structure
-```
-├── src/                    # Frontend (HTML/CSS/JS)
-│   ├── index.html         # Settings window HTML
-│   ├── main.js           # Settings window logic
-│   └── styles.css        # Settings window styles
-├── src-tauri/            # Rust backend
-│   ├── src/
-│   │   ├── main.rs       # Entry point
-│   │   ├── lib.rs        # Main application logic
-│   │   ├── clipboard.rs  # Clipboard monitoring
-│   │   ├── keyboard.rs   # Keyboard emulation
-│   │   ├── config.rs     # Configuration management
-│   │   └── tray.rs       # System tray implementation
-│   ├── icons/            # Application icons
-│   ├── assets/           # Runtime assets (tray icons)
-│   └── Cargo.toml        # Rust dependencies
-```
+Pasta uses a multi-threaded architecture for optimal performance:
+- **Main Thread**: UI and Tauri runtime
+- **Clipboard Thread**: Monitors clipboard with 500ms polling
+- **Keyboard Thread**: Handles text typing with chunking
+- **Minimal Frontend**: Vanilla HTML/CSS/JS for settings
 
-### Key Components
+## Performance
 
-1. **ClipboardMonitor**: Polls system clipboard every 500ms for changes
-2. **KeyboardEmulator**: Types text using enigo with configurable speed
-3. **ConfigManager**: Handles TOML config file persistence
-4. **TrayManager**: Creates and manages system tray menu
+| Metric | Value |
+|--------|-------|
+| Memory Usage | ~20-50 MB |
+| Binary Size | ~10 MB |
+| Startup Time | <500ms |
+| CPU Usage (idle) | <0.1% |
 
-### Configuration
+## Privacy & Security
 
-Settings are stored in a TOML file at:
-- **macOS**: `~/Library/Application Support/com.pasta.rust/config.toml`
-- **Linux**: `~/.config/pasta-rust/config.toml`
-- **Windows**: `%APPDATA%\pasta-rust\config.toml`
-
-Example config:
-```toml
-enabled = true
-typing_speed = "Normal"
-```
-
-## Performance Comparison
-
-| Metric | Python Version | Rust Version |
-|--------|---------------|--------------|
-| Memory Usage | 100-200 MB | 20-50 MB |
-| Binary Size | 50-100 MB | ~10 MB |
-| Startup Time | 2-3 seconds | < 500ms |
-| CPU Usage (idle) | 1-2% | < 0.1% |
-
-## Development Status
-
-This is an **experimental branch** demonstrating the feasibility of a Rust implementation. It is not feature-complete and is intended as a proof-of-concept for potential future development.
-
-### Why Rust/Tauri?
-
-- **Performance**: Significantly lower memory and CPU usage
-- **Binary Size**: Much smaller distributable size
-- **Native Feel**: Better OS integration through Tauri
-- **Security**: Memory safety guarantees from Rust
-- **Modern Stack**: Leverages latest web technologies with native performance
-
-### Limitations
-
-- Minimal feature set compared to Python version
-- Less mature ecosystem for some functionality
-- Requires more low-level implementation work
-- Limited clipboard format support (text only)
+- **No Network Access**: Pasta works entirely offline
+- **No Data Collection**: Your clipboard data never leaves your device
+- **Open Source**: Audit the code yourself
+- **Minimal Permissions**: Only clipboard read and keyboard emulation
 
 ## Contributing
 
-This branch is experimental. If you're interested in helping develop the Rust version:
-
-1. Check the main Python implementation for feature parity goals
-2. Focus on core functionality first
-3. Ensure cross-platform compatibility
-4. Write tests for new features
-5. Keep the codebase minimal and efficient
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Write tests for new functionality
+4. Ensure cross-platform compatibility
+5. Submit a pull request
 
 ## License
 
-Same as the main Pasta project - see the root LICENSE file.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+Built with:
+- [Tauri](https://tauri.app/) - Framework for building native apps
+- [Arboard](https://github.com/1Password/arboard) - Cross-platform clipboard
+- [Enigo](https://github.com/enigo-rs/enigo) - Cross-platform input simulation

@@ -1,10 +1,14 @@
-use crate::keyboard::TypingSpeed;
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
+
 use dirs::config_dir;
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+
+use crate::keyboard::TypingSpeed;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -38,18 +42,17 @@ impl ConfigManager {
     }
 
     fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
-        let config_dir = config_dir()
-            .ok_or("Failed to get config directory")?;
-        
+        let config_dir = config_dir().ok_or("Failed to get config directory")?;
+
         let app_config_dir = config_dir.join("pasta-rust");
         fs::create_dir_all(&app_config_dir)?;
-        
+
         Ok(app_config_dir.join("config.toml"))
     }
 
     fn load_config(path: &PathBuf) -> Result<Config, Box<dyn std::error::Error>> {
         if path.exists() {
-            debug!("Loading config from {:?}", path);
+            debug!("Loading config from {path:?}");
             let content = fs::read_to_string(path)?;
             let config: Config = toml::from_str(&content)?;
             Ok(config)
@@ -63,7 +66,7 @@ impl ConfigManager {
         let config = self.config.lock().unwrap();
         let content = toml::to_string(&*config)?;
         fs::write(&self.config_path, content)?;
-        debug!("Config saved to {:?}", self.config_path);
+        debug!("Config saved to {}", self.config_path.display());
         Ok(())
     }
 
@@ -74,14 +77,102 @@ impl ConfigManager {
     pub fn set_enabled(&self, enabled: bool) {
         self.config.lock().unwrap().enabled = enabled;
         if let Err(e) = self.save() {
-            error!("Failed to save config: {:?}", e);
+            error!("Failed to save config: {e:?}");
         }
     }
 
     pub fn set_typing_speed(&self, speed: TypingSpeed) {
         self.config.lock().unwrap().typing_speed = speed;
         if let Err(e) = self.save() {
-            error!("Failed to save config: {:?}", e);
+            error!("Failed to save config: {e:?}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+
+    use super::*;
+
+    struct TestConfigManager {
+        manager: ConfigManager,
+        _temp_dir: TempDir,
+    }
+
+    impl TestConfigManager {
+        fn new() -> Result<Self, Box<dyn std::error::Error>> {
+            let temp_dir = TempDir::new()?;
+            let config_path = temp_dir.path().join("config.toml");
+
+            let manager = ConfigManager {
+                config: Arc::new(Mutex::new(Config::default())),
+                config_path,
+            };
+
+            Ok(Self {
+                manager,
+                _temp_dir: temp_dir,
+            })
+        }
+    }
+
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert!(config.enabled);
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_config_manager_save_and_load() {
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = test_manager.manager;
+
+        // Change config
+        manager.set_enabled(false);
+        manager.set_typing_speed(TypingSpeed::Fast);
+
+        // Save should work
+        manager.save().unwrap();
+
+        // Load config from file
+        let loaded_config = ConfigManager::load_config(&manager.config_path).unwrap();
+        assert!(!loaded_config.enabled);
+        assert_eq!(loaded_config.typing_speed, TypingSpeed::Fast);
+    }
+
+    #[test]
+    fn test_config_manager_get() {
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = test_manager.manager;
+
+        let config = manager.get();
+        assert!(config.enabled);
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_config_manager_set_enabled() {
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = test_manager.manager;
+
+        manager.set_enabled(false);
+        assert!(!manager.get().enabled);
+
+        manager.set_enabled(true);
+        assert!(manager.get().enabled);
+    }
+
+    #[test]
+    fn test_config_manager_set_typing_speed() {
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = test_manager.manager;
+
+        manager.set_typing_speed(TypingSpeed::Slow);
+        assert_eq!(manager.get().typing_speed, TypingSpeed::Slow);
+
+        manager.set_typing_speed(TypingSpeed::Fast);
+        assert_eq!(manager.get().typing_speed, TypingSpeed::Fast);
     }
 }

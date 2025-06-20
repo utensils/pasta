@@ -31,10 +31,7 @@ async function saveConfig() {
         await invoke('save_config', { enabled, typing_speed });
         
         // Show save feedback
-        saveButton.textContent = 'Saved!';
-        setTimeout(() => {
-            saveButton.textContent = 'Save Settings';
-        }, 2000);
+        showSavedIndicator();
     } catch (error) {
         console.error('Failed to save config:', error);
         saveButton.textContent = 'Error!';
@@ -42,6 +39,15 @@ async function saveConfig() {
             saveButton.textContent = 'Save Settings';
         }, 2000);
     }
+}
+
+function showSavedIndicator() {
+    const indicator = document.getElementById('saved-indicator');
+    indicator.classList.add('show');
+    
+    setTimeout(() => {
+        indicator.classList.remove('show');
+    }, 2000);
 }
 
 function updateSpeedText(value) {

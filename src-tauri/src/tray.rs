@@ -1,12 +1,13 @@
-use crate::config::ConfigManager;
-use crate::keyboard::TypingSpeed;
-use log::debug;
 use std::sync::Arc;
+
+use log::debug;
 use tauri::{
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Runtime,
 };
+
+use crate::{config::ConfigManager, keyboard::TypingSpeed};
 
 pub struct TrayManager {
     config_manager: Arc<ConfigManager>,
@@ -19,7 +20,7 @@ impl TrayManager {
 
     pub fn setup<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let config = self.config_manager.get();
-        
+
         // Create menu items
         let enabled_item = CheckMenuItemBuilder::with_id("enabled", "Enabled")
             .checked(config.enabled)
@@ -29,11 +30,11 @@ impl TrayManager {
         let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
             .checked(config.typing_speed == TypingSpeed::Slow)
             .build(app)?;
-        
+
         let normal_item = CheckMenuItemBuilder::with_id("speed_normal", "Normal")
             .checked(config.typing_speed == TypingSpeed::Normal)
             .build(app)?;
-        
+
         let fast_item = CheckMenuItemBuilder::with_id("speed_fast", "Fast")
             .checked(config.typing_speed == TypingSpeed::Fast)
             .build(app)?;
@@ -44,11 +45,9 @@ impl TrayManager {
             .item(&fast_item)
             .build()?;
 
-        let settings_item = MenuItemBuilder::with_id("settings", "Settings")
-            .build(app)?;
+        let settings_item = MenuItemBuilder::with_id("settings", "Settings").build(app)?;
 
-        let quit_item = MenuItemBuilder::with_id("quit", "Quit")
-            .build(app)?;
+        let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
         // Build main menu
         let menu = MenuBuilder::new(app)
@@ -70,7 +69,7 @@ impl TrayManager {
                 let config_manager = self.config_manager.clone();
                 let app_handle = app.clone();
                 move |app, event| {
-                    debug!("Menu event: {:?}", event.id);
+                    debug!("Menu event: {}", event.id.as_ref());
                     match event.id.as_ref() {
                         "enabled" => {
                             let enabled = !config_manager.get().enabled;
@@ -102,11 +101,10 @@ impl TrayManager {
                     }
                 }
             })
-            .on_tray_icon_event(|_tray, event| match event {
-                TrayIconEvent::Click { .. } => {
+            .on_tray_icon_event(|_tray, event| {
+                if let TrayIconEvent::Click { .. } = event {
                     debug!("Tray icon clicked");
                 }
-                _ => {}
             })
             .build(app)?;
 
@@ -117,5 +115,5 @@ impl TrayManager {
 fn update_speed_menu_state<R: Runtime>(_app: &AppHandle<R>, speed: TypingSpeed) {
     // Store menu items in the state for later access
     // For now, we'll just log the speed change
-    debug!("Speed changed to: {:?}", speed);
+    debug!("Speed changed to: {speed:?}");
 }
