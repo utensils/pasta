@@ -1,6 +1,6 @@
 [default]
-# Exclude build scripts, test modules, and non-testable Tauri-dependent modules
-exclude-files = ["*/build.rs", "*/tests/*", "*/main.rs", "*/lib.rs", "*/tray.rs", "*/window.rs", "*/clipboard.rs"]
+# Only exclude build scripts and test files, include all source code
+exclude-files = ["*/build.rs", "*/tests/*"]
 # Skip coverage for auto-generated code
 ignore-panics = true
 ignore-tests = false

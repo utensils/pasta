@@ -17,52 +17,63 @@ impl TrayManager {
     pub fn new(config_manager: Arc<ConfigManager>) -> Self {
         Self { config_manager }
     }
+    
+    fn build_tauri_menu<R: Runtime>(
+        &self, 
+        app: &AppHandle<R>, 
+        structure: &crate::app_logic::MenuStructure
+    ) -> Result<tauri::menu::Menu<R>, Box<dyn std::error::Error>> {
+        use crate::app_logic::MenuItem;
+        
+        let mut menu_builder = MenuBuilder::new(app);
+        
+        for item in &structure.items {
+            match item {
+                MenuItem::Action { id, label } => {
+                    let menu_item = MenuItemBuilder::with_id(id, label).build(app)?;
+                    menu_builder = menu_builder.item(&menu_item);
+                },
+                MenuItem::CheckItem { id, label, checked } => {
+                    let check_item = CheckMenuItemBuilder::with_id(id, label)
+                        .checked(*checked)
+                        .build(app)?;
+                    menu_builder = menu_builder.item(&check_item);
+                },
+                MenuItem::Submenu { label, items } => {
+                    let mut submenu_builder = SubmenuBuilder::new(app, label);
+                    for sub_item in items {
+                        if let MenuItem::CheckItem { id, label, checked } = sub_item {
+                            let check_item = CheckMenuItemBuilder::with_id(id, label)
+                                .checked(*checked)
+                                .build(app)?;
+                            submenu_builder = submenu_builder.item(&check_item);
+                        }
+                    }
+                    let submenu = submenu_builder.build()?;
+                    menu_builder = menu_builder.item(&submenu);
+                },
+                MenuItem::Separator => {
+                    menu_builder = menu_builder.separator();
+                },
+            }
+        }
+        
+        Ok(menu_builder.build()?)
+    }
 
     pub fn setup<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let config = self.config_manager.get();
         info!("Setting up tray with config: typing_speed={:?}, left_click_paste={}", 
               config.typing_speed, config.left_click_paste);
 
-        // Create menu items
-        let paste_item = MenuItemBuilder::with_id("paste", "Paste").build(app)?;
-
-        // Create typing speed submenu items with proper checked state
-        let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
-            .checked(config.typing_speed == TypingSpeed::Slow)
-            .build(app)?;
-
-        let normal_item = CheckMenuItemBuilder::with_id("speed_normal", "Normal")
-            .checked(config.typing_speed == TypingSpeed::Normal)
-            .build(app)?;
-
-        let fast_item = CheckMenuItemBuilder::with_id("speed_fast", "Fast")
-            .checked(config.typing_speed == TypingSpeed::Fast)
-            .build(app)?;
-
-        // Create typing speed submenu
-        let speed_submenu = SubmenuBuilder::new(app, "Typing Speed")
-            .item(&slow_item)
-            .item(&normal_item)
-            .item(&fast_item)
-            .build()?;
-
-        // Create left click paste menu item
-        let left_click_item =
-            CheckMenuItemBuilder::with_id("left_click_paste", "Left Click Pastes")
-                .checked(config.left_click_paste)
-                .build(app)?;
-
-        let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-
-        // Build main menu
-        let menu = MenuBuilder::new(app)
-            .item(&paste_item)
-            .separator()
-            .item(&speed_submenu)
-            .item(&left_click_item)
-            .separator()
-            .item(&quit_item)
-            .build()?;
+        // Get menu structure from business logic
+        let menu_structure = crate::app_logic::create_menu_structure(
+            config.typing_speed, 
+            config.left_click_paste
+        );
+        
+        // Convert to Tauri menu
+        let menu = self.build_tauri_menu(app, &menu_structure)?;
 
         // Create tray icon with menu
         let _tray = TrayIconBuilder::with_id("main")
@@ -74,15 +85,18 @@ impl TrayManager {
                 let config_manager = self.config_manager.clone();
                 let app_handle = app.clone();
                 move |app, event| {
+                    use crate::app_logic::{handle_menu_event, MenuAction};
+                    
                     debug!("Menu event: {}", event.id.as_ref());
-                    match event.id.as_ref() {
-                        "paste" => {
+                    let action = handle_menu_event(event.id.as_ref());
+                    
+                    match action {
+                        MenuAction::Paste => {
                             info!("Paste menu item clicked");
-                            // Invoke the paste command
                             app.emit("paste_clipboard", ()).unwrap();
                         }
-                        "speed_slow" => {
-                            config_manager.set_typing_speed(TypingSpeed::Slow);
+                        MenuAction::SetTypingSpeed(speed) => {
+                            config_manager.set_typing_speed(speed);
                             
                             // Rebuild the menu to update checkbox states
                             let tray_manager = TrayManager::new(config_manager.clone());
@@ -92,29 +106,7 @@ impl TrayManager {
                             
                             app.emit("config_changed", ()).unwrap();
                         }
-                        "speed_normal" => {
-                            config_manager.set_typing_speed(TypingSpeed::Normal);
-                            
-                            // Rebuild the menu to update checkbox states
-                            let tray_manager = TrayManager::new(config_manager.clone());
-                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
-                                error!("Failed to rebuild menu: {}", e);
-                            }
-                            
-                            app.emit("config_changed", ()).unwrap();
-                        }
-                        "speed_fast" => {
-                            config_manager.set_typing_speed(TypingSpeed::Fast);
-                            
-                            // Rebuild the menu to update checkbox states
-                            let tray_manager = TrayManager::new(config_manager.clone());
-                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
-                                error!("Failed to rebuild menu: {}", e);
-                            }
-                            
-                            app.emit("config_changed", ()).unwrap();
-                        }
-                        "left_click_paste" => {
+                        MenuAction::ToggleLeftClickPaste => {
                             let current = config_manager.get().left_click_paste;
                             config_manager.set_left_click_paste(!current);
 
@@ -129,10 +121,10 @@ impl TrayManager {
                                 error!("Failed to rebuild menu: {}", e);
                             }
                         }
-                        "quit" => {
+                        MenuAction::Quit => {
                             app.exit(0);
                         }
-                        _ => {}
+                        MenuAction::None => {}
                     }
                 }
             })
@@ -181,46 +173,14 @@ impl TrayManager {
             info!("Rebuilding menu with config: typing_speed={:?}, left_click_paste={}", 
                   config.typing_speed, config.left_click_paste);
             
-            // Create menu items
-            let paste_item = MenuItemBuilder::with_id("paste", "Paste").build(app)?;
-
-            // Create typing speed submenu items with proper checked state
-            let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
-                .checked(config.typing_speed == TypingSpeed::Slow)
-                .build(app)?;
-
-            let normal_item = CheckMenuItemBuilder::with_id("speed_normal", "Normal")
-                .checked(config.typing_speed == TypingSpeed::Normal)
-                .build(app)?;
-
-            let fast_item = CheckMenuItemBuilder::with_id("speed_fast", "Fast")
-                .checked(config.typing_speed == TypingSpeed::Fast)
-                .build(app)?;
-
-            // Create typing speed submenu
-            let speed_submenu = SubmenuBuilder::new(app, "Typing Speed")
-                .item(&slow_item)
-                .item(&normal_item)
-                .item(&fast_item)
-                .build()?;
-
-            // Create left click paste menu item
-            let left_click_item =
-                CheckMenuItemBuilder::with_id("left_click_paste", "Left Click Pastes")
-                    .checked(config.left_click_paste)
-                    .build(app)?;
-
-            let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-
-            // Build new menu
-            let menu = MenuBuilder::new(app)
-                .item(&paste_item)
-                .separator()
-                .item(&speed_submenu)
-                .item(&left_click_item)
-                .separator()
-                .item(&quit_item)
-                .build()?;
+            // Get menu structure from business logic
+            let menu_structure = crate::app_logic::create_menu_structure(
+                config.typing_speed, 
+                config.left_click_paste
+            );
+            
+            // Convert to Tauri menu
+            let menu = self.build_tauri_menu(app, &menu_structure)?;
             
             // Update the tray menu
             tray.set_menu(Some(menu))?;

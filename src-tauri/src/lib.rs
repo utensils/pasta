@@ -1,3 +1,4 @@
+mod app_logic;
 mod clipboard;
 pub mod config;
 pub mod keyboard;
@@ -9,7 +10,6 @@ use log::{error, info};
 use tauri::{Listener, Manager, State};
 
 use crate::{
-    clipboard::get_clipboard_content,
     config::ConfigManager,
     keyboard::KeyboardEmulator,
     tray::TrayManager,
@@ -22,29 +22,10 @@ pub struct AppState {
 
 #[tauri::command]
 async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
-    info!("Paste clipboard command triggered");
-
-    // Get current clipboard content
-    let clipboard_result = get_clipboard_content();
-
-    match clipboard_result {
-        Ok(Some(text)) => {
-            info!("Got clipboard content, typing text");
-            if let Err(e) = state.keyboard_emulator.type_text(&text).await {
-                error!("Failed to type text: {e:?}");
-                return Err(format!("Failed to type text: {e}"));
-            }
-            Ok(())
-        }
-        Ok(None) => {
-            info!("Clipboard is empty");
-            Ok(())
-        }
-        Err(e) => {
-            error!("Failed to get clipboard content: {e}");
-            Err(e)
-        }
-    }
+    use app_logic::{handle_paste_clipboard, SystemClipboard};
+    
+    let clipboard = SystemClipboard;
+    handle_paste_clipboard(&clipboard, &state.keyboard_emulator).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -104,31 +85,21 @@ pub fn run() {
             // Handle paste clipboard event from tray
             let keyboard_emulator_clone = keyboard_emulator.clone();
             app_handle.listen("paste_clipboard", move |_event| {
+                use app_logic::{handle_paste_clipboard, SystemClipboard};
+                
                 info!("Paste clipboard event received");
-
-                // Get current clipboard content
-                match get_clipboard_content() {
-                    Ok(Some(text)) => {
-                        info!("Got clipboard content, typing text");
-
-                        // Spawn a new task to type the text
-                        let keyboard_emulator = keyboard_emulator_clone.clone();
-                        std::thread::spawn(move || {
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async move {
-                                if let Err(e) = keyboard_emulator.type_text(&text).await {
-                                    error!("Failed to type text: {e:?}");
-                                }
-                            });
-                        });
-                    }
-                    Ok(None) => {
-                        info!("Clipboard is empty");
-                    }
-                    Err(e) => {
-                        error!("Failed to get clipboard content: {e}");
-                    }
-                }
+                
+                let clipboard = SystemClipboard;
+                let keyboard_emulator = keyboard_emulator_clone.clone();
+                
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    rt.block_on(async move {
+                        if let Err(e) = handle_paste_clipboard(&clipboard, &keyboard_emulator).await {
+                            error!("Failed to handle paste: {e}");
+                        }
+                    });
+                });
             });
 
             Ok(())

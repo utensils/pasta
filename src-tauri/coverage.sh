@@ -6,7 +6,7 @@ echo "Running code coverage analysis..."
 # Export environment variable to exclude clipboard tests
 export RUST_TEST_THREADS=1
 
-# Run tarpaulin focusing on testable modules only
+# Run tarpaulin including all source files
 cargo tarpaulin \
     --lib \
     --out Html \
@@ -14,8 +14,6 @@ cargo tarpaulin \
     --output-dir ./target/coverage \
     --exclude-files "*/build.rs" \
     --exclude-files "*/tests/*" \
-    --exclude-files "*/window.rs" \
-    --exclude-files "*/clipboard.rs" \
     --ignore-panics \
     --skip-clean
 
