@@ -3,6 +3,7 @@ mod clipboard;
 pub mod config;
 pub mod keyboard;
 mod tray;
+mod helpers;
 
 #[cfg(test)]
 mod error_tests;
@@ -67,8 +68,7 @@ pub fn initialize_components() -> Result<(Arc<ConfigManager>, Arc<KeyboardEmulat
     let config_manager = Arc::new(ConfigManager::new()?);
     let initial_config = config_manager.get();
     
-    info!("Initial config loaded: typing_speed={:?}, left_click_paste={}", 
-          initial_config.typing_speed, initial_config.left_click_paste);
+    info!("{}", helpers::format_initial_config_log(&initial_config.typing_speed, initial_config.left_click_paste));
     
     let keyboard_emulator = Arc::new(KeyboardEmulator::new()?);
     keyboard_emulator.set_typing_speed(initial_config.typing_speed);
@@ -97,7 +97,7 @@ pub fn handle_paste_clipboard_event(
 ) {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
     
-    info!("Paste clipboard event received");
+    info!("{}", helpers::format_paste_event_log());
     
     let clipboard = SystemClipboard;
     
@@ -105,7 +105,7 @@ pub fn handle_paste_clipboard_event(
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async move {
             if let Err(e) = handle_paste_clipboard(&clipboard, &keyboard_emulator).await {
-                error!("Failed to handle paste: {e}");
+                error!("{}", helpers::format_paste_error(&e.to_string()));
             }
         });
     });
@@ -121,13 +121,15 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
     let keyboard_emulator_clone = keyboard_emulator.clone();
     let config_manager_clone = config_manager.clone();
     
-    app_handle.listen("config_changed", move |_event| {
+    let (config_event, _) = helpers::get_event_names();
+    app_handle.listen(config_event, move |_event| {
         handle_config_changed(&config_manager_clone, &keyboard_emulator_clone);
     });
 
     // Handle paste clipboard event from tray
     let keyboard_emulator_clone = keyboard_emulator;
-    app_handle.listen("paste_clipboard", move |_event| {
+    let (_, paste_event) = helpers::get_event_names();
+    app_handle.listen(paste_event, move |_event| {
         handle_paste_clipboard_event(keyboard_emulator_clone.clone());
     });
 }
@@ -144,7 +146,7 @@ async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
 pub fn run() {
     env_logger::init();
 
-    info!("Starting Pasta");
+    helpers::log_initialization();
 
     tauri::Builder::default()
         .setup(|app| {
@@ -161,7 +163,7 @@ pub fn run() {
 
             // Small delay before creating tray to ensure app is fully initialized
             // This works around a Tauri bug where submenus don't initialize properly
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            std::thread::sleep(helpers::get_startup_delay());
 
             // Setup system tray
             let tray_manager = TrayManager::new(config_manager.clone());
