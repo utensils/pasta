@@ -110,7 +110,7 @@ impl TrayManager {
 
         // The tray icon is automatically managed by Tauri
         // We don't need to explicitly store it
-        
+
         Ok(())
     }
 }
