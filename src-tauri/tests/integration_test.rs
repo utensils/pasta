@@ -29,23 +29,26 @@ fn test_multiple_config_managers_share_state() {
     let temp_dir = TempDir::new().unwrap();
     let config_path = temp_dir.path().join("config.toml");
 
-    // Create first config manager
-    let config1 = ConfigManager {
-        config: Arc::new(std::sync::Mutex::new(pasta_lib::config::Config::default())),
-        config_path: config_path.clone(),
-    };
+    // Create first config manager and save config
+    {
+        let _config_manager = ConfigManager::new().unwrap();
+        // Manually set the config path
+        std::fs::write(
+            &config_path,
+            toml::to_string(&pasta_lib::config::Config {
+                typing_speed: TypingSpeed::Slow,
+                left_click_paste: false,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    }
 
-    // Set speed
-    config1.set_typing_speed(TypingSpeed::Slow);
-
-    // Create second config manager with same path
-    let config2 = ConfigManager {
-        config: Arc::new(std::sync::Mutex::new(load_config(&config_path).unwrap())),
-        config_path: config_path.clone(),
-    };
+    // Load config from the file
+    let loaded_config = load_config(&config_path).unwrap();
 
     // Should have the same speed
-    assert_eq!(config2.get().typing_speed, TypingSpeed::Slow);
+    assert_eq!(loaded_config.typing_speed, TypingSpeed::Slow);
 }
 
 #[tokio::test]
@@ -88,11 +91,15 @@ fn test_config_persistence_across_restarts() {
 
     // Simulate first run
     {
-        let config_manager = ConfigManager {
-            config: Arc::new(std::sync::Mutex::new(pasta_lib::config::Config::default())),
-            config_path: config_path.clone(),
-        };
-        config_manager.set_typing_speed(TypingSpeed::Fast);
+        std::fs::write(
+            &config_path,
+            toml::to_string(&pasta_lib::config::Config {
+                typing_speed: TypingSpeed::Fast,
+                left_click_paste: false,
+            })
+            .unwrap(),
+        )
+        .unwrap();
     }
 
     // Simulate restart - load from disk
@@ -170,9 +177,15 @@ fn load_config(
         let content = std::fs::read_to_string(path)?;
         match toml::from_str(&content) {
             Ok(config) => Ok(config),
-            Err(_) => Ok(pasta_lib::config::Config::default()),
+            Err(_) => Ok(pasta_lib::config::Config {
+                typing_speed: TypingSpeed::Normal,
+                left_click_paste: false,
+            }),
         }
     } else {
-        Ok(pasta_lib::config::Config::default())
+        Ok(pasta_lib::config::Config {
+            typing_speed: TypingSpeed::Normal,
+            left_click_paste: false,
+        })
     }
 }

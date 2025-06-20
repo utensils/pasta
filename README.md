@@ -19,6 +19,7 @@ Pasta allows you to paste clipboard content by simulating keyboard typing. When 
 - 🎯 **Simple & Focused**: Does one thing exceptionally well
 - 🎨 **Native Look**: Follows system theme (light/dark mode)
 - ⚡ **Adjustable Speed**: Three typing speeds (Slow, Normal, Fast)
+- 🖱️ **Configurable Tray Icon**: Choose between left-click paste or menu
 - 🖥️ **Cross-Platform**: Works on macOS, Windows, and Linux
 
 ## Installation
@@ -62,7 +63,8 @@ cargo tauri build
 
 ### Controls
 - **Paste**: Click "Paste" in tray menu to type clipboard content
-- **Typing Speed**: Adjust speed in Settings or tray menu
+- **Typing Speed**: Adjust speed in Settings or tray menu  
+- **Left-Click Behavior**: Configure in Settings to either paste directly or show menu
 - **Settings**: Access configuration window from tray menu
 - **Quit**: Right-click tray icon and select Quit
 
@@ -104,7 +106,7 @@ menu
 
 # Or run commands directly:
 nix develop -c dev          # Run in development mode
-nix develop -c test         # Run tests
+nix develop -c run-tests    # Run tests
 nix develop -c build        # Build for production
 ```
 
@@ -123,7 +125,7 @@ The Nix devshell provides convenient commands for all common tasks:
 - `build-debug` - Build in debug mode (faster compile, larger binary)
 
 **Testing**
-- `test` - Run all tests
+- `run-tests` - Run all tests
 - `test-lib` - Run library tests (excludes clipboard tests)
 - `test-watch` - Run tests in watch mode
 - `coverage` - Generate test coverage report

@@ -186,19 +186,19 @@
               {
                 name = "run-tests";
                 help = "Run all tests";
-                command = "cargo test";
+                command = "cargo test --manifest-path=src-tauri/Cargo.toml";
                 category = "testing";
               }
               {
                 name = "test-lib";
                 help = "Run library tests (excludes clipboard tests)";
-                command = "cargo test --lib -- --skip clipboard::tests";
+                command = "cargo test --manifest-path=src-tauri/Cargo.toml --lib -- --skip clipboard::tests";
                 category = "testing";
               }
               {
                 name = "test-watch";
                 help = "Run tests in watch mode";
-                command = "cargo watch -x test";
+                command = "cargo watch -x 'test --manifest-path=src-tauri/Cargo.toml'";
                 category = "testing";
               }
               {
@@ -216,67 +216,67 @@
               {
                 name = "fmt";
                 help = "Format code with rustfmt";
-                command = "cargo fmt";
+                command = "cargo fmt --manifest-path=src-tauri/Cargo.toml";
                 category = "code quality";
               }
               {
                 name = "fmt-check";
                 help = "Check code formatting";
-                command = "cargo fmt --check";
+                command = "cargo fmt --manifest-path=src-tauri/Cargo.toml --check";
                 category = "code quality";
               }
               {
                 name = "lint";
                 help = "Run clippy linter";
-                command = "cargo clippy -- -D warnings";
+                command = "cargo clippy --manifest-path=src-tauri/Cargo.toml -- -D warnings";
                 category = "code quality";
               }
               {
                 name = "lint-fix";
                 help = "Run clippy and attempt to fix issues";
-                command = "cargo clippy --fix -- -D warnings";
+                command = "cargo clippy --manifest-path=src-tauri/Cargo.toml --fix -- -D warnings";
                 category = "code quality";
               }
               {
                 name = "check";
                 help = "Run format check and linter";
-                command = "cargo fmt --check && cargo clippy -- -D warnings";
+                command = "cargo fmt --manifest-path=src-tauri/Cargo.toml --check && cargo clippy --manifest-path=src-tauri/Cargo.toml -- -D warnings";
                 category = "code quality";
               }
               {
                 name = "clean";
                 help = "Clean build artifacts";
-                command = "cargo clean";
+                command = "cargo clean --manifest-path=src-tauri/Cargo.toml";
                 category = "maintenance";
               }
               {
                 name = "clean-all";
                 help = "Clean all artifacts including coverage";
-                command = "cargo clean && cd src-tauri && make clean-coverage";
+                command = "cargo clean --manifest-path=src-tauri/Cargo.toml && cd src-tauri && make clean-coverage";
                 category = "maintenance";
               }
               {
                 name = "update";
                 help = "Update dependencies";
-                command = "cargo update";
+                command = "cargo update --manifest-path=src-tauri/Cargo.toml";
                 category = "maintenance";
               }
               {
                 name = "outdated";
                 help = "Check for outdated dependencies";
-                command = "cargo outdated";
+                command = "cd src-tauri && cargo outdated";
                 category = "maintenance";
               }
               {
                 name = "audit";
                 help = "Audit dependencies for security vulnerabilities";
-                command = "cargo audit";
+                command = "cd src-tauri && cargo audit";
                 category = "maintenance";
               }
               {
                 name = "expand";
                 help = "Expand macros for debugging";
-                command = "cargo expand";
+                command = "cd src-tauri && cargo expand";
                 category = "debugging";
               }
               {
@@ -285,8 +285,8 @@
                 command = ''
                   cat > .git/hooks/pre-commit << 'EOF'
 #!/bin/sh
-cargo fmt --check
-cargo clippy -- -D warnings
+cargo fmt --manifest-path=src-tauri/Cargo.toml --check
+cargo clippy --manifest-path=src-tauri/Cargo.toml -- -D warnings
 EOF
                   chmod +x .git/hooks/pre-commit
                   echo "✅ Git hooks installed!"
