@@ -1,16 +1,12 @@
 name: Rust Test Suite
 
 on:
-  push:
-    branches: [rust-refactor]
-    paths:
-      - 'src-tauri/**'
-      - '.github/workflows/test.yml'
   pull_request:
     branches: [main]
     paths:
       - 'src-tauri/**'
       - '.github/workflows/test.yml'
+      - 'src/**'
 
 env:
   CARGO_TERM_COLOR: always

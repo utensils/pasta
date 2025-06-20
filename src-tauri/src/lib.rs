@@ -49,7 +49,7 @@ async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
             info!("Got clipboard content, typing text");
             if let Err(e) = state.keyboard_emulator.type_text(&text).await {
                 error!("Failed to type text: {e:?}");
-                return Err(format!("Failed to type text: {}", e));
+                return Err(format!("Failed to type text: {e}"));
             }
             Ok(())
         }
@@ -75,6 +75,7 @@ pub fn run() {
             // Hide dock icon on startup (macOS)
             #[cfg(target_os = "macos")]
             {
+                #[allow(clippy::let_unit_value)]
                 let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             }
 

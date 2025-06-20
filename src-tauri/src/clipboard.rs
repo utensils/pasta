@@ -5,7 +5,7 @@ use log::error;
 pub fn get_clipboard_content() -> Result<Option<String>, String> {
     let mut clipboard = match Clipboard::new() {
         Ok(c) => c,
-        Err(e) => return Err(format!("Failed to create clipboard: {}", e)),
+        Err(e) => return Err(format!("Failed to create clipboard: {e}")),
     };
 
     match clipboard.get_text() {
@@ -18,7 +18,7 @@ pub fn get_clipboard_content() -> Result<Option<String>, String> {
         }
         Err(e) => {
             error!("Failed to read clipboard: {e:?}");
-            Err(format!("Failed to read clipboard: {}", e))
+            Err(format!("Failed to read clipboard: {e}"))
         }
     }
 }
