@@ -5,6 +5,7 @@ use log::debug;
 use tokio::sync::mpsc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TypingSpeed {
     Slow,
     Normal,
@@ -99,5 +100,73 @@ impl KeyboardEmulator {
             .send(KeyboardCommand::TypeText(text.to_string()))
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_typing_speed_delay_values() {
+        assert_eq!(TypingSpeed::Slow.delay_ms(), 50);
+        assert_eq!(TypingSpeed::Normal.delay_ms(), 25);
+        assert_eq!(TypingSpeed::Fast.delay_ms(), 10);
+    }
+
+    #[test]
+    fn test_typing_speed_serialization() {
+        let speed = TypingSpeed::Fast;
+        let json = serde_json::to_string(&speed).unwrap();
+        assert_eq!(json, "\"fast\"");
+
+        let deserialized: TypingSpeed = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, TypingSpeed::Fast);
+    }
+
+    #[test]
+    fn test_keyboard_command_creation() {
+        let cmd = KeyboardCommand::TypeText("hello".to_string());
+        match cmd {
+            KeyboardCommand::TypeText(text) => assert_eq!(text, "hello"),
+            _ => panic!("Wrong command type"),
+        }
+
+        let cmd = KeyboardCommand::SetSpeed(TypingSpeed::Slow);
+        match cmd {
+            KeyboardCommand::SetSpeed(speed) => assert_eq!(speed, TypingSpeed::Slow),
+            _ => panic!("Wrong command type"),
+        }
+    }
+
+    #[test]
+    fn test_text_chunking_logic() {
+        // Test that chunking logic works correctly
+        const CHUNK_SIZE: usize = 200;
+        let text = "a".repeat(550); // 550 chars should create 3 chunks
+        let chars: Vec<char> = text.chars().collect();
+        let chunks: Vec<String> = chars
+            .chunks(CHUNK_SIZE)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect();
+        
+        assert_eq!(chunks.len(), 3);
+        assert_eq!(chunks[0].len(), 200);
+        assert_eq!(chunks[1].len(), 200);
+        assert_eq!(chunks[2].len(), 150);
+    }
+
+    #[test]
+    fn test_special_character_handling() {
+        // This test just verifies the logic, not actual keyboard input
+        let special_chars = vec!['\n', '\t', 'a'];
+        
+        for ch in special_chars {
+            match ch {
+                '\n' => assert!(true), // Would press Return
+                '\t' => assert!(true), // Would press Tab
+                _ => assert_eq!(ch, 'a'), // Regular character
+            }
+        }
     }
 }

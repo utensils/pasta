@@ -12,22 +12,20 @@ use crate::keyboard::TypingSpeed;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    pub enabled: bool,
     pub typing_speed: TypingSpeed,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            enabled: true,
             typing_speed: TypingSpeed::Normal,
         }
     }
 }
 
 pub struct ConfigManager {
-    config: Arc<Mutex<Config>>,
-    config_path: PathBuf,
+    pub(crate) config: Arc<Mutex<Config>>,
+    pub(crate) config_path: PathBuf,
 }
 
 impl ConfigManager {
@@ -54,8 +52,39 @@ impl ConfigManager {
         if path.exists() {
             debug!("Loading config from {path:?}");
             let content = fs::read_to_string(path)?;
-            let config: Config = toml::from_str(&content)?;
-            Ok(config)
+            
+            // Try to parse the new format first
+            match toml::from_str::<Config>(&content) {
+                Ok(config) => Ok(config),
+                Err(_) => {
+                    // If that fails, try to parse the old format and migrate
+                    #[derive(Deserialize)]
+                    struct OldConfig {
+                        #[allow(dead_code)]
+                        enabled: bool,
+                        typing_speed: String,
+                    }
+                    
+                    match toml::from_str::<OldConfig>(&content) {
+                        Ok(old_config) => {
+                            debug!("Migrating old config format");
+                            // Convert old capitalized values to lowercase
+                            let typing_speed = match old_config.typing_speed.to_lowercase().as_str() {
+                                "slow" => TypingSpeed::Slow,
+                                "normal" => TypingSpeed::Normal,
+                                "fast" => TypingSpeed::Fast,
+                                _ => TypingSpeed::Normal, // Default fallback
+                            };
+                            Ok(Config { typing_speed })
+                        }
+                        Err(_) => {
+                            // If both formats fail, just use defaults
+                            debug!("Failed to parse config, using defaults");
+                            Ok(Config::default())
+                        }
+                    }
+                }
+            }
         } else {
             debug!("Config file not found, using defaults");
             Ok(Config::default())
@@ -72,13 +101,6 @@ impl ConfigManager {
 
     pub fn get(&self) -> Config {
         self.config.lock().unwrap().clone()
-    }
-
-    pub fn set_enabled(&self, enabled: bool) {
-        self.config.lock().unwrap().enabled = enabled;
-        if let Err(e) = self.save() {
-            error!("Failed to save config: {e:?}");
-        }
     }
 
     pub fn set_typing_speed(&self, speed: TypingSpeed) {
@@ -120,7 +142,6 @@ mod tests {
     #[test]
     fn test_config_default() {
         let config = Config::default();
-        assert!(config.enabled);
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
     }
 
@@ -130,7 +151,6 @@ mod tests {
         let manager = test_manager.manager;
 
         // Change config
-        manager.set_enabled(false);
         manager.set_typing_speed(TypingSpeed::Fast);
 
         // Save should work
@@ -138,7 +158,6 @@ mod tests {
 
         // Load config from file
         let loaded_config = ConfigManager::load_config(&manager.config_path).unwrap();
-        assert!(!loaded_config.enabled);
         assert_eq!(loaded_config.typing_speed, TypingSpeed::Fast);
     }
 
@@ -148,20 +167,7 @@ mod tests {
         let manager = test_manager.manager;
 
         let config = manager.get();
-        assert!(config.enabled);
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
-    }
-
-    #[test]
-    fn test_config_manager_set_enabled() {
-        let test_manager = TestConfigManager::new().unwrap();
-        let manager = test_manager.manager;
-
-        manager.set_enabled(false);
-        assert!(!manager.get().enabled);
-
-        manager.set_enabled(true);
-        assert!(manager.get().enabled);
     }
 
     #[test]
@@ -174,5 +180,39 @@ mod tests {
 
         manager.set_typing_speed(TypingSpeed::Fast);
         assert_eq!(manager.get().typing_speed, TypingSpeed::Fast);
+    }
+
+    #[test]
+    fn test_config_migration() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write old format config with lowercase
+        let old_config = r#"
+enabled = true
+typing_speed = "fast"
+"#;
+        fs::write(&config_path, old_config).unwrap();
+
+        // Load should migrate successfully
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
+    }
+
+    #[test]
+    fn test_config_migration_capitalized() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write old format config with capitalized values
+        let old_config = r#"
+enabled = true
+typing_speed = "Normal"
+"#;
+        fs::write(&config_path, old_config).unwrap();
+
+        // Load should migrate successfully
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
     }
 }

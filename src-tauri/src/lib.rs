@@ -8,10 +8,9 @@ use std::sync::Arc;
 
 use log::{error, info};
 use tauri::{Listener, Manager, State};
-use tokio::sync::mpsc;
 
 use crate::{
-    clipboard::{ClipboardEvent, ClipboardMonitor},
+    clipboard::get_clipboard_content,
     config::ConfigManager,
     keyboard::{KeyboardEmulator, TypingSpeed},
     tray::TrayManager,
@@ -21,7 +20,6 @@ use crate::{
 #[derive(Clone)]
 struct AppState {
     config_manager: Arc<ConfigManager>,
-    clipboard_monitor: Arc<ClipboardMonitor>,
     keyboard_emulator: Arc<KeyboardEmulator>,
 }
 
@@ -34,15 +32,39 @@ async fn get_config(state: State<'_, AppState>) -> Result<serde_json::Value, Str
 #[tauri::command]
 async fn save_config(
     state: State<'_, AppState>,
-    enabled: bool,
     typing_speed: TypingSpeed,
 ) -> Result<(), String> {
     let inner = state.inner();
-    inner.config_manager.set_enabled(enabled);
     inner.config_manager.set_typing_speed(typing_speed);
-    inner.clipboard_monitor.set_enabled(enabled);
     inner.keyboard_emulator.set_typing_speed(typing_speed);
     Ok(())
+}
+
+#[tauri::command]
+async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
+    info!("Paste clipboard command triggered");
+    
+    // Get current clipboard content
+    let clipboard_result = get_clipboard_content();
+    
+    match clipboard_result {
+        Ok(Some(text)) => {
+            info!("Got clipboard content, typing text");
+            if let Err(e) = state.keyboard_emulator.type_text(&text).await {
+                error!("Failed to type text: {e:?}");
+                return Err(format!("Failed to type text: {}", e));
+            }
+            Ok(())
+        }
+        Ok(None) => {
+            info!("Clipboard is empty");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to get clipboard content: {e}");
+            Err(e)
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -62,14 +84,11 @@ pub fn run() {
             // Initialize components
             let config_manager =
                 Arc::new(ConfigManager::new().expect("Failed to create config manager"));
-            let clipboard_monitor =
-                Arc::new(ClipboardMonitor::new().expect("Failed to create clipboard monitor"));
             let keyboard_emulator =
                 Arc::new(KeyboardEmulator::new().expect("Failed to create keyboard emulator"));
 
             // Load config and apply settings
             let config = config_manager.get();
-            clipboard_monitor.set_enabled(config.enabled);
             keyboard_emulator.set_typing_speed(config.typing_speed);
 
             // Setup system tray
@@ -79,51 +98,17 @@ pub fn run() {
             // Create app state
             let app_state = AppState {
                 config_manager: config_manager.clone(),
-                clipboard_monitor: clipboard_monitor.clone(),
                 keyboard_emulator: keyboard_emulator.clone(),
             };
             app.manage(app_state);
 
-            // Start clipboard monitoring in a separate thread with its own runtime
-            let (tx, mut rx) = mpsc::channel::<ClipboardEvent>(10);
-            let clipboard_monitor_clone = clipboard_monitor.clone();
-            let keyboard_emulator_clone = keyboard_emulator.clone();
-
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(async move {
-                    if let Err(e) = clipboard_monitor_clone.start_monitoring(tx).await {
-                        error!("Clipboard monitoring error: {e:?}");
-                    }
-                });
-            });
-
-            // Handle clipboard events in another thread
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(async move {
-                    while let Some(event) = rx.recv().await {
-                        match event {
-                            ClipboardEvent::ContentChanged(text) => {
-                                info!("Clipboard changed, typing text");
-                                if let Err(e) = keyboard_emulator_clone.type_text(&text).await {
-                                    error!("Failed to type text: {e:?}");
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-
             // Listen for config changes
-            let clipboard_monitor_clone = clipboard_monitor.clone();
             let keyboard_emulator_clone = keyboard_emulator.clone();
             let config_manager_clone = config_manager.clone();
             let app_handle = app.handle();
 
             app_handle.listen("config_changed", move |_event| {
                 let config = config_manager_clone.get();
-                clipboard_monitor_clone.set_enabled(config.enabled);
                 keyboard_emulator_clone.set_typing_speed(config.typing_speed);
             });
 
@@ -135,10 +120,101 @@ pub fn run() {
                 }
             });
 
+            // Handle paste clipboard event from tray
+            let keyboard_emulator_clone = keyboard_emulator.clone();
+            app_handle.listen("paste_clipboard", move |_event| {
+                info!("Paste clipboard event received");
+                
+                // Get current clipboard content
+                match get_clipboard_content() {
+                    Ok(Some(text)) => {
+                        info!("Got clipboard content, typing text");
+                        
+                        // Spawn a new task to type the text
+                        let keyboard_emulator = keyboard_emulator_clone.clone();
+                        std::thread::spawn(move || {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            rt.block_on(async move {
+                                if let Err(e) = keyboard_emulator.type_text(&text).await {
+                                    error!("Failed to type text: {e:?}");
+                                }
+                            });
+                        });
+                    }
+                    Ok(None) => {
+                        info!("Clipboard is empty");
+                    }
+                    Err(e) => {
+                        error!("Failed to get clipboard content: {e}");
+                    }
+                }
+            });
+
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_config, save_config])
+        .invoke_handler(tauri::generate_handler![get_config, save_config, paste_clipboard])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    #[test]
+    fn test_config_no_longer_has_enabled_field() {
+        let config = Config::default();
+        let json = serde_json::to_value(&config).unwrap();
+        
+        // Verify the config only has typing_speed field
+        assert!(json.is_object());
+        assert!(json.get("typing_speed").is_some());
+        assert!(json.get("enabled").is_none());
+    }
+
+    #[test]
+    fn test_config_serialization() {
+        let config = Config {
+            typing_speed: TypingSpeed::Fast,
+        };
+        
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("typing_speed"));
+        assert!(json.contains("fast"));
+        assert!(!json.contains("enabled"));
+    }
+
+    #[test]
+    fn test_typing_speed_values_match_frontend() {
+        // Ensure typing speed values match what frontend expects
+        assert_eq!(serde_json::to_string(&TypingSpeed::Slow).unwrap(), "\"slow\"");
+        assert_eq!(serde_json::to_string(&TypingSpeed::Normal).unwrap(), "\"normal\"");
+        assert_eq!(serde_json::to_string(&TypingSpeed::Fast).unwrap(), "\"fast\"");
+    }
+
+    #[test]
+    fn test_app_state_structure() {
+        use tempfile::TempDir;
+        use std::sync::Mutex;
+        
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config::default())),
+            config_path,
+        });
+        
+        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        
+        let app_state = AppState {
+            config_manager: config_manager.clone(),
+            keyboard_emulator: keyboard_emulator.clone(),
+        };
+        
+        // Verify app state holds correct references
+        let config = app_state.config_manager.get();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+}
