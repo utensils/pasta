@@ -1,5 +1,9 @@
 # Pasta - Clipboard to Keyboard
 
+<p align="center">
+  <img src="src-tauri/assets/logo.png" alt="Pasta Logo" width="256" height="256">
+</p>
+
 A lightweight system tray application that converts clipboard content into simulated keyboard input. Written in Rust using Tauri v2 for blazing fast performance and minimal resource usage.
 
 ## What is Pasta?

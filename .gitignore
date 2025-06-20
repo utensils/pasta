@@ -9,6 +9,14 @@ src-tauri/target/
 src-tauri/WixTools/
 src-tauri/Cargo.lock
 
+# Coverage reports
+src-tauri/target/coverage/
+src-tauri/cobertura.xml
+src-tauri/tarpaulin-report.html
+src-tauri/lcov.info
+*.profraw
+*.profdata
+
 # Node
 node_modules/
 dist/

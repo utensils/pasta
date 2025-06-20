@@ -60,6 +60,21 @@ cargo test --release
 # Run with specific logging levels
 RUST_LOG=pasta_rust=debug cargo tauri dev
 
+# Coverage reporting
+cargo tarpaulin --out Html --exclude-files "*/clipboard.rs" -- --lib
+
+# Generate coverage report and open in browser
+make coverage-open
+
+# Generate coverage in multiple formats (XML, LCOV, HTML)
+make coverage-ci
+
+# Clean coverage artifacts
+make clean-coverage
+
+# Run coverage with the shell script (recommended)
+./coverage.sh
+
 # Build for specific platform
 cargo tauri build --target x86_64-apple-darwin
 cargo tauri build --target x86_64-pc-windows-msvc

@@ -1,0 +1,35 @@
+[default]
+# Exclude build scripts and test modules from coverage
+exclude-files = ["*/build.rs", "*/tests/*", "*/main.rs"]
+# Skip coverage for auto-generated code
+ignore-panics = true
+ignore-tests = false
+# Output formats
+out = ["Html", "Xml", "Lcov"]
+# Output directory
+output-dir = "./target/coverage"
+# Timeout for each test
+# timeout = "2m"
+# Skip functions that can't be covered
+skip-clean = false
+# Follow symlinks
+follow-exec = true
+# Run tests in parallel
+# Note: Disabled due to clipboard tests that need serial execution
+# parallel = true
+# Workspace handling
+workspace = true
+all = true
+# Avoid issues with Tauri
+avoid-cfg-tarpaulin = true
+
+[report]
+# Coverage report options
+skip-clean = false
+
+[run-types]
+# Different coverage profiles
+default = []
+unit-tests = ["--lib"]
+integration-tests = ["--test", "*"]
+all-tests = ["--all-targets"]
