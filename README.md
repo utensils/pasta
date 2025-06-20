@@ -33,6 +33,16 @@ cargo tauri build
 
 Adjust typing speed and left-click behavior from the tray menu.
 
+## Configuration
+
+Pasta stores its configuration file in the following locations:
+
+- **macOS**: `~/Library/Application Support/com.pasta.app/config.toml`
+- **Linux**: `~/.config/pasta/config.toml`
+- **Windows**: `%APPDATA%\pasta\config.toml`
+
+The configuration file is automatically created on first run and saves your preferences for typing speed and left-click behavior.
+
 ## Development
 
 ```bash

@@ -42,6 +42,15 @@ impl ConfigManager {
         })
     }
 
+    pub fn new_with_path(config_path: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+        let config = Self::load_config(&config_path)?;
+
+        Ok(Self {
+            config: Arc::new(Mutex::new(config)),
+            config_path,
+        })
+    }
+
     fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let config_dir = config_dir().ok_or("Failed to get config directory")?;
 
@@ -55,10 +64,15 @@ impl ConfigManager {
         if path.exists() {
             debug!("Loading config from {path:?}");
             let content = fs::read_to_string(path)?;
+            debug!("Config file contents: {}", content);
 
             // Try to parse the new format first
             match toml::from_str::<Config>(&content) {
-                Ok(config) => Ok(config),
+                Ok(config) => {
+                    debug!("Loaded config: typing_speed={:?}, left_click_paste={}", 
+                           config.typing_speed, config.left_click_paste);
+                    Ok(config)
+                },
                 Err(_) => {
                     // If that fails, try to parse the old format and migrate
                     #[derive(Deserialize)]

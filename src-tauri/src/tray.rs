@@ -20,11 +20,13 @@ impl TrayManager {
 
     pub fn setup<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let config = self.config_manager.get();
+        info!("Setting up tray with config: typing_speed={:?}, left_click_paste={}", 
+              config.typing_speed, config.left_click_paste);
 
         // Create menu items
         let paste_item = MenuItemBuilder::with_id("paste", "Paste").build(app)?;
 
-        // Create typing speed submenu items
+        // Create typing speed submenu items with proper checked state
         let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
             .checked(config.typing_speed == TypingSpeed::Slow)
             .build(app)?;
@@ -37,12 +39,11 @@ impl TrayManager {
             .checked(config.typing_speed == TypingSpeed::Fast)
             .build(app)?;
 
-        // Create typing speed submenu with items
+        // Create typing speed submenu
         let speed_submenu = SubmenuBuilder::new(app, "Typing Speed")
             .item(&slow_item)
             .item(&normal_item)
             .item(&fast_item)
-            .enabled(true)
             .build()?;
 
         // Create left click paste menu item
@@ -149,10 +150,14 @@ impl TrayManager {
     }
 }
 
-fn update_speed_menu_state<R: Runtime>(_app: &AppHandle<R>, speed: TypingSpeed) {
-    // Store menu items in the state for later access
-    // For now, we'll just log the speed change
-    debug!("Speed changed to: {speed:?}");
+pub fn update_speed_menu_state<R: Runtime>(_app: &AppHandle<R>, speed: TypingSpeed) {
+    // Update the check state of speed menu items
+    // Since we can't access the menu directly from the tray, we need to rebuild it
+    // For now, just log the update
+    debug!("Speed menu state should be updated to: {speed:?}");
+    
+    // The proper way to handle this would be to rebuild the entire menu
+    // with the correct state, but that requires refactoring the setup method
 }
 
 #[cfg(test)]
