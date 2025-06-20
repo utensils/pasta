@@ -19,7 +19,6 @@ follow-exec = true
 # parallel = true
 # Workspace handling
 workspace = true
-all = true
 # Avoid issues with Tauri
 avoid-cfg-tarpaulin = true
 

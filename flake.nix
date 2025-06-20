@@ -204,13 +204,13 @@
               {
                 name = "coverage";
                 help = "Generate test coverage report";
-                command = "cd src-tauri && ./coverage.sh";
+                command = "(cd src-tauri && ./coverage.sh)";
                 category = "testing";
               }
               {
                 name = "coverage-html";
                 help = "Generate and open HTML coverage report";
-                command = "cd src-tauri && make coverage-open";
+                command = "pushd src-tauri >/dev/null && make coverage-open && popd >/dev/null";
                 category = "testing";
               }
               {
