@@ -70,9 +70,10 @@ pub fn show_settings_window(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use mockall::mock;
-    use tauri::{WindowEvent, WebviewWindow};
+    use tauri::{WebviewWindow, WindowEvent};
+
+    use super::*;
 
     // Mock traits for testing
     mock! {
@@ -150,7 +151,7 @@ mod tests {
         // ActivationPolicy doesn't implement Debug, so we just verify the types exist
         let _regular = tauri::ActivationPolicy::Regular;
         let _accessory = tauri::ActivationPolicy::Accessory;
-        
+
         // If this compiles, the types exist
         assert!(true);
     }
@@ -161,7 +162,7 @@ mod tests {
         fn test_error_pattern() -> tauri::Result<()> {
             Ok(())
         }
-        
+
         assert!(test_error_pattern().is_ok());
     }
 
@@ -174,7 +175,7 @@ mod tests {
                 // This pattern should compile
             }
         }
-        
+
         // Just ensure the function compiles
         assert!(true);
     }
@@ -184,7 +185,7 @@ mod tests {
         // Test that we properly handle optional window results
         let window: Option<String> = Some("main".to_string());
         assert!(window.is_some());
-        
+
         let no_window: Option<String> = None;
         assert!(no_window.is_none());
     }
@@ -192,7 +193,7 @@ mod tests {
     // Note: Full window behavior tests would require a running Tauri app context
     // which is difficult to test in unit tests. These behaviors are better tested
     // through integration tests or manual testing.
-    
+
     // Additional tests for code coverage
     #[test]
     fn test_function_signatures() {
@@ -200,7 +201,7 @@ mod tests {
         // create_settings_window takes &AppHandle and returns Result
         // show_settings_window takes &AppHandle and returns Result
         // handle_window_close_request takes &CloseRequestApi and &AppHandle
-        
+
         // These are compile-time checks
         assert!(true);
     }

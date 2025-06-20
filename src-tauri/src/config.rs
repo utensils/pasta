@@ -289,7 +289,7 @@ typing_speed = "Normal"
     #[test]
     fn test_config_thread_safety() {
         use std::thread;
-        
+
         let test_manager = TestConfigManager::new().unwrap();
         let manager = Arc::new(test_manager.manager);
 
@@ -310,7 +310,10 @@ typing_speed = "Normal"
 
         for handle in handles {
             let speed = handle.join().unwrap();
-            assert!(matches!(speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+            assert!(matches!(
+                speed,
+                TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
+            ));
         }
     }
 
@@ -352,9 +355,11 @@ typing_speed = "SuperFast"
     fn test_all_typing_speeds() {
         // Test all variants of TypingSpeed
         let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
-        
+
         for speed in speeds {
-            let config = Config { typing_speed: speed };
+            let config = Config {
+                typing_speed: speed,
+            };
             let serialized = toml::to_string(&config).unwrap();
             let deserialized: Config = toml::from_str(&serialized).unwrap();
             assert_eq!(config.typing_speed, deserialized.typing_speed);

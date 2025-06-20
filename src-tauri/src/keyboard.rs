@@ -174,7 +174,7 @@ mod tests {
     fn test_typing_speed_all_variants() {
         // Test all speed variants
         let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
-        
+
         for speed in speeds {
             let delay = speed.delay_ms();
             assert!(delay > 0);
@@ -212,7 +212,7 @@ mod tests {
     fn test_keyboard_command_clone() {
         let cmd = KeyboardCommand::TypeText("hello".to_string());
         let cloned = cmd.clone();
-        
+
         match (cmd, cloned) {
             (KeyboardCommand::TypeText(text1), KeyboardCommand::TypeText(text2)) => {
                 assert_eq!(text1, text2);
@@ -289,7 +289,7 @@ mod tests {
     fn test_delay_duration_conversion() {
         // Test that delay values convert properly to Duration
         let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
-        
+
         for speed in speeds {
             let delay_ms = speed.delay_ms();
             let duration = Duration::from_millis(delay_ms);
@@ -322,7 +322,7 @@ mod tests {
     #[tokio::test]
     async fn test_keyboard_emulator_type_text() {
         let emulator = KeyboardEmulator::new().unwrap();
-        
+
         // Test that type_text doesn't error with basic text
         let result = emulator.type_text("test").await;
         assert!(result.is_ok());
@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn test_keyboard_emulator_set_speed() {
         let emulator = KeyboardEmulator::new().unwrap();
-        
+
         // Test that set_typing_speed doesn't panic
         emulator.set_typing_speed(TypingSpeed::Fast);
         emulator.set_typing_speed(TypingSpeed::Slow);
@@ -342,11 +342,11 @@ mod tests {
     fn test_special_chars_in_text() {
         let text = "Hello\nWorld\tTest";
         let chars: Vec<char> = text.chars().collect();
-        
+
         let mut newline_count = 0;
         let mut tab_count = 0;
         let mut regular_count = 0;
-        
+
         for ch in chars {
             match ch {
                 '\n' => newline_count += 1,
@@ -354,7 +354,7 @@ mod tests {
                 _ => regular_count += 1,
             }
         }
-        
+
         assert_eq!(newline_count, 1);
         assert_eq!(tab_count, 1);
         assert_eq!(regular_count, 14); // "Hello" (5) + "World" (5) + "Test" (4) = 14

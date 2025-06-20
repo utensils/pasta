@@ -123,8 +123,9 @@ fn update_speed_menu_state<R: Runtime>(_app: &AppHandle<R>, speed: TypingSpeed) 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashMap;
+
+    use super::*;
 
     #[test]
     fn test_tray_manager_creation() {
@@ -221,7 +222,7 @@ mod tests {
         // Test that all menu event IDs are properly handled
         let event_ids = vec![
             "paste",
-            "speed_slow", 
+            "speed_slow",
             "speed_normal",
             "speed_fast",
             "settings",
@@ -253,7 +254,9 @@ mod tests {
     #[test]
     fn test_typing_speed_state_changes() {
         use std::sync::Mutex;
+
         use tempfile::TempDir;
+
         use crate::config::Config;
 
         let temp_dir = TempDir::new().unwrap();
@@ -286,11 +289,7 @@ mod tests {
     #[test]
     fn test_event_emission_names() {
         // Test that event names are consistent
-        let events = vec![
-            "paste_clipboard",
-            "config_changed",
-            "show_settings",
-        ];
+        let events = vec!["paste_clipboard", "config_changed", "show_settings"];
 
         for event in &events {
             assert!(!event.is_empty());
@@ -330,7 +329,7 @@ mod tests {
     fn test_update_speed_menu_state_function() {
         // Test the update_speed_menu_state function exists and handles all speeds
         let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
-        
+
         for speed in speeds {
             // The function should handle all speed types without panic
             let speed_debug = format!("{:?}", speed);
@@ -353,7 +352,7 @@ mod tests {
         fn test_error_type() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }
-        
+
         assert!(test_error_type().is_ok());
     }
 }

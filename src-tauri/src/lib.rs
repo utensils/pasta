@@ -161,11 +161,13 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::config::Config;
     use std::sync::Mutex;
+
     use tempfile::TempDir;
     use tokio::sync::mpsc;
+
+    use super::*;
+    use crate::config::Config;
 
     // Mock implementations for testing
     struct MockState {
@@ -208,18 +210,24 @@ mod tests {
     #[test]
     fn test_save_config_command() {
         let mock_state = MockState::new();
-        
+
         // Test the underlying logic directly without blocking in async context
-        mock_state.app_state.config_manager.set_typing_speed(TypingSpeed::Fast);
+        mock_state
+            .app_state
+            .config_manager
+            .set_typing_speed(TypingSpeed::Fast);
         // Note: We can't call keyboard_emulator.set_typing_speed from async context
         // as it uses blocking_send. In real usage, this is called from non-async context.
-        
+
         // Verify the config was updated
         let config = mock_state.app_state.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Fast);
 
         // Test with other speeds
-        mock_state.app_state.config_manager.set_typing_speed(TypingSpeed::Slow);
+        mock_state
+            .app_state
+            .config_manager
+            .set_typing_speed(TypingSpeed::Slow);
         let config = mock_state.app_state.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Slow);
     }
@@ -228,9 +236,13 @@ mod tests {
     async fn test_paste_clipboard_empty() {
         // Since we can't mock the clipboard module directly, we'll test the structure
         let mock_state = MockState::new();
-        
+
         // Test that keyboard emulator can receive type_text commands
-        let result = mock_state.app_state.keyboard_emulator.type_text("test").await;
+        let result = mock_state
+            .app_state
+            .keyboard_emulator
+            .type_text("test")
+            .await;
         assert!(result.is_ok());
     }
 
@@ -255,8 +267,14 @@ mod tests {
 
         // Test cloning
         let cloned_state = app_state.clone();
-        assert!(Arc::ptr_eq(&app_state.config_manager, &cloned_state.config_manager));
-        assert!(Arc::ptr_eq(&app_state.keyboard_emulator, &cloned_state.keyboard_emulator));
+        assert!(Arc::ptr_eq(
+            &app_state.config_manager,
+            &cloned_state.config_manager
+        ));
+        assert!(Arc::ptr_eq(
+            &app_state.keyboard_emulator,
+            &cloned_state.keyboard_emulator
+        ));
     }
 
     #[test]
@@ -360,10 +378,10 @@ mod tests {
     fn test_keyboard_emulator_channel_creation() {
         // Test that keyboard emulator creates channels properly
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
-        
+
         // Send test data
         tx.send("test".to_string()).unwrap();
-        
+
         // Verify channel works
         assert_eq!(rx.try_recv().unwrap(), "test");
     }
@@ -371,7 +389,7 @@ mod tests {
     #[test]
     fn test_config_manager_thread_safety() {
         use std::thread;
-        
+
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
@@ -398,21 +416,24 @@ mod tests {
         for handle in handles {
             let config = handle.join().unwrap();
             // Just verify we got a valid config back
-            assert!(matches!(config.typing_speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+            assert!(matches!(
+                config.typing_speed,
+                TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
+            ));
         }
     }
 
     #[test]
     fn test_app_state_arc_references() {
         let mock_state = MockState::new();
-        
+
         // Test that Arc references are properly shared
         let state1 = mock_state.app_state.clone();
         let state2 = mock_state.app_state.clone();
-        
+
         // Modify through one reference
         state1.config_manager.set_typing_speed(TypingSpeed::Fast);
-        
+
         // Verify change is visible through other reference
         let config = state2.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Fast);
