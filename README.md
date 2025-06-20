@@ -1,206 +1,141 @@
-# Pasta - Universal Clipboard Typer
-[![Tests](https://github.com/utensils/pasta/actions/workflows/test.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/test.yml)
-[![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/utensils/pasta)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/utensils/pasta)
+# Pasta - Clipboard to Keyboard
+
+[![codecov](https://codecov.io/gh/utensils/pasta/graph/badge.svg)](https://codecov.io/gh/utensils/pasta)
+[![CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
 
 <p align="center">
-  <img src="src/pasta/gui/resources/logo.png" alt="Pasta Logo" width="200" height="200">
+  <img src="src-tauri/assets/logo.png" alt="Pasta Logo" width="256" height="256">
 </p>
 
-A cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting.
+A lightweight system tray application that converts clipboard content into simulated keyboard input. Written in Rust using Tauri v2 for blazing fast performance and minimal resource usage.
+
+## What is Pasta?
+
+Pasta allows you to paste clipboard content by simulating keyboard typing. When you click "Paste" from the system tray menu, it types out whatever text is currently in your clipboard. It's perfect for applications that don't support standard paste operations, like remote desktop sessions, VMs, or certain secure input fields.
 
 ## Features
 
-- 📋 **Clipboard History**: Automatically saves everything you copy
-- 🔍 **Searchable History**: Find past clipboard items quickly
-- 🔒 **Security First**: Encrypts sensitive data, excludes password managers
-- 🎯 **Smart Paste Modes**: Multiple methods for different applications
-- ⚡ **Adaptive Performance**: Adjusts typing speed based on system load
-- 🛑 **Emergency Stop**: Double ESC instantly aborts any operation
-- ✂️ **Snippet Management**: Save and organize frequently used text
-- 🎨 **Modern UI**: PySide6-based settings and history windows
-- 🌍 **Cross-Platform**: Windows, macOS, and Linux support
+- 🚀 **Lightweight & Fast**: ~20MB memory usage, <500ms startup time
+- 🎯 **Simple & Focused**: Does one thing exceptionally well
+- 🎨 **Native Look**: Follows system theme (light/dark mode)
+- ⚡ **Adjustable Speed**: Three typing speeds (Slow, Normal, Fast)
+- 🖥️ **Cross-Platform**: Works on macOS, Windows, and Linux
 
-## Quick Start
+## Installation
 
-### Option 1: Using UV (All Platforms)
-```bash
-# Install UV package manager
-curl -LsSf https://astral.sh/uv/install.sh | sh
+### Download Pre-built Binaries
+Coming soon! For now, build from source.
 
-# Clone and setup
-git clone https://github.com/utensils/pasta.git
-cd pasta
-uv sync --all-extras
+### Build from Source
 
-# Run Pasta
-uv run python -m pasta
-```
+#### Prerequisites
+- [Rust](https://rustup.rs/) 1.70+
+- Platform-specific dependencies:
+  - **macOS**: Xcode Command Line Tools
+  - **Linux**: `sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev`
+  - **Windows**: Windows SDK
 
-### Option 2: Using Nix (macOS - Recommended)
+#### Build Steps
 ```bash
 # Clone the repository
-git clone https://github.com/utensils/pasta.git
+git clone https://github.com/yourusername/pasta.git
 cd pasta
 
-# Run directly with Nix (no setup required!)
-nix run .
+# Install Tauri CLI
+cargo install tauri-cli --version '^2.0.0' --locked
 
-# Or enter development environment
-nix develop
-uv sync --all-extras
-uv run python -m pasta
+# Build the application
+cargo tauri build
+
+# The built application will be in:
+# macOS: src-tauri/target/release/bundle/macos/Pasta.app
+# Windows: src-tauri/target/release/bundle/msi/
+# Linux: src-tauri/target/release/bundle/deb/
 ```
-
-## Platform Requirements
-
-### macOS
-- Grant accessibility permissions when prompted
-- System Preferences → Security & Privacy → Accessibility
-
-### Windows
-- May require administrator privileges for some applications
-
-### Linux
-- Add user to input group: `sudo usermod -a -G input $USER`
-- Log out and back in
 
 ## Usage
 
-1. **Launch**: Pasta runs in your system tray
-2. **Copy**: Use Ctrl+C (Cmd+C on macOS) - content is saved to history
-3. **View History**: Right-click tray icon → History to see clipboard items
-4. **Paste from History**: Select an item in history and click "Copy to Clipboard"
-5. **Emergency Stop**: Double ESC to abort any paste operation
+1. **Launch Pasta** - It will appear in your system tray/menu bar
+2. **Copy any text** - Use your normal copy methods (Ctrl+C, Cmd+C, etc.)
+3. **Click where you want to type** - Position your cursor in the target application
+4. **Click "Paste" in tray menu** - Pasta will type out your clipboard content
 
-### Paste Modes
+### Controls
+- **Paste**: Click "Paste" in tray menu to type clipboard content
+- **Typing Speed**: Adjust speed in Settings or tray menu
+- **Settings**: Access configuration window from tray menu
+- **Quit**: Right-click tray icon and select Quit
 
-Pasta offers three paste modes that control how text is pasted when using "Paste Last Item":
+## Configuration
 
-- **Auto Mode** (default): Automatically selects the best method based on text length
-- **Clipboard Mode** (blue icon): Uses standard system clipboard paste
-- **Typing Mode** (orange icon): Simulates keyboard typing character-by-character
-  - Useful for applications that don't accept clipboard paste
-  - Works around security restrictions in some applications
-  - Visual feedback with orange tray icon
-
-To use typing mode:
-1. Right-click tray icon → Paste Mode → Typing
-2. Copy text normally (Cmd+C/Ctrl+C)
-3. Right-click tray icon → "Paste Last Item (typing)"
-
-### System Tray Menu
-
-- **Paste Mode**: Switch between Auto / Clipboard / Typing modes
-- **Paste Last Item**: Paste the most recent clipboard item using current mode
-- **History**: View and search all clipboard history
-- **Settings**: Configure all options
-- **Emergency Stop**: Abort current operation (when pasting)
+Settings are automatically saved to:
+- **macOS**: `~/Library/Application Support/com.pasta.app/`
+- **Linux**: `~/.config/pasta/`
+- **Windows**: `%APPDATA%\pasta\`
 
 ## Development
 
-### Using UV (Recommended)
-
 ```bash
-# Setup development environment
-uv sync --all-extras --dev
-uv run pre-commit install
+# Run in development mode with hot reload
+cargo tauri dev
 
 # Run tests
-uv run pytest                                    # All tests (coverage enabled by default)
-uv run pytest tests/unit/                       # Unit tests only (safest for local dev)
-uv run pytest -m "not system_interfering"       # Skip tests that might interfere with system
+cargo test
 
-# Run tests with explicit options
-uv run pytest -v --cov=src/pasta --cov-report=term-missing --cov-report=html
+# Format code
+cargo fmt
 
-# Code quality
-uv run ruff check . --fix
-uv run ruff format .
-uv run mypy src/
+# Lint code
+cargo clippy -- -D warnings
 ```
 
-### Using Nix (NixOS/Nix Package Manager)
+### Using Nix (Optional)
 
-For NixOS users or those with Nix package manager installed, a development flake is provided:
+This project includes a Nix flake for reproducible development environments. If you have [Nix](https://nixos.org/) installed with flakes enabled:
 
 ```bash
-# Quick run (macOS only - limited functionality)
-nix run .
-
 # Enter development shell with all dependencies
 nix develop
 
-# Or with direnv (after 'direnv allow')
-cd pasta  # Environment loads automatically
+# Run the application directly
+nix run
 
-# Use the interactive menu
-menu  # Shows all available commands
+# Use the interactive development menu
+nix develop -c menu
 
-# Quick commands in Nix shell
-setup        # Initial project setup
-run-pasta    # Run the application
-test         # Run all tests
-lint         # Check code quality
-dev          # Run with auto-reload
+# Run specific commands in the Nix environment
+nix develop -c cargo test
+nix develop -c cargo fmt
+nix develop -c cargo clippy -- -D warnings
+
+# Alternative development shells
+nix develop .#ci      # Minimal CI environment
+nix develop .#minimal # Basic Rust toolchain only
 ```
 
-**Note**: The `nix run .` command provides a standalone package with limited functionality (no pyautogui/pystray on macOS). For full functionality, use the development shell.
-
-The Nix development environment includes:
-- Python 3.13 with all dependencies
-- Qt6 and GUI libraries
-- Platform-specific tools (xdotool, xclip, etc.)
-- Development tools (ruff, mypy, pytest)
-- Pre-configured environment variables
-- Interactive command menu
-- UV package manager pre-installed
-
-Available Nix shells:
-- `nix develop` - Full development environment with menu
-- `nix develop .#minimal` - Minimal shell without menu
-- `nix develop .#ci` - CI/CD environment (headless)
-
-## Architecture
-
-- **Core**: Clipboard monitoring, keyboard simulation, storage
-- **GUI**: PySide6-based tray, settings, and history windows
-- **Security**: Fernet encryption, sensitive data detection
-- **Platform**: OS-specific permission and feature handling
-- **Python**: Requires Python 3.13+ for latest features and performance
-
-## Security Features
-
-- Encrypted storage for sensitive clipboard data
-- Pattern-based detection of passwords and API keys
-- No network connections or telemetry
-- Configurable privacy mode
-- Application exclusion lists
-
-## Building
-
-```bash
-# Package for distribution
-uv build
-
-# macOS app bundle
-./scripts/build_macos.sh
-
-# Windows/Linux executable
-uv run pyinstaller pasta.spec --clean
-```
+The Nix flake provides:
+- All required dependencies and build tools
+- Rust toolchain with cross-compilation targets
+- Platform-specific frameworks and libraries
+- Development utilities (cargo-watch, rust-analyzer, etc.)
+- Interactive menu for common tasks
 
 ## Contributing
 
+Contributions are welcome! Please:
 1. Fork the repository
 2. Create a feature branch
-3. Write tests first (TDD approach)
-4. Implement your feature
-5. Ensure tests pass and coverage remains >90%
-6. Submit a pull request
+3. Write tests for new functionality
+4. Ensure cross-platform compatibility
+5. Submit a pull request
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+Built with:
+- [Tauri](https://tauri.app/) - Framework for building native apps
+- [Arboard](https://github.com/1Password/arboard) - Cross-platform clipboard
+- [Enigo](https://github.com/enigo-rs/enigo) - Cross-platform input simulation

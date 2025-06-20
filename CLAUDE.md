@@ -4,235 +4,263 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pasta is a cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting. Built with Python using UV package management and following Test-Driven Development (TDD) principles.
+This is an experimental Rust/Tauri implementation of Pasta, demonstrating a minimal viable product with significantly better performance characteristics than the Python version. Located in the `rust-refactor` git worktree, this implementation focuses exclusively on core clipboard monitoring and keyboard typing functionality.
 
 ## Common Development Commands
 
-### Environment Setup
-
-#### Using Nix (Recommended for development)
+### Prerequisites Setup
 ```bash
-# Enter development shell with all tools pre-installed
-nix develop
+# Install Rust toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Initialize project and install dependencies
-uv sync --all-extras --dev
+# Install Tauri CLI v2
+cargo install tauri-cli --version '^2.0.0' --locked
 
-# Install pre-commit hooks
-uv run pre-commit install
-```
-
-#### Using UV directly
-```bash
-# Install UV package manager (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create virtual environment with Python 3.13
-uv venv --python 3.13
-
-# Initialize project and install dependencies
-uv sync --all-extras --dev
-
-# Install pre-commit hooks
-uv run pre-commit install
-```
-
-#### Running with Nix (macOS only currently)
-```bash
-# Run Pasta directly with Nix
-# Note: Limited to clipboard mode due to pyautogui unavailability
-nix run .
+# Platform-specific dependencies
+# Linux: sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
+# macOS: Ensure Xcode Command Line Tools installed
+# Windows: Ensure Windows SDK installed
 ```
 
 ### Development Workflow
 ```bash
-# Run the application
-uv run python -m pasta
+# Run in development mode with hot reload
+cargo tauri dev
 
-# Run linting and formatting
-uv run ruff check . --fix
-uv run ruff format .
+# Run with debug logging
+RUST_LOG=debug cargo tauri dev
 
-# Type checking
-uv run mypy src/
+# Build for production
+cargo tauri build
+
+# Format code
+cargo fmt
+
+# Run linter
+cargo clippy -- -D warnings
+
+# Clean build artifacts
+cargo clean
 
 # Run tests
-uv run pytest                                    # Run all tests
-uv run pytest -xvs                              # Stop on first failure, verbose
-uv run pytest -v --cov=src/pasta --cov-report=term-missing       # With coverage report
-uv run pytest -k "test_clipboard" -v            # Run specific tests
-uv run pytest tests/unit/                       # Run unit tests only
+cargo test
 
-# Build for distribution
-uv build
+# Run specific test module
+cargo test config::
 
-# Create platform-specific executables
-uv run pyinstaller --onefile --windowed src/pasta/__main__.py
+# Run tests with output
+cargo test -- --nocapture
+
+# Run tests excluding clipboard tests (which require display server)
+cargo test --lib -- --skip clipboard::tests
+
+# Run tests in release mode for better performance
+cargo test --release
+
+# Run with specific logging levels
+RUST_LOG=pasta=debug cargo tauri dev
+
+# Coverage reporting
+cargo tarpaulin --out Html --exclude-files "*/clipboard.rs" -- --lib
+
+# Generate coverage report and open in browser
+make coverage-open
+
+# Generate coverage in multiple formats (XML, LCOV, HTML)
+make coverage-ci
+
+# Clean coverage artifacts
+make clean-coverage
+
+# Run coverage with the shell script (recommended)
+./coverage.sh
+
+# Build for specific platform
+cargo tauri build --target x86_64-apple-darwin
+cargo tauri build --target x86_64-pc-windows-msvc
+cargo tauri build --target x86_64-unknown-linux-gnu
 ```
 
 ## High-Level Architecture
 
-### Core Technology Stack
-- **Language**: Python 3.13+ (required)
-- **Package Manager**: UV (not pip)
-- **System Tray**: PySide6 (QSystemTrayIcon)
-- **GUI Framework**: PySide6 (Qt6)
-- **Keyboard Simulation**: PyAutoGUI (with macOS fallback via osascript)
-- **Clipboard Access**: pyperclip
-- **Testing**: pytest with pytest-qt
-- **Code Quality**: Ruff (includes Black, isort, pylint functionality)
-- **Line Length**: 140 characters
-- **Build System**: Nix flakes for reproducible environments
+### Core Design Principles
+- **Minimal MVP**: Only clipboard monitoring and keyboard typing - no history, encryption, or advanced features
+- **Multi-threaded**: Separate threads for clipboard monitoring, keyboard operations, and UI
+- **Channel-based Communication**: Tokio MPSC channels for thread communication
+- **Polling-based Monitoring**: 500ms clipboard polling interval (not event-based)
+- **Zero Network Access**: No external communication, telemetry, or updates
 
 ### Project Structure
 ```
-pasta/
-├── src/pasta/
-│   ├── core/           # Core business logic
-│   │   ├── clipboard.py    # ClipboardManager - monitors clipboard changes
-│   │   ├── keyboard.py     # PastaKeyboardEngine - handles keyboard simulation
-│   │   ├── storage.py      # SQLite-based history storage with encryption
-│   │   ├── hotkeys.py      # Global hotkey registration
-│   │   ├── settings.py     # Settings data model and manager
-│   │   └── snippets.py     # Snippet management system
-│   ├── gui/            # User interface components
-│   │   ├── tray.py        # System tray implementation (PySide6)
-│   │   ├── settings.py    # Settings window (PySide6)
-│   │   ├── history.py     # History browser window (PySide6)
-│   │   └── resources/     # Icons and images
-│   └── utils/          # Platform-specific utilities
-│       ├── platform.py     # Platform detection and utilities
-│       ├── permissions.py  # Permission checking and requests
-│       └── security.py     # Security features (detection, rate limiting, privacy)
-└── tests/
-    ├── unit/           # Unit tests for individual components
-    ├── integration/    # End-to-end integration tests
-    └── fixtures/       # Shared test data and fixtures
+src-tauri/
+├── src/
+│   ├── main.rs          # Entry point, initializes Tauri
+│   ├── lib.rs           # Core app orchestration, state management
+│   ├── clipboard.rs     # ClipboardMonitor implementation
+│   ├── keyboard.rs      # KeyboardEmulator with chunking logic
+│   ├── config.rs        # TOML-based settings persistence
+│   ├── tray.rs          # System tray menu builder
+│   ├── window.rs        # Window management and behavior
+│   └── theme.rs         # Theme detection and color management
+├── assets/              # Runtime tray icons (template versions)
+├── icons/               # Application bundle icons
+└── capabilities/        # Tauri permission configurations
+
+src/                     # Frontend code (vanilla HTML/CSS/JS)
+└── index.html          # Settings window UI
 ```
 
-### Key Design Patterns
+### Key Architectural Components
 
-1. **Multi-threaded Architecture**: Clipboard monitoring runs in a background thread to avoid blocking the UI
-2. **Platform Abstraction**: Platform-specific code is isolated in utils/platform.py with unified interfaces
-3. **Security First**: All sensitive clipboard data is encrypted at rest, with pattern-based detection for passwords, API keys, etc.
-4. **Adaptive Performance**: Typing speed automatically adjusts based on system CPU/memory load
-5. **TDD Approach**: Write tests first, then implementation - all features must have corresponding tests
+1. **AppState** (lib.rs)
+   - Central state container wrapped in `Arc` for thread-safe sharing
+   - Manages clipboard monitor, keyboard emulator, and config manager
+   - Coordinates component lifecycle
+   - Exposes Tauri IPC commands: `get_config`, `set_enabled`, `set_typing_speed`
 
-### Critical Implementation Notes
+2. **ClipboardMonitor** (clipboard.rs)
+   - Runs in dedicated thread with its own Tokio runtime
+   - Uses content hashing to detect changes (DefaultHasher)
+   - Sends clipboard content through MPSC channel
+   - Respects enabled/disabled state dynamically
+   - Gracefully handles clipboard access errors
 
-1. **Permissions Handling**:
-   - macOS: Requires accessibility permissions via System Preferences
-   - Windows: May need UAC manifest for certain operations
-   - Linux: User must be in 'input' group for device access
+3. **KeyboardEmulator** (keyboard.rs)
+   - Runs in separate thread to avoid blocking
+   - Chunks text into 200-character segments
+   - Configurable delays: Slow (50ms), Normal (25ms), Fast (10ms)
+   - 100ms pause between chunks for system stability
+   - Special character handling for newlines and tabs
 
-2. **Keyboard Simulation Methods**:
-   - Use clipboard method for text >5000 chars or formatted content
-   - Use typing method for smaller text to work with apps that block clipboard
-   - Chunk large text into 200-char segments with adaptive delays
+4. **ConfigManager** (config.rs)
+   - Platform-specific config locations using `dirs` crate
+   - Auto-saves on every change
+   - Graceful defaults if config missing
+   - Simple TOML format with just `enabled` and `typing_speed`
 
-3. **Rate Limiting**: Implement to prevent abuse:
-   - 30 pastes per 60 seconds
-   - 100 clipboard reads per 60 seconds
-   - 5 large pastes (>10KB) per 5 minutes
+5. **WindowManager** (window.rs)
+   - Handles settings window lifecycle
+   - Prevents app quit on window close (hides instead)
+   - Manages dock icon visibility on macOS
+   - Window starts hidden to prevent flash
 
-4. **Testing Considerations**:
-   - Use mock fixtures for clipboard and keyboard operations
-   - Set QT_QPA_PLATFORM=offscreen for headless GUI testing
-   - Test on all target platforms (Ubuntu, Windows, macOS)
-   - Use RLock instead of Lock for reentrant locking in SettingsManager
-   - Add pytest-timeout to prevent hanging tests
+6. **Theme System** (theme.rs + CSS)
+   - Automatic light/dark mode detection via CSS media queries
+   - System-native color palette (matches macOS design)
+   - CSS variables for consistent theming
+   - Smooth animations for user feedback
 
-### Security Requirements
+### Threading Model
+```
+Main Thread (Tauri/UI)
+    ├── Clipboard Monitor Thread (dedicated Tokio runtime)
+    │   └── 500ms polling loop
+    ├── Keyboard Thread (receives from clipboard via channel)
+    │   └── Text chunking and typing
+    └── Settings Window (on-demand)
+```
 
-- No network connections or telemetry without explicit consent
-- All sensitive data encrypted using Fernet symmetric encryption
-- Secure cleanup of memory on application exit
-- Privacy mode to temporarily disable all monitoring
-- Excluded applications list (e.g., password managers)
+### Frontend Architecture
+- Vanilla HTML/CSS/JavaScript (no framework)
+- Single `index.html` settings window
+- Tauri IPC commands: `get_config`, `save_config`
+- Visual save confirmation with floating indicator
+- Accessible form controls with proper labels
+- Automatic light/dark theme support
+- System-native styling (matches macOS UI conventions)
 
-## TDD Development Process
+## Implementation Notes
 
-When implementing features:
-1. **Read** the task from pasta-prd.md
-2. **Write tests** first (they should fail initially)
-3. **Implement** the feature to make tests pass
-4. **Lint** the code: `uv run ruff check . --fix && uv run ruff format .`
-5. **Test** the implementation: `uv run pytest -xvs`
-6. **Update** the PRD by checking off completed tasks
-7. **Commit** changes with descriptive messages
+### Clipboard Monitoring Strategy
+- Polling-based (not event-based) for cross-platform compatibility
+- 500ms interval balances responsiveness vs CPU usage
+- Empty clipboard content ignored
+- Content comparison via hash to detect changes
+- Error handling for clipboard access failures
 
-## Code Standards
+### Keyboard Typing Implementation
+- Uses `enigo` crate for cross-platform keyboard emulation
+- Special handling for newlines (`\n`) and tabs (`\t`)
+- Text chunking prevents system overload with large pastes
+- Each character typed individually with configurable delay
+- Thread-safe operation with proper synchronization
 
-- Add comprehensive docstrings to all classes and functions
-- Use type hints for all function parameters and return values
-- Handle errors gracefully with appropriate try/except blocks
-- Log important operations without exposing sensitive data
-- Follow single responsibility principle for classes and functions
-- Use `# noqa: ARG002` for unused arguments in placeholder methods during development
-- Ensure all files have proper line endings (LF, not CRLF)
-- No trailing whitespace or missing newlines at end of files
+### Configuration Persistence
+- Stored in platform-standard locations:
+  - macOS: `~/Library/Application Support/com.pasta.app/config.toml`
+  - Linux: `~/.config/pasta/config.toml`  
+  - Windows: `%APPDATA%\pasta\config.toml`
+- Minimal config with just two fields: `enabled` and `typing_speed`
+- Directory creation handled automatically
 
-## Project Status
+### Tauri-specific Considerations
+- System tray icons use `iconAsTemplate` for proper macOS dark mode support
+- No CSP restrictions for simpler development
+- Frontend served from `src/` directory (not built/bundled)
+- Bundle includes platform-specific icon formats
+- Capabilities configured in `capabilities/default.json`
 
-### Completed Phases
-- ✅ Phase 1: Project setup and configuration
-- ✅ Phase 2: Core module tests (ClipboardManager, PastaKeyboardEngine, PermissionChecker, StorageManager)
-- ✅ Phase 3: Core module implementation
-- ✅ Phase 4: System tray tests
-- ✅ Phase 5: System tray implementation with emergency stop
-- ✅ Phase 6: Settings tests and UI component tests
-- ✅ Phase 7: Settings system and UI implementation
-- ✅ Phase 8: Security and snippet system tests
-- ✅ Phase 9: Security and snippet implementation
-- ✅ CI/CD: All GitHub Actions passing on all platforms
+## Performance Characteristics
+- Memory usage: 20-50MB (vs Python's 100-200MB)
+- Binary size: ~10MB (vs Python's 50-100MB)
+- Startup time: <500ms (vs Python's 2-3 seconds)
+- Idle CPU: <0.1% (vs Python's 1-2%)
 
-### Current Features
-- **Clipboard Monitoring**: Background thread monitors clipboard changes and saves to history
-- **Clipboard History**: All copied content saved to SQLite database with encryption
-- **Keyboard Engine**: Adaptive typing with chunking and platform-specific optimizations
-- **Permission System**: Cross-platform permission checking and request handling
-- **Storage**: SQLite-based history with encryption for sensitive data
-- **System Tray**: Full menu with dynamic state updates and visual mode indicators
-- **Settings**: Comprehensive settings UI with persistence and validation
-- **Security**: Sensitive data detection, rate limiting, privacy mode
-- **Snippets**: Full snippet management with templates and hotkeys
-- **Emergency Stop**: Double ESC or tray click to abort operations
-- **macOS UI/UX**: LSUIElement support, proper Cmd+W/Q handling, native window behavior
-- **Paste Modes**: Auto/Clipboard/Typing modes with visual feedback (icon color changes)
-  - Typing mode (orange icon) simulates keyboard input for apps that block clipboard
-  - Clipboard mode (blue icon) uses standard system clipboard
-  - "Paste Last Item" menu option respects current paste mode
+## Platform-Specific Notes
 
-### CI/CD Status
-- ✅ All tests passing on all platforms (Ubuntu, Windows, macOS) - Python 3.9-3.13
-- ✅ 610 tests passing with 92% code coverage
-- ✅ Type checking (mypy) passing on all platforms
-- ✅ Code quality checks (ruff) passing
-- ✅ Cross-platform compatibility verified
-- ✅ Security module fully implemented and tested
-- ✅ Nix flake support for reproducible builds (macOS)
-- ✅ All GitHub Actions workflows green
+### macOS
+- Requires accessibility permissions for keyboard emulation
+- Template icons for proper dark mode support
+- Code signing needed for distribution
+- Dock icon hidden when no windows open (menu bar app behavior)
+- Window close button hides window instead of quitting app
+- Uses `ActivationPolicy::Accessory` for background operation
 
-### Next Steps (per PRD)
-- [x] Phase 10: Write end-to-end integration tests ✅ (97 tests passing)
-- [ ] Phase 10: Implement performance optimizations
-- [ ] Phase 10: Write performance benchmarks
-- [ ] Phase 11: Platform-specific features (Windows, Linux - macOS mostly done)
-- [ ] Phase 12: Documentation and packaging
-- [ ] Phase 13: Final testing and release preparation
+### Linux
+- Requires X11 or Wayland support
+- AppIndicator support for system tray
+- May need additional permissions on some distributions
 
-## Important Reminders
+### Windows
+- Works out of the box with standard permissions
+- Native system tray support
+- May trigger antivirus warnings (keyboard emulation)
 
-- **Python Version**: Project requires Python 3.13+
-- When running tests, use pytest with timeout to prevent hanging: `uv run pytest --timeout=30`
-- For CI/CD issues, check all platforms (Ubuntu, Windows, macOS) separately
-- Use skipif markers for platform-specific tests that require modules not available on all platforms
-- Always run `uv run ruff check . --fix && uv run ruff format .` before committing
-- Test locally with mypy before pushing: `uv run mypy src/`
-- Clipboard monitoring should ONLY save to history, never auto-paste
-- History should be saved even when monitoring is disabled
-- On macOS, ensure dialogs respond to Cmd+W and have proper window controls
-- Qt platform plugin is explicitly set to "cocoa" on macOS to prevent XCB errors in nix environments
-- **Nix Users**: Use `nix develop` for full development environment, `nix run .` for quick testing (macOS only)
-- **PyAutoGUI on macOS**: Falls back to osascript-based keyboard simulation when pyautogui is not available
-- **Nix on macOS**: PyAutoGUI is not available in the Nix build due to Linux-only dependencies (scrot). The application automatically falls back to osascript-based clipboard pasting which works for clipboard mode but has limited typing mode functionality
+## Development Guidelines
+
+### When Adding Features
+1. Maintain minimal approach - question if feature is truly core
+2. Ensure thread safety with Arc/Mutex when sharing state
+3. Use channels for cross-thread communication
+4. Keep frontend simple - no frameworks or complex build steps
+5. Test on all platforms before committing
+
+### Testing Strategy
+Currently, the project lacks formal tests. When implementing tests:
+- Use `cargo test` for unit tests
+- Focus on testing core logic (clipboard detection, config persistence)
+- Mock external dependencies (clipboard, keyboard)
+- Test thread synchronization and error handling
+
+### Current Limitations
+- Text-only clipboard support (no images, files, etc.)
+- No clipboard history storage
+- No hotkey support (would require additional permissions)
+- No emergency stop mechanism
+- No security features or sensitive data detection
+- No rate limiting or abuse prevention
+- No automatic update mechanism
+
+### Git Worktree Notes
+This code lives in a git worktree at `./trees/rust-refactor`. When working here:
+- The actual branch is `rust-refactor` (not main)
+- Commits go to the `rust-refactor` branch
+- Use `git worktree list` from main repo to see all worktrees
+- Changes are isolated from the main Python implementation
+
+### Debugging Tips
+- Use `RUST_LOG=debug` for verbose logging
+- Check platform-specific console output
+- Verify permissions (especially on macOS)
+- Monitor thread activity with system tools
+- Use `cargo tauri inspect` to check bundle configuration

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasta Settings</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="saved-indicator" id="saved-indicator">Settings saved!</div>
+    
+    <div class="container">
+        <h1>Pasta Settings</h1>
+        
+        <div class="setting-group">
+            <h3>Typing Speed</h3>
+            <div class="speed-controls">
+                <label>Slow</label>
+                <input type="range" id="speed-slider" min="0" max="2" step="1" value="1">
+                <label>Fast</label>
+            </div>
+            <div class="speed-display">
+                Current: <span id="speed-text">Normal</span>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="save-button">Save Settings</button>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html>
