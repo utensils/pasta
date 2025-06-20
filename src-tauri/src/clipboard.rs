@@ -7,7 +7,7 @@ pub fn get_clipboard_content() -> Result<Option<String>, String> {
         Ok(c) => c,
         Err(e) => return Err(format!("Failed to create clipboard: {}", e)),
     };
-    
+
     match clipboard.get_text() {
         Ok(text) => {
             if text.is_empty() {
@@ -25,8 +25,9 @@ pub fn get_clipboard_content() -> Result<Option<String>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serial_test::serial;
+
+    use super::*;
 
     #[test]
     #[serial]

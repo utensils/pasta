@@ -122,21 +122,23 @@ mod tests {
 
     #[test]
     fn test_tray_manager_creation() {
-        use tempfile::TempDir;
         use std::sync::Mutex;
+
+        use tempfile::TempDir;
+
         use crate::config::Config;
-        
+
         // Create a test config manager with temporary directory
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         let config_manager = Arc::new(ConfigManager {
             config: Arc::new(Mutex::new(Config::default())),
             config_path,
         });
-        
+
         let tray_manager = TrayManager::new(config_manager.clone());
-        
+
         // Verify the tray manager holds a reference to config manager
         let config = tray_manager.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
@@ -146,9 +148,16 @@ mod tests {
     fn test_menu_has_paste_item() {
         // This test verifies that our menu structure includes the paste item
         // We can't fully test menu creation without a Tauri app context
-        
-        let menu_items = vec!["paste", "speed_slow", "speed_normal", "speed_fast", "settings", "quit"];
-        
+
+        let menu_items = vec![
+            "paste",
+            "speed_slow",
+            "speed_normal",
+            "speed_fast",
+            "settings",
+            "quit",
+        ];
+
         // Verify expected menu item IDs exist
         assert!(menu_items.contains(&"paste"));
         assert!(!menu_items.contains(&"enabled")); // Should not have enabled item

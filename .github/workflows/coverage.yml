@@ -1,10 +1,16 @@
-name: Code Coverage
+name: Rust Code Coverage
 
 on:
   push:
-    branches: [ main, rust-refactor ]
+    branches: [ rust-refactor ]
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/coverage.yml'
   pull_request:
-    branches: [ main, rust-refactor ]
+    branches: [ main ]
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/coverage.yml'
 
 env:
   CARGO_TERM_COLOR: always

@@ -52,7 +52,7 @@ impl ConfigManager {
         if path.exists() {
             debug!("Loading config from {path:?}");
             let content = fs::read_to_string(path)?;
-            
+
             // Try to parse the new format first
             match toml::from_str::<Config>(&content) {
                 Ok(config) => Ok(config),
@@ -64,12 +64,13 @@ impl ConfigManager {
                         enabled: bool,
                         typing_speed: String,
                     }
-                    
+
                     match toml::from_str::<OldConfig>(&content) {
                         Ok(old_config) => {
                             debug!("Migrating old config format");
                             // Convert old capitalized values to lowercase
-                            let typing_speed = match old_config.typing_speed.to_lowercase().as_str() {
+                            let typing_speed = match old_config.typing_speed.to_lowercase().as_str()
+                            {
                                 "slow" => TypingSpeed::Slow,
                                 "normal" => TypingSpeed::Normal,
                                 "fast" => TypingSpeed::Fast,

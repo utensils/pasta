@@ -149,7 +149,7 @@ mod tests {
             .chunks(CHUNK_SIZE)
             .map(|chunk| chunk.iter().collect::<String>())
             .collect();
-        
+
         assert_eq!(chunks.len(), 3);
         assert_eq!(chunks[0].len(), 200);
         assert_eq!(chunks[1].len(), 200);
@@ -160,11 +160,11 @@ mod tests {
     fn test_special_character_handling() {
         // This test just verifies the logic, not actual keyboard input
         let special_chars = vec!['\n', '\t', 'a'];
-        
+
         for ch in special_chars {
             match ch {
-                '\n' => assert!(true), // Would press Return
-                '\t' => assert!(true), // Would press Tab
+                '\n' => assert!(true),    // Would press Return
+                '\t' => assert!(true),    // Would press Tab
                 _ => assert_eq!(ch, 'a'), // Regular character
             }
         }

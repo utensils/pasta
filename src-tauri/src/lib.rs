@@ -30,10 +30,7 @@ async fn get_config(state: State<'_, AppState>) -> Result<serde_json::Value, Str
 }
 
 #[tauri::command]
-async fn save_config(
-    state: State<'_, AppState>,
-    typing_speed: TypingSpeed,
-) -> Result<(), String> {
+async fn save_config(state: State<'_, AppState>, typing_speed: TypingSpeed) -> Result<(), String> {
     let inner = state.inner();
     inner.config_manager.set_typing_speed(typing_speed);
     inner.keyboard_emulator.set_typing_speed(typing_speed);
@@ -43,10 +40,10 @@ async fn save_config(
 #[tauri::command]
 async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
     info!("Paste clipboard command triggered");
-    
+
     // Get current clipboard content
     let clipboard_result = get_clipboard_content();
-    
+
     match clipboard_result {
         Ok(Some(text)) => {
             info!("Got clipboard content, typing text");
@@ -80,7 +77,7 @@ pub fn run() {
             {
                 let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             }
-            
+
             // Initialize components
             let config_manager =
                 Arc::new(ConfigManager::new().expect("Failed to create config manager"));
@@ -124,12 +121,12 @@ pub fn run() {
             let keyboard_emulator_clone = keyboard_emulator.clone();
             app_handle.listen("paste_clipboard", move |_event| {
                 info!("Paste clipboard event received");
-                
+
                 // Get current clipboard content
                 match get_clipboard_content() {
                     Ok(Some(text)) => {
                         info!("Got clipboard content, typing text");
-                        
+
                         // Spawn a new task to type the text
                         let keyboard_emulator = keyboard_emulator_clone.clone();
                         std::thread::spawn(move || {
@@ -152,7 +149,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_config, save_config, paste_clipboard])
+        .invoke_handler(tauri::generate_handler![
+            get_config,
+            save_config,
+            paste_clipboard
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -166,7 +167,7 @@ mod tests {
     fn test_config_no_longer_has_enabled_field() {
         let config = Config::default();
         let json = serde_json::to_value(&config).unwrap();
-        
+
         // Verify the config only has typing_speed field
         assert!(json.is_object());
         assert!(json.get("typing_speed").is_some());
@@ -178,7 +179,7 @@ mod tests {
         let config = Config {
             typing_speed: TypingSpeed::Fast,
         };
-        
+
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("typing_speed"));
         assert!(json.contains("fast"));
@@ -188,31 +189,41 @@ mod tests {
     #[test]
     fn test_typing_speed_values_match_frontend() {
         // Ensure typing speed values match what frontend expects
-        assert_eq!(serde_json::to_string(&TypingSpeed::Slow).unwrap(), "\"slow\"");
-        assert_eq!(serde_json::to_string(&TypingSpeed::Normal).unwrap(), "\"normal\"");
-        assert_eq!(serde_json::to_string(&TypingSpeed::Fast).unwrap(), "\"fast\"");
+        assert_eq!(
+            serde_json::to_string(&TypingSpeed::Slow).unwrap(),
+            "\"slow\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TypingSpeed::Normal).unwrap(),
+            "\"normal\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TypingSpeed::Fast).unwrap(),
+            "\"fast\""
+        );
     }
 
     #[test]
     fn test_app_state_structure() {
-        use tempfile::TempDir;
         use std::sync::Mutex;
-        
+
+        use tempfile::TempDir;
+
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         let config_manager = Arc::new(ConfigManager {
             config: Arc::new(Mutex::new(Config::default())),
             config_path,
         });
-        
+
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
-        
+
         let app_state = AppState {
             config_manager: config_manager.clone(),
             keyboard_emulator: keyboard_emulator.clone(),
         };
-        
+
         // Verify app state holds correct references
         let config = app_state.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
