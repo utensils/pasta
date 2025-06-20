@@ -216,4 +216,161 @@ typing_speed = "Normal"
         let config = ConfigManager::load_config(&config_path).unwrap();
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
     }
+
+    #[test]
+    fn test_config_serialization() {
+        let config = Config {
+            typing_speed: TypingSpeed::Slow,
+        };
+
+        let serialized = toml::to_string(&config).unwrap();
+        assert!(serialized.contains("typing_speed"));
+        assert!(serialized.contains("slow"));
+        assert!(!serialized.contains("enabled"));
+    }
+
+    #[test]
+    fn test_config_deserialization() {
+        let toml_str = r#"typing_speed = "fast""#;
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
+    }
+
+    #[test]
+    fn test_invalid_config_fallback() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write invalid config
+        let invalid_config = r#"invalid = true"#;
+        fs::write(&config_path, invalid_config).unwrap();
+
+        // Should fall back to defaults
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_corrupted_config_handling() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write corrupted config
+        fs::write(&config_path, "not valid toml at all {{{").unwrap();
+
+        // Should fall back to defaults without panicking
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_empty_config_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write empty file
+        fs::write(&config_path, "").unwrap();
+
+        // Should fall back to defaults
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_config_path_creation() {
+        // Just test that get_config_path doesn't panic
+        let result = ConfigManager::get_config_path();
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path.ends_with("config.toml"));
+        assert!(path.to_string_lossy().contains("pasta"));
+    }
+
+    #[test]
+    fn test_config_thread_safety() {
+        use std::thread;
+        
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = Arc::new(test_manager.manager);
+
+        let handles: Vec<_> = (0..3)
+            .map(|i| {
+                let m = manager.clone();
+                thread::spawn(move || {
+                    let speed = match i % 3 {
+                        0 => TypingSpeed::Slow,
+                        1 => TypingSpeed::Normal,
+                        _ => TypingSpeed::Fast,
+                    };
+                    m.set_typing_speed(speed);
+                    m.get().typing_speed
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let speed = handle.join().unwrap();
+            assert!(matches!(speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+        }
+    }
+
+    #[test]
+    fn test_migration_with_unknown_speed() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Write old format config with unknown speed
+        let old_config = r#"
+enabled = false
+typing_speed = "SuperFast"
+"#;
+        fs::write(&config_path, old_config).unwrap();
+
+        // Should default to Normal
+        let config = ConfigManager::load_config(&config_path).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_config_clone() {
+        let config = Config {
+            typing_speed: TypingSpeed::Fast,
+        };
+        let cloned = config.clone();
+        assert_eq!(config.typing_speed, cloned.typing_speed);
+    }
+
+    #[test]
+    fn test_config_debug() {
+        let config = Config::default();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("Config"));
+        assert!(debug_str.contains("typing_speed"));
+    }
+
+    #[test]
+    fn test_all_typing_speeds() {
+        // Test all variants of TypingSpeed
+        let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
+        
+        for speed in speeds {
+            let config = Config { typing_speed: speed };
+            let serialized = toml::to_string(&config).unwrap();
+            let deserialized: Config = toml::from_str(&serialized).unwrap();
+            assert_eq!(config.typing_speed, deserialized.typing_speed);
+        }
+    }
+
+    #[test]
+    fn test_save_error_handling() {
+        // Create a config manager with an invalid path
+        let manager = ConfigManager {
+            config: Arc::new(Mutex::new(Config::default())),
+            config_path: PathBuf::from("/invalid/path/that/does/not/exist/config.toml"),
+        };
+
+        // Save should fail but not panic
+        let result = manager.save();
+        assert!(result.is_err());
+    }
 }

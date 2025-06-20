@@ -40,11 +40,6 @@
           pkg-config
           openssl
         ] ++ lib.optionals stdenv.isDarwin [
-          darwin.apple_sdk.frameworks.AppKit
-          darwin.apple_sdk.frameworks.CoreServices
-          darwin.apple_sdk.frameworks.CoreGraphics
-          darwin.apple_sdk.frameworks.Foundation
-          darwin.apple_sdk.frameworks.WebKit
           libiconv
         ] ++ lib.optionals stdenv.isLinux [
           gtk3

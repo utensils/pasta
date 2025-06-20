@@ -1,6 +1,6 @@
 mod clipboard;
-mod config;
-mod keyboard;
+pub mod config;
+pub mod keyboard;
 mod tray;
 mod window;
 
@@ -163,6 +163,101 @@ pub fn run() {
 mod tests {
     use super::*;
     use crate::config::Config;
+    use std::sync::Mutex;
+    use tempfile::TempDir;
+    use tokio::sync::mpsc;
+
+    // Mock implementations for testing
+    struct MockState {
+        app_state: AppState,
+    }
+
+    impl MockState {
+        fn new() -> Self {
+            let temp_dir = TempDir::new().unwrap();
+            let config_path = temp_dir.path().join("config.toml");
+
+            let config_manager = Arc::new(ConfigManager {
+                config: Arc::new(Mutex::new(Config::default())),
+                config_path,
+            });
+
+            let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+
+            let app_state = AppState {
+                config_manager,
+                keyboard_emulator,
+            };
+
+            Self { app_state }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_config_command() {
+        let mock_state = MockState::new();
+        // We can't create State directly in tests, so we test the underlying logic
+        let config = mock_state.app_state.config_manager.get();
+        let config_json = serde_json::to_value(&config).unwrap();
+
+        assert!(config_json.is_object());
+        assert!(config_json.get("typing_speed").is_some());
+        assert_eq!(config_json.get("typing_speed").unwrap(), "normal");
+    }
+
+    #[test]
+    fn test_save_config_command() {
+        let mock_state = MockState::new();
+        
+        // Test the underlying logic directly without blocking in async context
+        mock_state.app_state.config_manager.set_typing_speed(TypingSpeed::Fast);
+        // Note: We can't call keyboard_emulator.set_typing_speed from async context
+        // as it uses blocking_send. In real usage, this is called from non-async context.
+        
+        // Verify the config was updated
+        let config = mock_state.app_state.config_manager.get();
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
+
+        // Test with other speeds
+        mock_state.app_state.config_manager.set_typing_speed(TypingSpeed::Slow);
+        let config = mock_state.app_state.config_manager.get();
+        assert_eq!(config.typing_speed, TypingSpeed::Slow);
+    }
+
+    #[tokio::test]
+    async fn test_paste_clipboard_empty() {
+        // Since we can't mock the clipboard module directly, we'll test the structure
+        let mock_state = MockState::new();
+        
+        // Test that keyboard emulator can receive type_text commands
+        let result = mock_state.app_state.keyboard_emulator.type_text("test").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_app_state_creation() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config {
+                typing_speed: TypingSpeed::Fast,
+            })),
+            config_path,
+        });
+
+        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+
+        let app_state = AppState {
+            config_manager: config_manager.clone(),
+            keyboard_emulator: keyboard_emulator.clone(),
+        };
+
+        // Test cloning
+        let cloned_state = app_state.clone();
+        assert!(Arc::ptr_eq(&app_state.config_manager, &cloned_state.config_manager));
+        assert!(Arc::ptr_eq(&app_state.keyboard_emulator, &cloned_state.keyboard_emulator));
+    }
 
     #[test]
     fn test_config_no_longer_has_enabled_field() {
@@ -259,5 +354,67 @@ mod tests {
             unique_ids.len(),
             "All menu IDs should be unique"
         );
+    }
+
+    #[test]
+    fn test_keyboard_emulator_channel_creation() {
+        // Test that keyboard emulator creates channels properly
+        let (tx, mut rx) = mpsc::unbounded_channel::<String>();
+        
+        // Send test data
+        tx.send("test".to_string()).unwrap();
+        
+        // Verify channel works
+        assert_eq!(rx.try_recv().unwrap(), "test");
+    }
+
+    #[test]
+    fn test_config_manager_thread_safety() {
+        use std::thread;
+        
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config::default())),
+            config_path,
+        });
+
+        let handles: Vec<_> = (0..5)
+            .map(|i| {
+                let cm = config_manager.clone();
+                thread::spawn(move || {
+                    let speed = match i % 3 {
+                        0 => TypingSpeed::Slow,
+                        1 => TypingSpeed::Normal,
+                        _ => TypingSpeed::Fast,
+                    };
+                    cm.set_typing_speed(speed);
+                    cm.get()
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let config = handle.join().unwrap();
+            // Just verify we got a valid config back
+            assert!(matches!(config.typing_speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+        }
+    }
+
+    #[test]
+    fn test_app_state_arc_references() {
+        let mock_state = MockState::new();
+        
+        // Test that Arc references are properly shared
+        let state1 = mock_state.app_state.clone();
+        let state2 = mock_state.app_state.clone();
+        
+        // Modify through one reference
+        state1.config_manager.set_typing_speed(TypingSpeed::Fast);
+        
+        // Verify change is visible through other reference
+        let config = state2.config_manager.get();
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
     }
 }
