@@ -22,6 +22,12 @@ mod config_debug_tests;
 #[cfg(test)]
 mod additional_tests;
 
+#[cfg(test)]
+mod clipboard_mock_tests;
+
+#[cfg(test)]
+mod comprehensive_tests;
+
 use std::sync::Arc;
 
 use log::{error, info};
