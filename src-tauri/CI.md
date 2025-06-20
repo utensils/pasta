@@ -1,4 +1,4 @@
-# CI/CD Setup for Pasta Rust
+# CI/CD Setup for Pasta
 
 This document describes the continuous integration and deployment setup for the Rust implementation of Pasta.
 
@@ -68,6 +68,26 @@ The project is integrated with Codecov for coverage tracking:
   - `main.rs`
   - `build.rs`
   - Test files
+
+## Dependencies
+
+### Linux
+The following system dependencies are required:
+```bash
+sudo apt-get install -y \
+  libgtk-3-dev \
+  libwebkit2gtk-4.1-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  libssl-dev \
+  libxdo-dev
+```
+
+### macOS
+No additional dependencies needed (Xcode Command Line Tools required).
+
+### Windows
+No additional dependencies needed (Windows SDK required).
 
 ## Running Tests Locally
 

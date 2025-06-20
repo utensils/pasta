@@ -66,9 +66,9 @@ cargo tauri build
 ## Configuration
 
 Settings are automatically saved to:
-- **macOS**: `~/Library/Application Support/com.pasta.rust/`
-- **Linux**: `~/.config/pasta-rust/`
-- **Windows**: `%APPDATA%\pasta-rust\`
+- **macOS**: `~/Library/Application Support/com.pasta.app/`
+- **Linux**: `~/.config/pasta/`
+- **Windows**: `%APPDATA%\pasta\`
 
 ## Development
 

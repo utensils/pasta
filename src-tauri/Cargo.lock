@@ -2494,7 +2494,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pasta-rust"
+name = "pasta"
 version = "0.1.0"
 dependencies = [
  "arboard",

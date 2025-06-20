@@ -1,8 +1,8 @@
 [package]
-name = "pasta-rust"
+name = "pasta"
 version = "0.1.0"
 description = "Pasta - System tray clipboard to keyboard emulator"
-authors = ["pasta-rust"]
+authors = ["pasta"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,7 +11,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "pasta_rust_lib"
+name = "pasta_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -35,5 +35,5 @@ tempfile = "3.8"
 serial_test = "3.0"
 
 [package.metadata.bundle]
-identifier = "com.pasta.rust"
+identifier = "com.pasta.app"
 icon = ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"]

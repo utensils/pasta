@@ -58,7 +58,7 @@ cargo test --lib -- config:: window::
 cargo test --release
 
 # Run with specific logging levels
-RUST_LOG=pasta_rust=debug cargo tauri dev
+RUST_LOG=pasta=debug cargo tauri dev
 
 # Coverage reporting
 cargo tarpaulin --out Html --exclude-files "*/clipboard.rs" -- --lib
@@ -187,9 +187,9 @@ Main Thread (Tauri/UI)
 
 ### Configuration Persistence
 - Stored in platform-standard locations:
-  - macOS: `~/Library/Application Support/com.pasta.rust/config.toml`
-  - Linux: `~/.config/pasta-rust/config.toml`  
-  - Windows: `%APPDATA%\pasta-rust\config.toml`
+  - macOS: `~/Library/Application Support/com.pasta.app/config.toml`
+  - Linux: `~/.config/pasta/config.toml`  
+  - Windows: `%APPDATA%\pasta\config.toml`
 - Minimal config with just two fields: `enabled` and `typing_speed`
 - Directory creation handled automatically
 

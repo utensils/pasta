@@ -42,7 +42,7 @@ impl ConfigManager {
     fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let config_dir = config_dir().ok_or("Failed to get config directory")?;
 
-        let app_config_dir = config_dir.join("pasta-rust");
+        let app_config_dir = config_dir.join("pasta");
         fs::create_dir_all(&app_config_dir)?;
 
         Ok(app_config_dir.join("config.toml"))

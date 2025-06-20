@@ -68,7 +68,7 @@ async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
 pub fn run() {
     env_logger::init();
 
-    info!("Starting Pasta Rust");
+    info!("Starting Pasta");
 
     tauri::Builder::default()
         .setup(|app| {

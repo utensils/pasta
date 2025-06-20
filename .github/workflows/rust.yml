@@ -45,7 +45,8 @@ jobs:
           libwebkit2gtk-4.1-dev \
           libayatana-appindicator3-dev \
           librsvg2-dev \
-          libssl-dev
+          libssl-dev \
+          libxdo-dev
 
     - name: Cache cargo
       uses: actions/cache@v4
@@ -94,7 +95,8 @@ jobs:
           libwebkit2gtk-4.1-dev \
           libayatana-appindicator3-dev \
           librsvg2-dev \
-          libssl-dev
+          libssl-dev \
+          libxdo-dev
 
     - name: Cache cargo
       uses: actions/cache@v4

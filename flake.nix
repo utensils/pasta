@@ -28,7 +28,7 @@
           ];
         };
 
-        buildInputs = with pkgs; [
+        buildDeps = with pkgs; [
           rustToolchain
           pkg-config
           openssl
@@ -48,53 +48,37 @@
           libsoup_3
         ];
 
-        nativeBuildInputs = with pkgs; [
+        nativeDeps = with pkgs; [
           cargo-tauri
           nodePackages.npm
           cargo-tarpaulin
         ];
 
-        pasta = pkgs.rustPlatform.buildRustPackage rec {
-          pname = "pasta";
-          version = "0.1.0";
+        # For nix run, we'll use a wrapper that copies files to a writable location
+        pasta = pkgs.writeShellScriptBin "pasta" ''
+          #!${pkgs.bash}/bin/bash
           
-          src = ./.;
+          # Create temporary directory for the app
+          TMPDIR=$(mktemp -d)
+          trap "rm -rf $TMPDIR" EXIT
           
-          cargoLock = {
-            lockFile = ./src-tauri/Cargo.lock;
-          };
-
-          cargoBuildFlags = [ "--manifest-path=src-tauri/Cargo.toml" ];
+          # Copy the source to temp directory
+          cp -r ${./.}/* $TMPDIR/
+          chmod -R +w $TMPDIR
           
-          buildInputs = buildInputs;
-          nativeBuildInputs = nativeBuildInputs ++ [ pkgs.makeWrapper ];
-
-          buildPhase = ''
-            runHook preBuild
-            
-            cd src-tauri
-            cargo build --release
-            
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            
-            mkdir -p $out/bin
-            cp target/release/pasta-rust $out/bin/pasta
-            
-            runHook postInstall
-          '';
-
-          meta = with pkgs.lib; {
-            description = "A fast clipboard typing utility";
-            homepage = "https://github.com/yourusername/pasta";
-            license = licenses.mit;
-            maintainers = with maintainers; [ ];
-            platforms = platforms.all;
-          };
-        };
+          # Set up environment
+          export PATH="${rustToolchain}/bin:${pkgs.cargo-tauri}/bin:$PATH"
+          export RUST_LOG=''${RUST_LOG:-pasta=info}
+          export RUST_BACKTRACE=''${RUST_BACKTRACE:-1}
+          
+          # Build and run
+          cd $TMPDIR
+          echo "Building Pasta..."
+          cargo build --manifest-path=src-tauri/Cargo.toml --release
+          
+          echo "Running Pasta..."
+          exec ./src-tauri/target/release/pasta
+        '';
 
         devMenuScript = pkgs.writeShellScriptBin "menu" ''
           ${pkgs.gum}/bin/gum style \
@@ -185,7 +169,7 @@ EOF
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = buildInputs ++ nativeBuildInputs ++ (with pkgs; [
+          buildInputs = buildDeps ++ nativeDeps ++ (with pkgs; [
             # Development tools
             rustfmt
             clippy
@@ -231,7 +215,7 @@ EOF
             echo ""
             
             # Set up environment variables
-            export RUST_LOG=pasta_rust=info
+            export RUST_LOG=pasta=info
             export RUST_BACKTRACE=1
             
             # Create necessary directories

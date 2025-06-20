@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    pasta_rust_lib::run()
+    pasta_lib::run()
 }
