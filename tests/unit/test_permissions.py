@@ -222,15 +222,16 @@ class TestPermissionChecker:
         """Test Wayland detection on Linux."""
         mock_environ.get.return_value = "wayland"
 
-        checker = PermissionChecker()
-        is_wayland = checker.is_wayland()
+        with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
+            checker = PermissionChecker()
+            is_wayland = checker.is_wayland()
 
-        assert is_wayland is True
+            assert is_wayland is True
 
-        # Test X11
-        mock_environ.get.return_value = "x11"
-        is_wayland = checker.is_wayland()
-        assert is_wayland is False
+            # Test X11
+            mock_environ.get.return_value = "x11"
+            is_wayland = checker.is_wayland()
+            assert is_wayland is False
 
     @patch("platform.system", return_value="Linux")
     def test_linux_get_setup_script(self, mock_system):
