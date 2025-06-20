@@ -174,6 +174,24 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[tokio::test]
+    async fn test_handle_paste_clipboard_error() {
+        struct ErrorClipboard;
+        
+        impl ClipboardProvider for ErrorClipboard {
+            fn get_content(&self) -> Result<Option<String>, String> {
+                Err("Clipboard access denied".to_string())
+            }
+        }
+        
+        let clipboard = ErrorClipboard;
+        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Clipboard access denied");
+    }
+
     #[test]
     fn test_create_menu_structure_slow_speed() {
         let menu = create_menu_structure(TypingSpeed::Slow, false);
@@ -267,5 +285,103 @@ mod tests {
         assert!(found_left_click);
         assert!(found_quit);
         assert_eq!(separator_count, 2);
+    }
+
+    #[test]
+    fn test_mock_clipboard_error() {
+        struct ErrorClipboard;
+        
+        impl ClipboardProvider for ErrorClipboard {
+            fn get_content(&self) -> Result<Option<String>, String> {
+                Err("Clipboard access denied".to_string())
+            }
+        }
+        
+        let clipboard = ErrorClipboard;
+        let result = clipboard.get_content();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Clipboard access denied");
+    }
+
+    #[test]
+    fn test_system_clipboard_struct() {
+        // Test that SystemClipboard can be created
+        let _clipboard = SystemClipboard;
+        // The actual clipboard access is tested in clipboard.rs
+    }
+
+    #[test]
+    fn test_menu_structure_equality() {
+        let menu1 = create_menu_structure(TypingSpeed::Normal, true);
+        let menu2 = create_menu_structure(TypingSpeed::Normal, true);
+        
+        // Both should have the same structure
+        assert_eq!(menu1.items.len(), menu2.items.len());
+    }
+
+    #[test]
+    fn test_menu_action_debug() {
+        // Test Debug trait implementation
+        assert_eq!(format!("{:?}", MenuAction::Paste), "Paste");
+        assert_eq!(format!("{:?}", MenuAction::SetTypingSpeed(TypingSpeed::Slow)), "SetTypingSpeed(Slow)");
+        assert_eq!(format!("{:?}", MenuAction::ToggleLeftClickPaste), "ToggleLeftClickPaste");
+        assert_eq!(format!("{:?}", MenuAction::Quit), "Quit");
+        assert_eq!(format!("{:?}", MenuAction::None), "None");
+    }
+
+    #[test]
+    fn test_menu_item_debug() {
+        // Test Debug trait implementation for MenuItem
+        let action = MenuItem::Action { id: "test".to_string(), label: "Test".to_string() };
+        let debug_str = format!("{:?}", action);
+        assert!(debug_str.contains("Action"));
+        assert!(debug_str.contains("test"));
+        assert!(debug_str.contains("Test"));
+    }
+
+    #[test]
+    fn test_menu_structure_debug() {
+        let menu = MenuStructure { items: vec![] };
+        let debug_str = format!("{:?}", menu);
+        assert!(debug_str.contains("MenuStructure"));
+        assert!(debug_str.contains("items"));
+    }
+
+    #[test]
+    fn test_create_menu_structure_all_typing_speeds() {
+        // Test menu structure for all typing speeds
+        for speed in &[TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast] {
+            let menu = create_menu_structure(*speed, false);
+            
+            // Find the typing speed submenu
+            let submenu = menu.items.iter().find_map(|item| {
+                if let MenuItem::Submenu { items, .. } = item {
+                    Some(items)
+                } else {
+                    None
+                }
+            }).unwrap();
+            
+            // Count checked items - should be exactly 1
+            let checked_count = submenu.iter().filter(|item| {
+                if let MenuItem::CheckItem { checked, .. } = item {
+                    *checked
+                } else {
+                    false
+                }
+            }).count();
+            
+            assert_eq!(checked_count, 1, "Exactly one typing speed should be checked");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_paste_clipboard_with_very_long_text() {
+        let long_text = "x".repeat(100000); // 100k characters
+        let clipboard = MockClipboard::new(Some(long_text.clone()));
+        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        assert!(result.is_ok());
     }
 }

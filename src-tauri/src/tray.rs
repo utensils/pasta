@@ -9,6 +9,43 @@ use tauri::{
 
 use crate::{config::ConfigManager, keyboard::TypingSpeed};
 
+/// Calculate show_menu_on_left_click based on left_click_paste setting
+pub fn calculate_show_menu_on_left_click(left_click_paste: bool) -> bool {
+    !left_click_paste
+}
+
+/// Extract tooltip text for reuse and testing
+pub fn get_tray_tooltip() -> &'static str {
+    "Pasta - Clipboard to Keyboard"
+}
+
+/// Determine the action to take for a tray icon event
+#[derive(Debug, PartialEq)]
+pub enum TrayIconAction {
+    PasteClipboard,
+    ShowMenu,
+    None,
+}
+
+/// Handle tray icon click event and return the action to take
+pub fn handle_tray_icon_click(
+    button: MouseButton,
+    button_state: MouseButtonState,
+    left_click_paste: bool,
+) -> TrayIconAction {
+    match (button, button_state) {
+        (MouseButton::Left, MouseButtonState::Up) => {
+            if left_click_paste {
+                TrayIconAction::PasteClipboard
+            } else {
+                TrayIconAction::ShowMenu
+            }
+        }
+        (MouseButton::Right, MouseButtonState::Up) => TrayIconAction::ShowMenu,
+        _ => TrayIconAction::None,
+    }
+}
+
 pub struct TrayManager {
     config_manager: Arc<ConfigManager>,
 }
@@ -79,8 +116,8 @@ impl TrayManager {
         let _tray = TrayIconBuilder::with_id("main")
             .icon(app.default_window_icon().unwrap().clone())
             .menu(&menu)
-            .show_menu_on_left_click(!config.left_click_paste)
-            .tooltip("Pasta - Clipboard to Keyboard")
+            .show_menu_on_left_click(calculate_show_menu_on_left_click(config.left_click_paste))
+            .tooltip(get_tray_tooltip())
             .on_menu_event({
                 let config_manager = self.config_manager.clone();
                 let app_handle = app.clone();
@@ -112,7 +149,7 @@ impl TrayManager {
 
                             // Update tray behavior
                             if let Some(tray) = app.tray_by_id("main") {
-                                let _ = tray.set_show_menu_on_left_click(current); // Inverted: if was enabled, now show menu
+                                let _ = tray.set_show_menu_on_left_click(calculate_show_menu_on_left_click(!current)); // Toggle behavior
                             }
                             
                             // Rebuild the menu to update checkbox state
@@ -131,30 +168,23 @@ impl TrayManager {
             .on_tray_icon_event({
                 let app_handle = app.clone();
                 let config_manager = self.config_manager.clone();
-                move |_tray, event| match event {
-                    TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } => {
+                move |_tray, event| {
+                    if let TrayIconEvent::Click { button, button_state, .. } = event {
                         let config = config_manager.get();
-                        if config.left_click_paste {
-                            debug!("Left click on tray icon - pasting clipboard");
-                            app_handle.emit("paste_clipboard", ()).unwrap();
-                        } else {
-                            debug!("Left click on tray icon - showing menu (left_click_paste disabled)");
-                            // Menu will be shown automatically when show_menu_on_left_click is true
+                        let action = handle_tray_icon_click(button, button_state, config.left_click_paste);
+                        
+                        match action {
+                            TrayIconAction::PasteClipboard => {
+                                debug!("Left click on tray icon - pasting clipboard");
+                                app_handle.emit("paste_clipboard", ()).unwrap();
+                            }
+                            TrayIconAction::ShowMenu => {
+                                debug!("Click on tray icon - showing menu");
+                                // Menu will be shown automatically by Tauri
+                            }
+                            TrayIconAction::None => {}
                         }
                     }
-                    TrayIconEvent::Click {
-                        button: MouseButton::Right,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } => {
-                        debug!("Right click on tray icon - showing menu");
-                        // Menu is automatically shown on right-click by Tauri
-                    }
-                    _ => {}
                 }
             })
             .build(app)?;
@@ -509,12 +539,27 @@ mod tests {
         // When left_click_paste is false, show_menu_on_left_click should be true
 
         let left_click_paste_enabled = true;
-        let show_menu_on_left_click = !left_click_paste_enabled;
+        let show_menu_on_left_click = calculate_show_menu_on_left_click(left_click_paste_enabled);
         assert_eq!(show_menu_on_left_click, false);
 
         let left_click_paste_disabled = false;
-        let show_menu_on_left_click = !left_click_paste_disabled;
+        let show_menu_on_left_click = calculate_show_menu_on_left_click(left_click_paste_disabled);
         assert_eq!(show_menu_on_left_click, true);
+    }
+
+    #[test]
+    fn test_calculate_show_menu_on_left_click() {
+        assert_eq!(calculate_show_menu_on_left_click(true), false);
+        assert_eq!(calculate_show_menu_on_left_click(false), true);
+    }
+
+    #[test]
+    fn test_get_tray_tooltip() {
+        let tooltip = get_tray_tooltip();
+        assert_eq!(tooltip, "Pasta - Clipboard to Keyboard");
+        assert!(tooltip.contains("Pasta"));
+        assert!(tooltip.contains("Clipboard"));
+        assert!(tooltip.contains("Keyboard"));
     }
 
     #[test]
@@ -525,5 +570,82 @@ mod tests {
         }
 
         assert!(test_error_type().is_ok());
+    }
+
+    #[test]
+    fn test_handle_tray_icon_click_left_with_paste_enabled() {
+        use tauri::tray::{MouseButton, MouseButtonState};
+        
+        let action = handle_tray_icon_click(
+            MouseButton::Left,
+            MouseButtonState::Up,
+            true, // left_click_paste enabled
+        );
+        assert_eq!(action, TrayIconAction::PasteClipboard);
+    }
+
+    #[test]
+    fn test_handle_tray_icon_click_left_with_paste_disabled() {
+        use tauri::tray::{MouseButton, MouseButtonState};
+        
+        let action = handle_tray_icon_click(
+            MouseButton::Left,
+            MouseButtonState::Up,
+            false, // left_click_paste disabled
+        );
+        assert_eq!(action, TrayIconAction::ShowMenu);
+    }
+
+    #[test]
+    fn test_handle_tray_icon_click_right() {
+        use tauri::tray::{MouseButton, MouseButtonState};
+        
+        let action = handle_tray_icon_click(
+            MouseButton::Right,
+            MouseButtonState::Up,
+            true, // doesn't matter
+        );
+        assert_eq!(action, TrayIconAction::ShowMenu);
+        
+        let action2 = handle_tray_icon_click(
+            MouseButton::Right,
+            MouseButtonState::Up,
+            false, // doesn't matter
+        );
+        assert_eq!(action2, TrayIconAction::ShowMenu);
+    }
+
+    #[test]
+    fn test_handle_tray_icon_click_other_states() {
+        use tauri::tray::{MouseButton, MouseButtonState};
+        
+        // Test button down state
+        let action = handle_tray_icon_click(
+            MouseButton::Left,
+            MouseButtonState::Down,
+            true,
+        );
+        assert_eq!(action, TrayIconAction::None);
+        
+        // Test middle button
+        let action2 = handle_tray_icon_click(
+            MouseButton::Middle,
+            MouseButtonState::Up,
+            true,
+        );
+        assert_eq!(action2, TrayIconAction::None);
+    }
+
+    #[test]
+    fn test_tray_icon_action_debug() {
+        // Test Debug trait implementation
+        let action = TrayIconAction::PasteClipboard;
+        assert_eq!(format!("{:?}", action), "PasteClipboard");
+        
+        let action2 = TrayIconAction::ShowMenu;
+        assert_eq!(format!("{:?}", action2), "ShowMenu");
+        
+        let action3 = TrayIconAction::None;
+        assert_eq!(format!("{:?}", action3), "None");
     }
 }

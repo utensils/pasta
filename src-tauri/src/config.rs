@@ -26,6 +26,7 @@ impl Default for Config {
     }
 }
 
+#[derive(Debug)]
 pub struct ConfigManager {
     pub(crate) config: Arc<Mutex<Config>>,
     pub(crate) config_path: PathBuf,
@@ -441,5 +442,175 @@ typing_speed = "SuperFast"
         // Save should fail but not panic
         let result = manager.save();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_config_manager_debug() {
+        // Test Debug trait implementation
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        
+        let config_manager = ConfigManager {
+            config: Arc::new(Mutex::new(Config::default())),
+            config_path: config_path.clone(),
+        };
+        
+        let debug_str = format!("{:?}", config_manager);
+        assert!(debug_str.contains("ConfigManager"));
+    }
+
+    #[test]
+    fn test_config_partial_parse() {
+        // Test that partial configs work
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        
+        // Write partial config (missing fields)
+        let partial_toml = r#"typing_speed = "fast""#;
+        std::fs::write(&config_path, partial_toml).unwrap();
+        
+        let config_manager = ConfigManager::new_with_path(config_path).unwrap();
+        let config = config_manager.get();
+        
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
+        assert_eq!(config.left_click_paste, false); // Default value
+    }
+
+    #[test]
+    fn test_config_edge_case_values() {
+        // Test edge case typing speed values
+        let config1 = Config {
+            typing_speed: TypingSpeed::Slow,
+            left_click_paste: true,
+        };
+        
+        let config2 = Config {
+            typing_speed: TypingSpeed::Fast,
+            left_click_paste: false,
+        };
+        
+        // Test inequality
+        assert_ne!(config1.typing_speed, config2.typing_speed);
+        assert_ne!(config1.left_click_paste, config2.left_click_paste);
+    }
+
+    #[test]
+    fn test_typing_speed_all_combinations() {
+        // Test all possible typing speed values
+        let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
+        
+        for speed in &speeds {
+            let config = Config {
+                typing_speed: *speed,
+                left_click_paste: false,
+            };
+            
+            let serialized = toml::to_string(&config).unwrap();
+            let deserialized: Config = toml::from_str(&serialized).unwrap();
+            
+            assert_eq!(config.typing_speed, deserialized.typing_speed);
+        }
+    }
+
+    #[test]
+    fn test_config_concurrent_read_write() {
+        use std::thread;
+        
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        
+        let config_manager = Arc::new(ConfigManager::new_with_path(config_path).unwrap());
+        
+        // Spawn reader threads
+        let mut handles = vec![];
+        for _ in 0..3 {
+            let cm = config_manager.clone();
+            handles.push(thread::spawn(move || {
+                for _ in 0..10 {
+                    let _config = cm.get();
+                }
+            }));
+        }
+        
+        // Spawn writer threads
+        for i in 0..2 {
+            let cm = config_manager.clone();
+            handles.push(thread::spawn(move || {
+                for j in 0..5 {
+                    let speed = match (i + j) % 3 {
+                        0 => TypingSpeed::Slow,
+                        1 => TypingSpeed::Normal,
+                        _ => TypingSpeed::Fast,
+                    };
+                    cm.set_typing_speed(speed);
+                }
+            }));
+        }
+        
+        // Wait for all threads
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        
+        // Verify final state is valid
+        let final_config = config_manager.get();
+        assert!(matches!(
+            final_config.typing_speed,
+            TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
+        ));
+    }
+
+    #[test]
+    fn test_config_path_platform_specific() {
+        // Test that get_config_path returns appropriate paths
+        let result = ConfigManager::get_config_path();
+        assert!(result.is_ok());
+        
+        let path = result.unwrap();
+        assert!(path.to_string_lossy().contains("pasta"));
+        assert!(path.to_string_lossy().contains("config.toml"));
+    }
+
+    #[test]
+    fn test_config_path_with_deep_nesting() {
+        let temp_dir = TempDir::new().unwrap();
+        let nested_path = temp_dir.path().join("deep").join("nested").join("config.toml");
+        
+        // Create parent directories
+        std::fs::create_dir_all(nested_path.parent().unwrap()).unwrap();
+        
+        // Create config at nested path
+        let config_manager = ConfigManager::new_with_path(nested_path.clone()).unwrap();
+        config_manager.set_typing_speed(TypingSpeed::Slow);
+        
+        // Verify file was created
+        assert!(nested_path.exists());
+        
+        // Load and verify
+        let loaded_config = ConfigManager::load_config(&nested_path).unwrap();
+        assert_eq!(loaded_config.typing_speed, TypingSpeed::Slow);
+    }
+
+    #[test]
+    fn test_old_config_format_with_unknown_fields() {
+        // Test that old config with extra fields still works
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        
+        let old_config_with_extra = r#"
+            enabled = true
+            typing_speed = "normal"
+            extra_field = "ignored"
+            another_field = 42
+        "#;
+        
+        std::fs::write(&config_path, old_config_with_extra).unwrap();
+        
+        let config_manager = ConfigManager::new_with_path(config_path).unwrap();
+        let config = config_manager.get();
+        
+        // Should still load with defaults
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+        assert_eq!(config.left_click_paste, false);
     }
 }

@@ -56,4 +56,76 @@ mod tests {
         let result = get_clipboard_content().unwrap();
         assert_eq!(result, None);
     }
+
+    #[test]
+    #[serial]
+    fn test_clipboard_with_unicode() {
+        // Test with unicode content
+        let mut clipboard = Clipboard::new().unwrap();
+        let test_text = "Hello 世界 🌍";
+        clipboard.set_text(test_text).unwrap();
+
+        let result = get_clipboard_content().unwrap();
+        assert_eq!(result, Some(test_text.to_string()));
+    }
+
+    #[test]
+    #[serial]
+    fn test_clipboard_with_newlines() {
+        // Test with multiline content
+        let mut clipboard = Clipboard::new().unwrap();
+        let test_text = "Line 1\nLine 2\nLine 3";
+        clipboard.set_text(test_text).unwrap();
+
+        let result = get_clipboard_content().unwrap();
+        assert_eq!(result, Some(test_text.to_string()));
+    }
+
+    #[test]
+    #[serial]
+    fn test_clipboard_with_tabs() {
+        // Test with tab characters
+        let mut clipboard = Clipboard::new().unwrap();
+        let test_text = "Column1\tColumn2\tColumn3";
+        clipboard.set_text(test_text).unwrap();
+
+        let result = get_clipboard_content().unwrap();
+        assert_eq!(result, Some(test_text.to_string()));
+    }
+
+    #[test]
+    #[serial]
+    fn test_clipboard_with_special_chars() {
+        // Test with special characters
+        let mut clipboard = Clipboard::new().unwrap();
+        let test_text = "Special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?";
+        clipboard.set_text(test_text).unwrap();
+
+        let result = get_clipboard_content().unwrap();
+        assert_eq!(result, Some(test_text.to_string()));
+    }
+
+    #[test]
+    #[serial]
+    fn test_clipboard_with_long_text() {
+        // Test with long text
+        let mut clipboard = Clipboard::new().unwrap();
+        let test_text = "a".repeat(10000); // 10k characters
+        clipboard.set_text(&test_text).unwrap();
+
+        let result = get_clipboard_content().unwrap();
+        assert_eq!(result, Some(test_text));
+    }
+
+    #[test]
+    fn test_error_string_formatting() {
+        // Test error message formatting
+        let error_msg = format!("Failed to create clipboard: {}", "test error");
+        assert!(error_msg.contains("Failed to create clipboard"));
+        assert!(error_msg.contains("test error"));
+
+        let error_msg2 = format!("Failed to read clipboard: {}", "another error");
+        assert!(error_msg2.contains("Failed to read clipboard"));
+        assert!(error_msg2.contains("another error"));
+    }
 }

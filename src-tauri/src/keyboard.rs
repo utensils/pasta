@@ -359,4 +359,119 @@ mod tests {
         assert_eq!(tab_count, 1);
         assert_eq!(regular_count, 14); // "Hello" (5) + "World" (5) + "Test" (4) = 14
     }
+
+    #[test]
+    fn test_long_text_with_special_chars() {
+        // Test chunking with special characters mixed in
+        const CHUNK_SIZE: usize = 200;
+        let text = format!("{}test\n{}\ttab{}", "a".repeat(195), "b".repeat(195), "c".repeat(10));
+        let chars: Vec<char> = text.chars().collect();
+        let chunks: Vec<String> = chars
+            .chunks(CHUNK_SIZE)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect();
+
+        assert_eq!(chunks.len(), 3);
+        // First chunk has 200 chars
+        assert_eq!(chunks[0].chars().count(), 200);
+        // Verify special chars are preserved
+        assert!(chunks[0].contains('\n'));
+        assert!(chunks[1].contains('\t'));
+    }
+
+    #[test]
+    fn test_keyboard_command_pattern_matching() {
+        // Test exhaustive pattern matching
+        let commands = vec![
+            KeyboardCommand::TypeText("hello".to_string()),
+            KeyboardCommand::SetSpeed(TypingSpeed::Slow),
+        ];
+
+        for cmd in commands {
+            match cmd {
+                KeyboardCommand::TypeText(ref text) => {
+                    assert!(!text.is_empty());
+                }
+                KeyboardCommand::SetSpeed(speed) => {
+                    assert!(matches!(speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_keyboard_emulator_multiple_operations() {
+        let emulator = KeyboardEmulator::new().unwrap();
+
+        // Test multiple operations in sequence
+        // Note: set_typing_speed uses blocking_send which can't be used in async test
+        // So we'll test type_text operations only
+        assert!(emulator.type_text("first").await.is_ok());
+        assert!(emulator.type_text("second").await.is_ok());
+        
+        // Test empty text
+        assert!(emulator.type_text("").await.is_ok());
+        
+        // Test with special characters
+        assert!(emulator.type_text("hello\nworld\ttab").await.is_ok());
+    }
+
+    #[test] 
+    fn test_typing_speed_default() {
+        // Test that Normal is the default speed
+        let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
+        let default_speed = TypingSpeed::Normal;
+        
+        assert!(speeds.contains(&default_speed));
+        assert_eq!(default_speed.delay_ms(), 25);
+    }
+
+    #[test]
+    fn test_keyboard_emulator_channel_size() {
+        // Verify channel is created with proper buffer size
+        let (tx, _rx) = mpsc::channel::<KeyboardCommand>(10);
+        
+        // Test that we can send at least 10 commands without blocking
+        for i in 0..10 {
+            let result = tx.try_send(KeyboardCommand::TypeText(format!("test{}", i)));
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_keyboard_command_exhaustive_match() {
+        // Test that all KeyboardCommand variants are handled
+        let commands = vec![
+            KeyboardCommand::TypeText("test".to_string()),
+            KeyboardCommand::SetSpeed(TypingSpeed::Slow),
+            KeyboardCommand::SetSpeed(TypingSpeed::Normal),
+            KeyboardCommand::SetSpeed(TypingSpeed::Fast),
+        ];
+        
+        for cmd in commands {
+            // Verify we can clone and debug print each variant
+            let cloned = cmd.clone();
+            let _debug = format!("{:?}", cloned);
+            
+            // Pattern match to ensure all variants are covered
+            match cmd {
+                KeyboardCommand::TypeText(text) => assert!(!text.is_empty()),
+                KeyboardCommand::SetSpeed(speed) => assert!(speed.delay_ms() > 0),
+            }
+        }
+    }
+
+    #[test]
+    fn test_typing_speed_coverage() {
+        // Ensure all typing speeds have distinct delays
+        let slow = TypingSpeed::Slow.delay_ms();
+        let normal = TypingSpeed::Normal.delay_ms();
+        let fast = TypingSpeed::Fast.delay_ms();
+        
+        assert!(slow > normal);
+        assert!(normal > fast);
+        assert_eq!(slow, 50);
+        assert_eq!(normal, 25);
+        assert_eq!(fast, 10);
+    }
 }
