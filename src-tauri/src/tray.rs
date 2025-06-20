@@ -45,7 +45,12 @@ impl TrayManager {
             .enabled(true)
             .build()?;
 
-        let settings_item = MenuItemBuilder::with_id("settings", "Settings").build(app)?;
+        // Create left click paste menu item
+        let left_click_item =
+            CheckMenuItemBuilder::with_id("left_click_paste", "Left Click Pastes")
+                .checked(config.left_click_paste)
+                .build(app)?;
+
         let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
         // Build main menu
@@ -53,14 +58,13 @@ impl TrayManager {
             .item(&paste_item)
             .separator()
             .item(&speed_submenu)
-            .separator()
-            .item(&settings_item)
+            .item(&left_click_item)
             .separator()
             .item(&quit_item)
             .build()?;
 
         // Create tray icon with menu
-        let _tray = TrayIconBuilder::new()
+        let _tray = TrayIconBuilder::with_id("main")
             .icon(app.default_window_icon().unwrap().clone())
             .menu(&menu)
             .show_menu_on_left_click(!config.left_click_paste)
@@ -91,8 +95,14 @@ impl TrayManager {
                             update_speed_menu_state(&app_handle, TypingSpeed::Fast);
                             app.emit("config_changed", ()).unwrap();
                         }
-                        "settings" => {
-                            app.emit("show_settings", ()).unwrap();
+                        "left_click_paste" => {
+                            let current = config_manager.get().left_click_paste;
+                            config_manager.set_left_click_paste(!current);
+
+                            // Update tray behavior
+                            if let Some(tray) = app.tray_by_id("main") {
+                                let _ = tray.set_show_menu_on_left_click(current); // Inverted: if was enabled, now show menu
+                            }
                         }
                         "quit" => {
                             app.exit(0);
@@ -188,7 +198,7 @@ mod tests {
             "speed_slow",
             "speed_normal",
             "speed_fast",
-            "settings",
+            "left_click_paste",
             "quit",
         ];
 
@@ -209,7 +219,7 @@ mod tests {
         let _expected_structure = vec![
             ("paste", "item"),
             ("typing_speed", "submenu"),
-            ("settings", "item"),
+            ("left_click_paste", "check_item"),
             ("quit", "item"),
         ];
 
@@ -252,7 +262,7 @@ mod tests {
             "speed_slow",
             "speed_normal",
             "speed_fast",
-            "settings",
+            "left_click_paste",
             "quit",
         ];
 
@@ -311,15 +321,15 @@ mod tests {
     #[test]
     fn test_menu_separator_count() {
         // Test that we have the correct number of separators
-        // Based on the code, we have 3 separators in the menu
-        let separator_count = 3;
-        assert_eq!(separator_count, 3);
+        // Based on the code, we have 2 separators in the menu
+        let separator_count = 2;
+        assert_eq!(separator_count, 2);
     }
 
     #[test]
     fn test_event_emission_names() {
         // Test that event names are consistent
-        let events = vec!["paste_clipboard", "config_changed", "show_settings"];
+        let events = vec!["paste_clipboard", "config_changed"];
 
         for event in &events {
             assert!(!event.is_empty());
@@ -334,7 +344,7 @@ mod tests {
             ("speed_slow", "Slow"),
             ("speed_normal", "Normal"),
             ("speed_fast", "Fast"),
-            ("settings", "Settings"),
+            ("left_click_paste", "Left Click Pastes"),
             ("quit", "Quit"),
         ]);
 
@@ -345,7 +355,7 @@ mod tests {
 
         // Verify specific labels
         assert_eq!(labels.get("paste"), Some(&"Paste"));
-        assert_eq!(labels.get("settings"), Some(&"Settings"));
+        assert_eq!(labels.get("left_click_paste"), Some(&"Left Click Pastes"));
     }
 
     #[test]

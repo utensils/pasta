@@ -2,7 +2,6 @@ mod clipboard;
 pub mod config;
 pub mod keyboard;
 mod tray;
-mod window;
 
 use std::sync::Arc;
 
@@ -14,32 +13,12 @@ use crate::{
     config::ConfigManager,
     keyboard::{KeyboardEmulator, TypingSpeed},
     tray::TrayManager,
-    window::show_settings_window,
 };
 
 #[derive(Clone)]
 pub struct AppState {
     config_manager: Arc<ConfigManager>,
     keyboard_emulator: Arc<KeyboardEmulator>,
-}
-
-#[tauri::command]
-async fn get_config(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let config = state.inner().config_manager.get();
-    serde_json::to_value(&config).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn save_config(
-    state: State<'_, AppState>,
-    typing_speed: TypingSpeed,
-    left_click_paste: bool,
-) -> Result<(), String> {
-    let inner = state.inner();
-    inner.config_manager.set_typing_speed(typing_speed);
-    inner.config_manager.set_left_click_paste(left_click_paste);
-    inner.keyboard_emulator.set_typing_speed(typing_speed);
-    Ok(())
 }
 
 #[tauri::command]
@@ -115,14 +94,6 @@ pub fn run() {
                 keyboard_emulator_clone.set_typing_speed(config.typing_speed);
             });
 
-            // Show settings window when requested
-            let app_handle_clone = app.handle().clone();
-            app_handle.listen("show_settings", move |_event| {
-                if let Err(e) = show_settings_window(&app_handle_clone) {
-                    error!("Failed to show settings window: {e:?}");
-                }
-            });
-
             // Handle paste clipboard event from tray
             let keyboard_emulator_clone = keyboard_emulator.clone();
             app_handle.listen("paste_clipboard", move |_event| {
@@ -155,11 +126,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            get_config,
-            save_config,
-            paste_clipboard
-        ])
+        .invoke_handler(tauri::generate_handler![paste_clipboard])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -198,43 +165,6 @@ mod tests {
 
             Self { app_state }
         }
-    }
-
-    #[tokio::test]
-    async fn test_get_config_command() {
-        let mock_state = MockState::new();
-        // We can't create State directly in tests, so we test the underlying logic
-        let config = mock_state.app_state.config_manager.get();
-        let config_json = serde_json::to_value(&config).unwrap();
-
-        assert!(config_json.is_object());
-        assert!(config_json.get("typing_speed").is_some());
-        assert_eq!(config_json.get("typing_speed").unwrap(), "normal");
-    }
-
-    #[test]
-    fn test_save_config_command() {
-        let mock_state = MockState::new();
-
-        // Test the underlying logic directly without blocking in async context
-        mock_state
-            .app_state
-            .config_manager
-            .set_typing_speed(TypingSpeed::Fast);
-        // Note: We can't call keyboard_emulator.set_typing_speed from async context
-        // as it uses blocking_send. In real usage, this is called from non-async context.
-
-        // Verify the config was updated
-        let config = mock_state.app_state.config_manager.get();
-        assert_eq!(config.typing_speed, TypingSpeed::Fast);
-
-        // Test with other speeds
-        mock_state
-            .app_state
-            .config_manager
-            .set_typing_speed(TypingSpeed::Slow);
-        let config = mock_state.app_state.config_manager.get();
-        assert_eq!(config.typing_speed, TypingSpeed::Slow);
     }
 
     #[tokio::test]
