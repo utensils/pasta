@@ -3,6 +3,7 @@ const { invoke } = window.__TAURI__.core;
 let speedSlider;
 let speedText;
 let saveButton;
+let leftClickPasteCheckbox;
 
 const speedLabels = ['Slow', 'Normal', 'Fast'];
 
@@ -15,6 +16,9 @@ async function loadConfig() {
                           config.typing_speed === 'Normal' ? 1 : 2;
         speedSlider.value = speedValue;
         updateSpeedText(speedValue);
+        
+        // Set left-click paste checkbox
+        leftClickPasteCheckbox.checked = config.left_click_paste || false;
     } catch (error) {
         console.error('Failed to load config:', error);
     }
@@ -24,8 +28,9 @@ async function saveConfig() {
     try {
         const speedValue = parseInt(speedSlider.value);
         const typing_speed = speedLabels[speedValue];
+        const left_click_paste = leftClickPasteCheckbox.checked;
         
-        await invoke('save_config', { typing_speed });
+        await invoke('save_config', { typing_speed, left_click_paste });
         
         // Show save feedback
         showSavedIndicator();
@@ -55,6 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
     speedSlider = document.getElementById('speed-slider');
     speedText = document.getElementById('speed-text');
     saveButton = document.getElementById('save-button');
+    leftClickPasteCheckbox = document.getElementById('left-click-paste');
     
     // Load current config
     loadConfig();

@@ -73,8 +73,6 @@ mod tests {
     use mockall::mock;
     use tauri::{WebviewWindow, WindowEvent};
 
-    use super::*;
-
     // Mock traits for testing
     mock! {
         AppHandle {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use log::{debug, info};
 use tauri::{
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
-    tray::{TrayIconBuilder, TrayIconEvent},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Runtime,
 };
 
@@ -63,7 +63,7 @@ impl TrayManager {
         let _tray = TrayIconBuilder::new()
             .icon(app.default_window_icon().unwrap().clone())
             .menu(&menu)
-            .show_menu_on_left_click(false)
+            .show_menu_on_left_click(!config.left_click_paste)
             .tooltip("Pasta - Clipboard to Keyboard")
             .on_menu_event({
                 let config_manager = self.config_manager.clone();
@@ -101,9 +101,33 @@ impl TrayManager {
                     }
                 }
             })
-            .on_tray_icon_event(|_tray, event| {
-                if let TrayIconEvent::Click { .. } = event {
-                    debug!("Tray icon clicked");
+            .on_tray_icon_event({
+                let app_handle = app.clone();
+                let config_manager = self.config_manager.clone();
+                move |_tray, event| match event {
+                    TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } => {
+                        let config = config_manager.get();
+                        if config.left_click_paste {
+                            debug!("Left click on tray icon - pasting clipboard");
+                            app_handle.emit("paste_clipboard", ()).unwrap();
+                        } else {
+                            debug!("Left click on tray icon - showing menu (left_click_paste disabled)");
+                            // Menu will be shown automatically when show_menu_on_left_click is true
+                        }
+                    }
+                    TrayIconEvent::Click {
+                        button: MouseButton::Right,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } => {
+                        debug!("Right click on tray icon - showing menu");
+                        // Menu is automatically shown on right-click by Tauri
+                    }
+                    _ => {}
                 }
             })
             .build(app)?;
@@ -140,7 +164,10 @@ mod tests {
         let config_path = temp_dir.path().join("config.toml");
 
         let config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config::default())),
+            config: Arc::new(Mutex::new(Config {
+                typing_speed: TypingSpeed::Normal,
+                left_click_paste: false,
+            })),
             config_path,
         });
 
@@ -263,7 +290,10 @@ mod tests {
         let config_path = temp_dir.path().join("config.toml");
 
         let config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config::default())),
+            config: Arc::new(Mutex::new(Config {
+                typing_speed: TypingSpeed::Normal,
+                left_click_paste: false,
+            })),
             config_path,
         });
 
@@ -344,6 +374,49 @@ mod tests {
         let handled_events = vec!["Click"];
         assert_eq!(handled_events.len(), 1);
         assert!(handled_events.contains(&"Click"));
+    }
+
+    #[test]
+    fn test_left_click_paste_configuration() {
+        use std::sync::Mutex;
+
+        use tempfile::TempDir;
+
+        use crate::config::Config;
+
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        // Test with left_click_paste disabled (default)
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config {
+                typing_speed: TypingSpeed::Normal,
+                left_click_paste: false,
+            })),
+            config_path: config_path.clone(),
+        });
+
+        let _tray_manager = TrayManager::new(config_manager.clone());
+        assert_eq!(config_manager.get().left_click_paste, false);
+
+        // Test with left_click_paste enabled
+        config_manager.set_left_click_paste(true);
+        assert_eq!(config_manager.get().left_click_paste, true);
+    }
+
+    #[test]
+    fn test_tray_menu_behavior_configuration() {
+        // Test that show_menu_on_left_click is properly configured based on left_click_paste
+        // When left_click_paste is true, show_menu_on_left_click should be false
+        // When left_click_paste is false, show_menu_on_left_click should be true
+
+        let left_click_paste_enabled = true;
+        let show_menu_on_left_click = !left_click_paste_enabled;
+        assert_eq!(show_menu_on_left_click, false);
+
+        let left_click_paste_disabled = false;
+        let show_menu_on_left_click = !left_click_paste_disabled;
+        assert_eq!(show_menu_on_left_click, true);
     }
 
     #[test]

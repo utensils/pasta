@@ -13,12 +13,15 @@ use crate::keyboard::TypingSpeed;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub typing_speed: TypingSpeed,
+    #[serde(default)]
+    pub left_click_paste: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             typing_speed: TypingSpeed::Normal,
+            left_click_paste: false, // Default to false (both buttons show menu)
         }
     }
 }
@@ -76,7 +79,10 @@ impl ConfigManager {
                                 "fast" => TypingSpeed::Fast,
                                 _ => TypingSpeed::Normal, // Default fallback
                             };
-                            Ok(Config { typing_speed })
+                            Ok(Config {
+                                typing_speed,
+                                left_click_paste: false, // Default for migrated configs
+                            })
                         }
                         Err(_) => {
                             // If both formats fail, just use defaults
@@ -106,6 +112,13 @@ impl ConfigManager {
 
     pub fn set_typing_speed(&self, speed: TypingSpeed) {
         self.config.lock().unwrap().typing_speed = speed;
+        if let Err(e) = self.save() {
+            error!("Failed to save config: {e:?}");
+        }
+    }
+
+    pub fn set_left_click_paste(&self, enabled: bool) {
+        self.config.lock().unwrap().left_click_paste = enabled;
         if let Err(e) = self.save() {
             error!("Failed to save config: {e:?}");
         }
@@ -144,6 +157,7 @@ mod tests {
     fn test_config_default() {
         let config = Config::default();
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
+        assert_eq!(config.left_click_paste, false);
     }
 
     #[test]
@@ -184,6 +198,23 @@ mod tests {
     }
 
     #[test]
+    fn test_config_manager_set_left_click_paste() {
+        let test_manager = TestConfigManager::new().unwrap();
+        let manager = test_manager.manager;
+
+        // Test default is false
+        assert_eq!(manager.get().left_click_paste, false);
+
+        // Test setting to true
+        manager.set_left_click_paste(true);
+        assert_eq!(manager.get().left_click_paste, true);
+
+        // Test setting back to false
+        manager.set_left_click_paste(false);
+        assert_eq!(manager.get().left_click_paste, false);
+    }
+
+    #[test]
     fn test_config_migration() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -221,11 +252,14 @@ typing_speed = "Normal"
     fn test_config_serialization() {
         let config = Config {
             typing_speed: TypingSpeed::Slow,
+            left_click_paste: true,
         };
 
         let serialized = toml::to_string(&config).unwrap();
         assert!(serialized.contains("typing_speed"));
         assert!(serialized.contains("slow"));
+        assert!(serialized.contains("left_click_paste"));
+        assert!(serialized.contains("true"));
         assert!(!serialized.contains("enabled"));
     }
 
@@ -234,6 +268,18 @@ typing_speed = "Normal"
         let toml_str = r#"typing_speed = "fast""#;
         let config: Config = toml::from_str(toml_str).unwrap();
         assert_eq!(config.typing_speed, TypingSpeed::Fast);
+        assert_eq!(config.left_click_paste, false); // Should use default
+    }
+
+    #[test]
+    fn test_config_deserialization_with_left_click_paste() {
+        let toml_str = r#"
+typing_speed = "normal"
+left_click_paste = true
+"#;
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.typing_speed, TypingSpeed::Normal);
+        assert_eq!(config.left_click_paste, true);
     }
 
     #[test]
@@ -338,9 +384,11 @@ typing_speed = "SuperFast"
     fn test_config_clone() {
         let config = Config {
             typing_speed: TypingSpeed::Fast,
+            left_click_paste: true,
         };
         let cloned = config.clone();
         assert_eq!(config.typing_speed, cloned.typing_speed);
+        assert_eq!(config.left_click_paste, cloned.left_click_paste);
     }
 
     #[test]
@@ -359,10 +407,12 @@ typing_speed = "SuperFast"
         for speed in speeds {
             let config = Config {
                 typing_speed: speed,
+                left_click_paste: false,
             };
             let serialized = toml::to_string(&config).unwrap();
             let deserialized: Config = toml::from_str(&serialized).unwrap();
             assert_eq!(config.typing_speed, deserialized.typing_speed);
+            assert_eq!(config.left_click_paste, deserialized.left_click_paste);
         }
     }
 

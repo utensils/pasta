@@ -30,9 +30,14 @@ async fn get_config(state: State<'_, AppState>) -> Result<serde_json::Value, Str
 }
 
 #[tauri::command]
-async fn save_config(state: State<'_, AppState>, typing_speed: TypingSpeed) -> Result<(), String> {
+async fn save_config(
+    state: State<'_, AppState>,
+    typing_speed: TypingSpeed,
+    left_click_paste: bool,
+) -> Result<(), String> {
     let inner = state.inner();
     inner.config_manager.set_typing_speed(typing_speed);
+    inner.config_manager.set_left_click_paste(left_click_paste);
     inner.keyboard_emulator.set_typing_speed(typing_speed);
     Ok(())
 }
@@ -254,6 +259,7 @@ mod tests {
         let config_manager = Arc::new(ConfigManager {
             config: Arc::new(Mutex::new(Config {
                 typing_speed: TypingSpeed::Fast,
+                left_click_paste: false,
             })),
             config_path,
         });
@@ -282,9 +288,10 @@ mod tests {
         let config = Config::default();
         let json = serde_json::to_value(&config).unwrap();
 
-        // Verify the config only has typing_speed field
+        // Verify the config has the expected fields
         assert!(json.is_object());
         assert!(json.get("typing_speed").is_some());
+        assert!(json.get("left_click_paste").is_some());
         assert!(json.get("enabled").is_none());
     }
 
@@ -292,11 +299,14 @@ mod tests {
     fn test_config_serialization() {
         let config = Config {
             typing_speed: TypingSpeed::Fast,
+            left_click_paste: true,
         };
 
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("typing_speed"));
         assert!(json.contains("fast"));
+        assert!(json.contains("left_click_paste"));
+        assert!(json.contains("true"));
         assert!(!json.contains("enabled"));
     }
 
