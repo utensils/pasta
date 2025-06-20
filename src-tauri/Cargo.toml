@@ -23,14 +23,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 arboard = "3.4"
-enigo = "0.2"
+enigo = "0.5"
 toml = "0.8"
 log = "0.4"
 env_logger = "0.11"
-dirs = "5.0"
+dirs = "6.0"
 
 [dev-dependencies]
-mockall = "0.12"
+mockall = "0.13"
 tempfile = "3.8"
 serial_test = "3.0"
 
