@@ -48,6 +48,7 @@ class TestPermissionChecker:
         mock_run.return_value = Mock(stdout="true\n", returncode=0)
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         assert result is True
@@ -63,6 +64,7 @@ class TestPermissionChecker:
         mock_run.return_value = Mock(stdout="false\n", returncode=0)
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         assert result is False
@@ -75,6 +77,7 @@ class TestPermissionChecker:
         mock_run.side_effect = subprocess.SubprocessError("Error")
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         assert result is False
@@ -94,6 +97,7 @@ class TestPermissionChecker:
     def test_windows_permission_check(self, mock_system):
         """Test Windows permission check (should always return True)."""
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         # Windows doesn't require special permissions for our use case
@@ -117,6 +121,7 @@ class TestPermissionChecker:
         mock_getgroups.return_value = [100, 999, 1000]  # 999 is input group
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         assert result is True
@@ -132,6 +137,7 @@ class TestPermissionChecker:
         mock_getgroups.return_value = [100, 1000]  # 999 not in list
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         assert result is False
@@ -145,6 +151,7 @@ class TestPermissionChecker:
         mock_getgrnam.side_effect = KeyError("input")
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Clear any cached values
         result = checker.check_permissions()
 
         # Should return True if group doesn't exist (not required)
@@ -238,6 +245,7 @@ class TestPermissionChecker:
     def test_fallback_behavior(self, checker):
         """Test fallback behavior for unknown platforms."""
         with patch.object(checker, "platform", "Unknown"):
+            checker.clear_cache()  # Clear any cached values
             # Should not crash
             result = checker.check_permissions()
             assert result is True  # Default to True for unknown platforms
@@ -252,6 +260,7 @@ class TestPermissionChecker:
         mock_run.return_value = Mock(stdout="true\n", returncode=0)
 
         checker = PermissionChecker()
+        checker.clear_cache()  # Ensure we start with no cache
 
         # First call
         result1 = checker.check_permissions()

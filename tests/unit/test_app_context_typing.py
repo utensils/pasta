@@ -2,7 +2,6 @@
 
 import threading
 import time
-from unittest.mock import patch
 
 from pasta.core.keyboard import PastaKeyboardEngine
 
@@ -20,12 +19,18 @@ Sed do eiusmod tempor"""
         result = None
         calls = []
 
+        # Mock the engine's _ensure_pyautogui method before thread starts
+        from unittest.mock import Mock
+
+        mock_pyautogui = Mock()
+        mock_pyautogui.write.side_effect = lambda text, **kwargs: calls.append(("write", text))
+        mock_pyautogui.press.side_effect = lambda key: calls.append(("press", key))
+        mock_pyautogui.position.return_value = (100, 100)  # Not at fail-safe position
+        engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
         def run_in_thread():
             nonlocal result
-            with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-                mock_pyautogui.write.side_effect = lambda text, **kwargs: calls.append(("write", text))
-                mock_pyautogui.press.side_effect = lambda key: calls.append(("press", key))
-                result = engine.paste_text(test_text, method="typing")
+            result = engine.paste_text(test_text, method="typing")
 
         # Run in separate thread like the app does
         thread = threading.Thread(target=run_in_thread)
@@ -43,54 +48,70 @@ Sed do eiusmod tempor"""
         test_text = "Lorem ipsum dolor sit amet"
 
         # Test with different timing
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            result = engine.paste_text(test_text, method="typing")
-            assert result is True
-            mock_pyautogui.write.assert_called()
+        from unittest.mock import Mock
+
+        mock_pyautogui = Mock()
+        mock_pyautogui.position.return_value = (100, 100)
+        engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
+        result = engine.paste_text(test_text, method="typing")
+        assert result is True
+        mock_pyautogui.write.assert_called()
 
     def test_focus_and_timing_issues(self):
         """Test potential focus and timing issues."""
         engine = PastaKeyboardEngine()
         test_text = "Test text with multiple words"
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            # Simulate focus issues by making first write fail
-            call_count = 0
+        # Simulate focus issues by making first write fail
+        call_count = 0
 
-            def write_side_effect(text, **kwargs):
-                nonlocal call_count
-                call_count += 1
-                if call_count == 1:
-                    # Simulate focus not ready
-                    time.sleep(0.1)
-                return None
+        def write_side_effect(text, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # Simulate focus not ready
+                time.sleep(0.1)
+            return None
 
-            mock_pyautogui.write.side_effect = write_side_effect
+        from unittest.mock import Mock
 
-            result = engine.paste_text(test_text, method="typing")
+        mock_pyautogui = Mock()
+        mock_pyautogui.write.side_effect = write_side_effect
+        mock_pyautogui.position.return_value = (100, 100)
+        engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            assert result is True
-            assert call_count == 1  # Should have been called
+        result = engine.paste_text(test_text, method="typing")
+
+        assert result is True
+        assert call_count == 1  # Should have been called
 
     def test_empty_content_handling(self):
         """Test handling of empty or None content."""
-        engine = PastaKeyboardEngine()
+        from unittest.mock import Mock
 
         # Test empty string
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            result = engine.paste_text("", method="typing")
-            assert result is True
-            mock_pyautogui.write.assert_not_called()
+        engine = PastaKeyboardEngine()
+        mock_pyautogui = Mock()
+        engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
+        result = engine.paste_text("", method="typing")
+        assert result is True
+        mock_pyautogui.write.assert_not_called()
 
         # Test None (though this should be caught earlier)
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            result = engine.paste_text(None, method="typing")
-            assert result is True
-            mock_pyautogui.write.assert_not_called()
+        engine2 = PastaKeyboardEngine()
+        mock_pyautogui2 = Mock()
+        engine2._ensure_pyautogui = Mock(return_value=mock_pyautogui2)
+
+        result = engine2.paste_text(None, method="typing")
+        assert result is True
+        mock_pyautogui2.write.assert_not_called()
 
     def test_special_characters_in_context(self):
         """Test special characters that might cause issues."""
-        engine = PastaKeyboardEngine()
+        from unittest.mock import Mock
+
         test_texts = [
             "Text with colon: like this",
             "Text with dots... multiple dots",
@@ -99,22 +120,29 @@ Sed do eiusmod tempor"""
         ]
 
         for text in test_texts:
-            with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-                result = engine.paste_text(text, method="typing")
-                assert result is True
-                mock_pyautogui.write.assert_called()
+            engine = PastaKeyboardEngine()
+            mock_pyautogui = Mock()
+            mock_pyautogui.position.return_value = (100, 100)
+            engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
+            result = engine.paste_text(text, method="typing")
+            assert result is True
+            mock_pyautogui.write.assert_called()
 
     def test_fail_safe_disabled_check(self):
         """Check if fail-safe might be preventing typing."""
         engine = PastaKeyboardEngine()
         test_text = "Test text"
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            # Mock the position to be at (0, 0) which triggers fail-safe
-            mock_pyautogui.position.return_value = (0, 0)
+        from unittest.mock import Mock
 
-            result = engine.paste_text(test_text, method="typing")
+        mock_pyautogui = Mock()
+        # Mock the position to be at (0, 0) which triggers fail-safe
+        mock_pyautogui.position.return_value = (0, 0)
+        engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            # Should fail due to fail-safe
-            assert result is False
-            mock_pyautogui.write.assert_not_called()
+        result = engine.paste_text(test_text, method="typing")
+
+        # Should fail due to fail-safe
+        assert result is False
+        mock_pyautogui.write.assert_not_called()

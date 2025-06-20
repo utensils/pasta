@@ -28,15 +28,23 @@ class TestStorageManager:
     def test_initialization(self, manager, temp_db):
         """Test StorageManager initializes correctly."""
         assert manager.db_path == str(temp_db)
-        assert hasattr(manager, "cipher")
+        assert hasattr(manager, "_cipher")
         assert hasattr(manager, "_security_manager")
-        assert Path(temp_db).exists()  # Database should be created
+        assert not manager._initialized  # Should not be initialized yet
+        assert not Path(temp_db).exists()  # Database should not exist yet
 
     def test_database_creation(self, temp_db):
-        """Test database and tables are created on initialization."""
-        StorageManager(db_path=str(temp_db))  # Creates DB on init
+        """Test database and tables are created on first use."""
+        manager = StorageManager(db_path=str(temp_db))
 
-        # Check database exists
+        # Database should not exist yet
+        assert not Path(temp_db).exists()
+
+        # Trigger initialization by saving an entry
+        test_entry = {"content": "test", "timestamp": datetime.now(), "content_type": "text", "hash": "abc123"}
+        manager.save_entry(test_entry)
+
+        # Now database should exist
         assert Path(temp_db).exists()
 
         # Check tables exist
@@ -57,17 +65,21 @@ class TestStorageManager:
 
     def test_encryption_key_generation(self, manager):
         """Test encryption key is generated properly."""
-        assert manager.cipher is not None
-        assert isinstance(manager.cipher, Fernet)
+        # Trigger initialization
+        manager._ensure_initialized()
+        assert manager._cipher is not None
+        assert isinstance(manager._cipher, Fernet)
 
     def test_encryption_key_persistence(self, temp_db):
         """Test encryption key is persisted and loaded correctly."""
-        # Create first manager
+        # Create first manager and trigger initialization
         manager1 = StorageManager(db_path=str(temp_db))
+        manager1._ensure_initialized()
         key1 = manager1._get_or_create_key()
 
         # Create second manager - should use same key
         manager2 = StorageManager(db_path=str(temp_db))
+        manager2._ensure_initialized()
         key2 = manager2._get_or_create_key()
 
         assert key1 == key2
@@ -368,7 +380,10 @@ class TestStorageManager:
 
     def test_database_error_handling(self, manager):
         """Test handling of database errors."""
-        # Corrupt the database connection
+        # Ensure database is initialized first
+        manager._ensure_initialized()
+
+        # Corrupt the database connection after initialization
         with patch.object(manager, "_get_connection", side_effect=sqlite3.Error("Database error")):
             # Should handle error gracefully
             entry_id = manager.save_entry(
@@ -415,8 +430,9 @@ class TestStorageManager:
 
     def test_database_migration(self, temp_db):
         """Test database schema migration."""
-        # Create manager - should handle any migrations
-        StorageManager(db_path=str(temp_db))  # Creates DB with migrations
+        # Create manager and trigger initialization
+        manager = StorageManager(db_path=str(temp_db))
+        manager._ensure_initialized()  # Force database creation
 
         # Check version table exists
         conn = sqlite3.connect(str(temp_db))
@@ -427,7 +443,8 @@ class TestStorageManager:
 
     def test_performance_indexing(self, temp_db):
         """Test that appropriate indexes are created."""
-        StorageManager(db_path=str(temp_db))  # Creates DB with indexes
+        manager = StorageManager(db_path=str(temp_db))
+        manager._ensure_initialized()  # Force database creation
 
         conn = sqlite3.connect(str(temp_db))
         cursor = conn.cursor()

@@ -1,9 +1,12 @@
 """Permission checking and management."""
 
+import json
 import os
 import platform
 import subprocess
 import threading
+import time
+from pathlib import Path
 
 try:
     import grp
@@ -29,6 +32,9 @@ class PermissionChecker:
         self.platform = platform.system()
         self._permission_lock = threading.Lock()
         self._cached_result: bool | None = None
+        self._cache_file = self._get_cache_file_path()
+        self._cache_duration = 3600  # Cache for 1 hour
+        self._load_cache()
 
     def check_permissions(self) -> bool:
         """Check if necessary permissions are granted.
@@ -55,8 +61,65 @@ class PermissionChecker:
         # Cache result
         with self._permission_lock:
             self._cached_result = result
+            self._save_cache(result)
 
         return result
+
+    def _get_cache_file_path(self) -> Path:
+        """Get the path to the permission cache file.
+
+        Returns:
+            Path to cache file
+        """
+        if self.platform == "Darwin":
+            cache_dir = Path.home() / "Library" / "Caches" / "Pasta"
+        elif self.platform == "Windows":
+            cache_dir = Path(os.getenv("LOCALAPPDATA", "")) / "Pasta" / "Cache"
+        else:
+            cache_dir = Path.home() / ".cache" / "pasta"
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir / "permissions.json"
+
+    def _load_cache(self) -> None:
+        """Load cached permission status from disk."""
+        try:
+            if self._cache_file.exists():
+                with open(self._cache_file) as f:
+                    cache_data = json.load(f)
+
+                # Check if cache is still valid
+                if "timestamp" in cache_data and "result" in cache_data:
+                    age = time.time() - cache_data["timestamp"]
+                    if age < self._cache_duration:
+                        self._cached_result = cache_data["result"]
+        except Exception:
+            # Ignore cache loading errors
+            pass
+
+    def _save_cache(self, result: bool) -> None:
+        """Save permission status to disk cache.
+
+        Args:
+            result: Permission check result to cache
+        """
+        try:
+            cache_data = {"result": result, "timestamp": time.time(), "platform": self.platform}
+            with open(self._cache_file, "w") as f:
+                json.dump(cache_data, f)
+        except Exception:
+            # Ignore cache saving errors
+            pass
+
+    def clear_cache(self) -> None:
+        """Clear the permission cache."""
+        with self._permission_lock:
+            self._cached_result = None
+            try:
+                if self._cache_file.exists():
+                    self._cache_file.unlink()
+            except Exception:
+                pass
 
     def _check_macos_accessibility(self) -> bool:
         """Check macOS accessibility permissions.

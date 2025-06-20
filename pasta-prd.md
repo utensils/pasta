@@ -1,18 +1,27 @@
 # Pasta - Cross-Platform Clipboard-to-Keyboard System Tray Application
 ## Product Requirements Document (PRD)
 
+### Current Status Summary (Updated: 2025-06-19)
+- **Core Features**: ✅ All implemented and tested (92% code coverage, 610 tests)
+- **Platform Support**: ✅ macOS (most mature), ⚠️ Windows/Linux (basic support)
+- **CI/CD**: ✅ All tests passing on all platforms (Python 3.9-3.13)
+- **Remaining Work**: Performance optimization, platform-specific polish, user documentation, distribution packaging
+
 ### Project Overview
 Pasta is a cross-platform system tray application that converts clipboard content into simulated keyboard input, bridging the gap for applications that don't support direct clipboard pasting. The application will be developed using Python with UV package management, following Test-Driven Development (TDD) principles.
 
 ### Technology Stack
-- **Language**: Python 3.9+
+- **Language**: Python 3.13+ (required for development, 3.9+ supported for runtime)
 - **Package Manager**: UV (not pip)
-- **System Tray**: pystray
-- **Keyboard Simulation**: PyAutoGUI
+- **System Tray**: PySide6 (QSystemTrayIcon) - replaced pystray for better integration
+- **GUI Framework**: PySide6 (Qt6) for all UI components
+- **Keyboard Simulation**: PyAutoGUI with osascript fallback on macOS
 - **Clipboard Access**: pyperclip
 - **Testing**: pytest with pytest-qt
 - **Code Quality**: Ruff (includes Black, isort, pylint functionality)
+- **Type Checking**: mypy with strict mode
 - **Line Length**: 140 characters
+- **Build System**: Nix flakes for reproducible environments (macOS)
 
 ## Development Task List
 
@@ -240,69 +249,82 @@ Pasta is a cross-platform system tray application that converts clipboard conten
   - [x] Test manual paste from history
   - [x] Test settings changes affecting behavior
   - [x] Test multi-threaded operations
+  - [x] 97 integration tests passing with full coverage
 
 - [ ] **Implement performance optimizations**
-  - Add text analysis for optimal paste method
-  - Implement adaptive delays
-  - Add CPU/memory monitoring
-  - Optimize large text handling
+  - [ ] Add text analysis for optimal paste method
+  - [ ] Implement adaptive delays based on system load
+  - [ ] Add CPU/memory monitoring for dynamic speed adjustment
+  - [ ] Optimize large text handling with smart chunking
 
 - [ ] **Write performance benchmarks**
-  - Benchmark typing speeds
-  - Benchmark clipboard operations
-  - Benchmark memory usage
-  - Test with various text sizes
+  - [ ] Benchmark typing speeds across different text sizes
+  - [ ] Benchmark clipboard operations latency
+  - [ ] Benchmark memory usage patterns
+  - [ ] Test with various text sizes (1KB to 10MB)
 
 ### Phase 11: Platform-Specific Features
 
 - [x] **Implement macOS-specific features**
   - [x] Create Info.plist for permissions (in pasta.spec)
-  - [x] Add macOS menu bar integration
+  - [x] Add macOS menu bar integration with native behavior
   - [x] LSUIElement configuration (no dock icon)
   - [x] Proper app naming ("Pasta" not "python3.11")
-  - [x] Cmd+Q handling for dialog windows
-  - [x] Window dock behavior
+  - [x] Cmd+Q/W handling for all dialog windows
+  - [x] Window dock behavior and activation policy
   - [x] NSApplication activation policy
-  - [ ] Implement template images
-  - [ ] Test with macOS sandboxing
+  - [x] Qt platform plugin set to "cocoa" for native behavior
+  - [x] Fallback to osascript when pyautogui unavailable (Nix)
+  - [x] macOS build script for .app bundle creation
+  - [ ] Implement template images for better dark mode support
+  - [ ] Test with macOS sandboxing and notarization
 
 - [ ] **Implement Windows-specific features**
-  - Create Windows manifest
-  - Add Windows notification support
-  - Test with various Windows versions
-  - Handle high DPI displays
+  - [ ] Create Windows manifest for UAC
+  - [ ] Add Windows notification support
+  - [ ] Test with Windows 10/11 versions
+  - [ ] Handle high DPI displays properly
+  - [ ] Windows installer (MSI) creation
 
 - [ ] **Implement Linux-specific features**
-  - Add support for both X11 and Wayland
-  - Implement AppIndicator support
-  - Create .desktop file
-  - Test on major distributions
+  - [ ] Add support for both X11 and Wayland
+  - [ ] Implement AppIndicator support
+  - [ ] Create .desktop file for application menu
+  - [ ] Test on Ubuntu, Fedora, Debian
+  - [ ] Create DEB and RPM packages
 
 ### Phase 12: Documentation and Packaging
 
+- [x] **Write developer documentation**
+  - [x] CLAUDE.md for AI-assisted development
+  - [x] current-state.md for project status
+  - [x] Comprehensive code docstrings
+  - [x] Type hints throughout codebase
+  - [ ] API reference documentation
+  - [ ] Architecture diagrams
+  - [ ] Contributing guide
+
+- [x] **Create build infrastructure**
+  - [x] PyInstaller spec file with platform configuration
+  - [x] macOS build script (build_macos.py)
+  - [x] Nix flake for reproducible builds
+  - [x] UV-based dependency management
+  - [ ] Windows build script
+  - [ ] Linux build script
+  - [ ] Code signing configuration
+
 - [ ] **Write user documentation**
-  - Create installation guide
-  - Write permissions setup guide
-  - Document keyboard shortcuts
-  - Create troubleshooting guide
-
-- [ ] **Write developer documentation**
-  - Document API interfaces
-  - Create contribution guide
-  - Document testing procedures
-  - Add architecture diagrams
-
-- [ ] **Create build scripts**
-  - Write PyInstaller spec files
-  - Create platform-specific build scripts
-  - Add code signing configuration
-  - Create installer scripts
+  - [ ] Installation guide for each platform
+  - [ ] Permissions setup guide with screenshots
+  - [ ] Keyboard shortcuts reference
+  - [ ] Troubleshooting guide
+  - [ ] Feature walkthrough
 
 - [ ] **Prepare for distribution**
-  - Test PyInstaller builds on all platforms
-  - Create platform-specific installers
-  - Set up automatic updates mechanism
-  - Create release checklist
+  - [ ] Create platform-specific installers (DMG, MSI, DEB/RPM)
+  - [ ] Set up automatic updates mechanism
+  - [ ] Create release checklist
+  - [ ] Set up download/distribution website
 
 ### Recent Fixes and Improvements
 
@@ -319,31 +341,48 @@ Pasta is a cross-platform system tray application that converts clipboard conten
   - Ensured native window controls
   - Created macOS build script
 
+- [x] **Paste mode implementation**
+  - Added Auto/Clipboard/Typing modes with visual feedback
+  - Icon color changes: orange (typing), blue (clipboard)
+  - "Paste Last Item" respects current paste mode
+  - Mode persistence across restarts
+
+- [x] **Additional improvements**
+  - Emergency stop with double ESC or tray click
+  - Concurrent paste handling with proper queueing
+  - RLock implementation for thread safety
+  - 610 tests with 92% code coverage
+  - All CI/CD passing on all platforms
+
 ### Phase 13: Final Testing and Polish
 
-- [ ] **Conduct security audit**
-  - Review all data handling
-  - Check encryption implementation
-  - Verify no data leakage
-  - Test rate limiting
+- [x] **Security implementation complete**
+  - [x] Fernet encryption for sensitive data
+  - [x] Pattern-based sensitive data detection
+  - [x] Rate limiting implemented (30 pastes/min, 100 reads/min)
+  - [x] Privacy mode with app exclusion
+  - [x] Secure memory cleanup on exit
+  - [ ] External security audit
 
 - [ ] **Perform usability testing**
-  - Test with various clipboard content types
-  - Verify all keyboard shortcuts work
-  - Test error handling and recovery
-  - Validate accessibility features
+  - [ ] Beta testing with real users
+  - [ ] Test with various clipboard content types
+  - [ ] Verify all keyboard shortcuts work
+  - [ ] Test error handling and recovery
+  - [ ] Validate accessibility features
 
-- [ ] **Final bug fixes and optimizations**
-  - Address all test failures
-  - Fix any platform-specific issues
-  - Optimize startup time
-  - Reduce memory footprint
+- [ ] **Final optimizations**
+  - [ ] Optimize startup time (<2 seconds)
+  - [ ] Reduce memory footprint (<50MB idle)
+  - [ ] Profile and optimize hot paths
+  - [ ] Implement lazy loading for faster startup
 
 - [ ] **Release preparation**
-  - Update version numbers
-  - Generate changelog
-  - Create release notes
-  - Tag release in git
+  - [ ] Update version to 1.0.0
+  - [ ] Generate CHANGELOG.md
+  - [ ] Create release notes
+  - [ ] Tag release in git
+  - [ ] Create GitHub release with binaries
 
 ## Technical Specifications
 
@@ -353,9 +392,10 @@ Pasta is a cross-platform system tray application that converts clipboard conten
 - Linux (Ubuntu 20.04+, Fedora 35+, Debian 11+)
 
 ### Python Version
-- Minimum: Python 3.9
-- Recommended: Python 3.11
-- Maximum tested: Python 3.12
+- Development: Python 3.13+ (required for UV and development)
+- Runtime minimum: Python 3.9
+- CI/CD tested: Python 3.9, 3.10, 3.11, 3.12, 3.13
+- All versions passing tests on Ubuntu, Windows, macOS
 
 ### Performance Requirements
 - Startup time: < 2 seconds

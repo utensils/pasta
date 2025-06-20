@@ -135,6 +135,16 @@ def ensure_no_pasta_running():
     kill_existing_pasta_processes()
     print("✅ Ready to run tests")
 
+    # Ensure pyautogui is available in pasta.core.keyboard for tests that need to mock it
+    # This is needed because pyautogui is now lazily loaded
+    try:
+        from pasta.core.keyboard import _get_pyautogui
+
+        _get_pyautogui()
+    except ImportError:
+        # If import fails, that's fine - the mock is already in place
+        pass
+
     yield
 
     # Optionally kill again after tests (in case tests leave processes running)

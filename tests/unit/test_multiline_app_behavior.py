@@ -1,6 +1,6 @@
 """Test multi-line behavior in app context."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -21,12 +21,11 @@ class TestMultilineAppBehavior:
 Consectetur adipiscing elit
 Sed do eiusmod tempor"""
 
-        with (
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
-            patch("pasta.core.keyboard.time.sleep") as mock_sleep,
-        ):
-            mock_pyautogui.position.return_value = (100, 100)
+        mock_pyautogui = Mock()
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
+        with patch("pasta.core.keyboard.time.sleep") as mock_sleep:
             result = keyboard_engine.paste_text(test_text, method="typing")
 
             assert result is True
@@ -37,16 +36,15 @@ Sed do eiusmod tempor"""
         """Test that single line has no initial delay."""
         test_text = "Lorem ipsum dolor sit amet"
 
-        with (
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
-            patch("pasta.core.keyboard.time.sleep") as mock_sleep,
-        ):
-            mock_pyautogui.position.return_value = (100, 100)
+        mock_pyautogui = Mock()
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
+        with patch("pasta.core.keyboard.time.sleep") as mock_sleep:
             result = keyboard_engine.paste_text(test_text, method="typing")
 
             assert result is True
-            # Should not have 0.1s delay for single line
+            # Should not have 0.2s delay for single line
             if mock_sleep.called:
                 # Only chunk delays should be present
                 for call in mock_sleep.call_args_list:
@@ -57,18 +55,19 @@ Sed do eiusmod tempor"""
         test_text = """Line 1
 Line 2"""
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            # Simulate pyautogui failing silently
-            mock_pyautogui.write = MagicMock(return_value=None)
-            mock_pyautogui.press = MagicMock(return_value=None)
-            mock_pyautogui.position.return_value = (100, 100)
+        # Simulate pyautogui failing silently
+        mock_pyautogui = Mock()
+        mock_pyautogui.write = MagicMock(return_value=None)
+        mock_pyautogui.press = MagicMock(return_value=None)
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            result = keyboard_engine.paste_text(test_text, method="typing")
+        result = keyboard_engine.paste_text(test_text, method="typing")
 
-            # Should still return True (no exception)
-            assert result is True
-            assert mock_pyautogui.write.called
-            assert mock_pyautogui.press.called
+        # Should still return True (no exception)
+        assert result is True
+        assert mock_pyautogui.write.called
+        assert mock_pyautogui.press.called
 
     def test_app_context_simulation(self, keyboard_engine):
         """Simulate app context where multi-line might fail."""
@@ -80,22 +79,23 @@ Sed do eiusmod tempor"""
         write_calls = []
         press_calls = []
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            mock_pyautogui.write.side_effect = lambda text, **kwargs: write_calls.append(text)
-            mock_pyautogui.press.side_effect = lambda key: press_calls.append(key)
-            mock_pyautogui.position.return_value = (100, 100)
+        mock_pyautogui = Mock()
+        mock_pyautogui.write.side_effect = lambda text, **kwargs: write_calls.append(text)
+        mock_pyautogui.press.side_effect = lambda key: press_calls.append(key)
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            # Simulate being called from app context
-            result = keyboard_engine.paste_text(test_text, method="typing")
+        # Simulate being called from app context
+        result = keyboard_engine.paste_text(test_text, method="typing")
 
-            assert result is True
-            assert len(write_calls) == 3  # Three lines
-            assert len(press_calls) == 2  # Two enters
+        assert result is True
+        assert len(write_calls) == 3  # Three lines
+        assert len(press_calls) == 2  # Two enters
 
-            # Verify content
-            assert "Lorem ipsum dolor sit amet" in write_calls
-            assert "Consectetur adipiscing elit" in write_calls
-            assert "Sed do eiusmod tempor" in write_calls
+        # Verify content
+        assert "Lorem ipsum dolor sit amet" in write_calls
+        assert "Consectetur adipiscing elit" in write_calls
+        assert "Sed do eiusmod tempor" in write_calls
 
     def test_empty_lines_in_multiline(self, keyboard_engine):
         """Test multi-line with empty lines."""
@@ -103,26 +103,28 @@ Sed do eiusmod tempor"""
 
 Third line"""
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            mock_pyautogui.position.return_value = (100, 100)
+        mock_pyautogui = Mock()
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            result = keyboard_engine.paste_text(test_text, method="typing")
+        result = keyboard_engine.paste_text(test_text, method="typing")
 
-            assert result is True
-            # Empty line should still trigger enter
-            assert mock_pyautogui.press.call_count == 2
+        assert result is True
+        # Empty line should still trigger enter
+        assert mock_pyautogui.press.call_count == 2
 
     def test_very_long_multiline(self, keyboard_engine):
         """Test multi-line with very long lines that need chunking."""
         long_line = "x" * 250  # Longer than chunk size
         test_text = f"Short line\n{long_line}\nAnother short line"
 
-        with patch("pasta.core.keyboard.pyautogui") as mock_pyautogui:
-            mock_pyautogui.position.return_value = (100, 100)
+        mock_pyautogui = Mock()
+        mock_pyautogui.position.return_value = (100, 100)
+        keyboard_engine._ensure_pyautogui = Mock(return_value=mock_pyautogui)
 
-            result = keyboard_engine.paste_text(test_text, method="typing")
+        result = keyboard_engine.paste_text(test_text, method="typing")
 
-            assert result is True
-            # Should have more write calls due to chunking
-            assert mock_pyautogui.write.call_count > 3
-            assert mock_pyautogui.press.call_count == 2  # Still only 2 enters
+        assert result is True
+        # Should have more write calls due to chunking
+        assert mock_pyautogui.write.call_count > 3
+        assert mock_pyautogui.press.call_count == 2  # Still only 2 enters

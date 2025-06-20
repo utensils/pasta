@@ -1,4 +1,5 @@
 """Persistent storage for clipboard history."""
+# mypy: disable-error-code="unreachable"
 
 import contextlib
 import json
@@ -36,18 +37,33 @@ class StorageManager:
         _ = encryption_key  # noqa: F841
         self.db_path = db_path
         self._lock = threading.Lock()
+        self._initialized = False
+        self._cipher: Fernet | None = None
+        self._security_manager: SecurityManager | None = None
 
-        # Ensure directory exists
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    def _ensure_initialized(self) -> None:
+        """Ensure database and encryption are initialized."""
+        if self._initialized:
+            return
 
-        # Initialize encryption
-        self.cipher = Fernet(self._get_or_create_key())
+        with self._lock:
+            # Double-check after acquiring lock
+            if self._initialized:
+                return
 
-        # Use SecurityManager for sensitive data detection
-        self._security_manager = SecurityManager()
+            # Ensure directory exists
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
-        # Initialize database
-        self._init_database()
+            # Initialize encryption
+            self._cipher = Fernet(self._get_or_create_key())
+
+            # Use SecurityManager for sensitive data detection
+            self._security_manager = SecurityManager()
+
+            # Initialize database
+            self._init_database()
+
+            self._initialized = True
 
     def _get_or_create_key(self) -> bytes:
         """Get or create encryption key.
@@ -125,6 +141,8 @@ class StorageManager:
         Returns:
             True if sensitive data detected
         """
+        self._ensure_initialized()
+        assert self._security_manager is not None
         return self._security_manager.is_sensitive(content)
 
     def save_entry(self, entry: dict[str, Any]) -> int | None:
@@ -136,6 +154,7 @@ class StorageManager:
         Returns:
             ID of saved entry or None on error
         """
+        self._ensure_initialized()
         try:
             with self._lock:
                 content = entry["content"]
@@ -143,7 +162,8 @@ class StorageManager:
 
                 if encrypted:
                     # Encrypt sensitive content
-                    content = self.cipher.encrypt(content.encode()).decode()
+                    assert self._cipher is not None
+                    content = self._cipher.encrypt(content.encode()).decode()
 
                 with self._get_connection() as conn:
                     cursor = conn.execute(
@@ -174,6 +194,7 @@ class StorageManager:
         Returns:
             Entry dict or None if not found
         """
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             cursor = conn.execute("SELECT * FROM clipboard_history WHERE id = ?", (entry_id,))
             row = cursor.fetchone()
@@ -192,6 +213,7 @@ class StorageManager:
         Returns:
             List of entry dicts
         """
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -219,7 +241,8 @@ class StorageManager:
         if entry["encrypted"]:
             with contextlib.suppress(Exception):
                 # Decryption failed, return as-is
-                entry["content"] = self.cipher.decrypt(entry["content"].encode()).decode()
+                assert self._cipher is not None
+                entry["content"] = self._cipher.decrypt(entry["content"].encode()).decode()
 
         # Convert timestamp string to datetime
         if isinstance(entry["timestamp"], str):
@@ -236,6 +259,7 @@ class StorageManager:
         Returns:
             True if deleted, False otherwise
         """
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             cursor = conn.execute("DELETE FROM clipboard_history WHERE id = ?", (entry_id,))
             conn.commit()
@@ -250,6 +274,7 @@ class StorageManager:
         Returns:
             List of matching entries
         """
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             # Don't search encrypted content
             cursor = conn.execute(
@@ -269,6 +294,7 @@ class StorageManager:
         Args:
             days: Number of days to keep
         """
+        self._ensure_initialized()
         cutoff_date = datetime.now() - timedelta(days=days)
 
         with self._lock, self._get_connection() as conn:
@@ -292,6 +318,7 @@ class StorageManager:
 
     def clear_history(self) -> None:
         """Clear all clipboard history."""
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             conn.execute("DELETE FROM clipboard_history")
             conn.commit()
@@ -302,6 +329,7 @@ class StorageManager:
         Returns:
             Statistics dictionary
         """
+        self._ensure_initialized()
         with self._lock, self._get_connection() as conn:
             # Total entries
             total = conn.execute("SELECT COUNT(*) FROM clipboard_history").fetchone()[0]
@@ -319,7 +347,7 @@ class StorageManager:
                 type_stats[row["content_type"]] = row["count"]
 
             # Database size
-            db_size = Path(self.db_path).stat().st_size
+            db_size = Path(self.db_path).stat().st_size if Path(self.db_path).exists() else 0
 
             return {
                 "total_entries": total,
@@ -369,6 +397,7 @@ class StorageManager:
         This method generates a new encryption key and re-encrypts
         all sensitive data in the database with the new key.
         """
+        self._ensure_initialized()
         # Generate new key
         new_key = Fernet.generate_key()
         new_cipher = Fernet(new_key)
@@ -379,7 +408,8 @@ class StorageManager:
 
             for row in cursor.fetchall():
                 # Decrypt with old key
-                decrypted = self.cipher.decrypt(row["content"].encode()).decode()
+                assert self._cipher is not None
+                decrypted = self._cipher.decrypt(row["content"].encode()).decode()
 
                 # Encrypt with new key
                 encrypted = new_cipher.encrypt(decrypted.encode()).decode()
@@ -390,7 +420,7 @@ class StorageManager:
             conn.commit()
 
         # Update cipher and save new key
-        self.cipher = new_cipher
+        self._cipher = new_cipher
         key_file = Path(self.db_path).parent / ".pasta_key"
         with open(key_file, "wb") as f:
             f.write(new_key)

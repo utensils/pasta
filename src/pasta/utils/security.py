@@ -8,6 +8,36 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+# Pre-compile regex patterns for sensitive data detection
+# These are compiled at module import time for better performance
+_SENSITIVE_DATA_PATTERNS = {
+    # Credit cards
+    "credit_card": re.compile(r"\b(?:\d{4}[\s-]?){3}\d{4}\b"),
+    "credit_card_no_space": re.compile(r"\b\d{16}\b"),
+    # SSN
+    "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b|\b\d{3} \d{2} \d{4}\b"),
+    # Passwords
+    "password": re.compile(r"(?i)(password|passwd|pwd)[\s:=]+\S+"),
+    # API Keys and tokens
+    "api_key": re.compile(r"(?i)(api[-_]?key|apikey)[\s:=]+[\w-]+"),
+    "secret": re.compile(r"(?i)(secret|token)[\s:=]+\S+"),
+    "bearer_token": re.compile(r"(?i)Bearer\s+[\w.-]+"),
+    "auth_header": re.compile(r"(?i)(Authorization|X-API-Key)[\s:]+[\w.-]+"),
+    "github_token": re.compile(r"github_pat_[\w]+"),
+    "gitlab_token": re.compile(r"glpat-[\w-]+"),
+    "slack_token": re.compile(r"xox[baprs]-[\w-]+"),
+    "aws_key": re.compile(r"AKIA[0-9A-Z]{16}"),
+    "aws_secret": re.compile(r"(?i)aws_secret_access_key[\s=]+[\w/+=]+"),
+    # Private keys
+    "private_key_rsa": re.compile(r"-----BEGIN\s*(?:RSA\s*)?PRIVATE\s*KEY-----"),
+    "private_key_general": re.compile(r"-----BEGIN\s*PRIVATE\s*KEY-----"),
+    "private_key_ec": re.compile(r"-----BEGIN\s*EC\s*PRIVATE\s*KEY-----"),
+    "ssh_key": re.compile(r"ssh-rsa\s+[\w+/=]+"),
+    # Database URLs
+    "db_url_postgres": re.compile(r"postgres(?:ql)?://[^:]+:[^@]+@[^/]+(?:/\w+)?"),
+    "db_url_mysql": re.compile(r"mysql://[^:]+:[^@]+@[^/]+(?:/\w+)?"),
+}
+
 
 class SensitiveDataDetector:
     """Detects sensitive data in clipboard content.
@@ -21,33 +51,8 @@ class SensitiveDataDetector:
 
     def __init__(self) -> None:
         """Initialize the sensitive data detector."""
-        self.patterns: dict[str, str] = {
-            # Credit cards
-            "credit_card": r"\b(?:\d{4}[\s-]?){3}\d{4}\b",
-            "credit_card_no_space": r"\b\d{16}\b",
-            # SSN
-            "ssn": r"\b\d{3}-\d{2}-\d{4}\b|\b\d{3} \d{2} \d{4}\b",
-            # Passwords
-            "password": r"(?i)(password|passwd|pwd)[\s:=]+\S+",
-            # API Keys and tokens
-            "api_key": r"(?i)(api[-_]?key|apikey)[\s:=]+[\w-]+",
-            "secret": r"(?i)(secret|token)[\s:=]+\S+",
-            "bearer_token": r"(?i)Bearer\s+[\w.-]+",
-            "auth_header": r"(?i)(Authorization|X-API-Key)[\s:]+[\w.-]+",
-            "github_token": r"github_pat_[\w]+",
-            "gitlab_token": r"glpat-[\w-]+",
-            "slack_token": r"xox[baprs]-[\w-]+",
-            "aws_key": r"AKIA[0-9A-Z]{16}",
-            "aws_secret": r"(?i)aws_secret_access_key[\s=]+[\w/+=]+",
-            # Private keys
-            "private_key_rsa": r"-----BEGIN\s*(?:RSA\s*)?PRIVATE\s*KEY-----",
-            "private_key_general": r"-----BEGIN\s*PRIVATE\s*KEY-----",
-            "private_key_ec": r"-----BEGIN\s*EC\s*PRIVATE\s*KEY-----",
-            "ssh_key": r"ssh-rsa\s+[\w+/=]+",
-            # Database URLs
-            "db_url_postgres": r"postgres(?:ql)?://[^:]+:[^@]+@[^/]+(?:/\w+)?",
-            "db_url_mysql": r"mysql://[^:]+:[^@]+@[^/]+(?:/\w+)?",
-        }
+        # Use pre-compiled patterns from module level
+        self.patterns: dict[str, re.Pattern] = _SENSITIVE_DATA_PATTERNS.copy()
 
     def is_sensitive(self, text: str) -> bool:
         """Check if text contains sensitive data.
@@ -58,7 +63,7 @@ class SensitiveDataDetector:
         Returns:
             True if sensitive data is detected
         """
-        return any(re.search(pattern, text) for pattern in self.patterns.values())
+        return any(pattern.search(text) for pattern in self.patterns.values())
 
     def get_detected_types(self, text: str) -> list[str]:
         """Get types of sensitive data detected in text.
@@ -71,7 +76,7 @@ class SensitiveDataDetector:
         """
         detected = []
         for data_type, pattern in self.patterns.items():
-            if re.search(pattern, text):
+            if pattern.search(text):
                 detected.append(data_type)
         return detected
 
@@ -86,8 +91,8 @@ class SensitiveDataDetector:
             ValueError: If pattern is invalid regex
         """
         try:
-            re.compile(pattern)
-            self.patterns[name] = pattern
+            compiled_pattern = re.compile(pattern)
+            self.patterns[name] = compiled_pattern
         except re.error as e:
             raise ValueError(f"Invalid regex pattern: {e}") from e
 
@@ -115,7 +120,7 @@ class SensitiveDataDetector:
         """
         redacted = text
         for pattern in self.patterns.values():
-            redacted = re.sub(pattern, redaction, redacted)
+            redacted = pattern.sub(redaction, redacted)
         return redacted
 
 

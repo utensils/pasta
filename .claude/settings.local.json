@@ -3,7 +3,8 @@
     "allow": [
       "Bash(uv run pytest:*)",
       "Bash(ls:*)",
-      "Bash(uv run coverage:*)"
+      "Bash(uv run coverage:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

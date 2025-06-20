@@ -39,14 +39,15 @@ class TestPastaKeyboardEngine:
             assert engine.is_mac is False
             assert engine.paste_key == "ctrl"
 
-    @patch("pyautogui.PAUSE", 0.01)
     def test_pyautogui_optimization(self, engine):
-        """Test PyAutoGUI is optimized for speed."""
-        # PyAutoGUI PAUSE should be reduced from default
-        import pyautogui
+        """Test PyAutoGUI is optimized for speed when loaded."""
+        # Trigger loading of pyautogui
+        pyautogui = engine._ensure_pyautogui()
 
-        assert pyautogui.PAUSE == 0.01
-        assert pyautogui.FAILSAFE is True
+        # Check that it's configured properly if it's real pyautogui
+        if hasattr(pyautogui, "PAUSE"):
+            assert pyautogui.PAUSE == 0.01
+            assert pyautogui.FAILSAFE is True
 
     @patch("pyperclip.copy")
     @patch("pyperclip.paste")

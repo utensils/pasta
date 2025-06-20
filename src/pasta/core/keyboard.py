@@ -4,93 +4,123 @@
 import platform
 import threading
 import time
+from typing import Any
 
 import psutil
 import pyperclip
 
-# Try to import pyautogui, fall back to pyperclip-only mode if not available
-try:
-    import pyautogui
+# Global variables for lazy pyautogui import
+_pyautogui_module: Any = None
+_pyautogui_checked = False
 
-    PYAUTOGUI_AVAILABLE = True
-except ImportError:
-    PYAUTOGUI_AVAILABLE = False
+# For backward compatibility with tests
+pyautogui = None
 
-    # Create a dummy pyautogui module with the methods we need
-    class DummyPyAutoGUI:
-        """Fallback implementation of pyautogui for when the module is not available."""
 
-        PAUSE = 0.01
-        FAILSAFE = True
+class DummyPyAutoGUI:
+    """Fallback implementation of pyautogui for when the module is not available."""
 
-        @staticmethod
-        def typewrite(text: str, interval: float = 0) -> None:  # noqa: ARG004
-            """Simulate typing by falling back to clipboard method.
+    PAUSE = 0.01
+    FAILSAFE = True
 
-            Args:
-                text: Text to type
-                interval: Delay between keystrokes (ignored in fallback)
-            """
-            # Fall back to clipboard method
-            pyperclip.copy(text)
-            if platform.system() == "Darwin":
-                # On macOS, we can use osascript to simulate Cmd+V
-                import subprocess
+    @staticmethod
+    def typewrite(text: str, interval: float = 0) -> None:  # noqa: ARG004
+        """Simulate typing by falling back to clipboard method.
 
-                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
-            else:
-                # On other systems, just copy to clipboard
-                pass
+        Args:
+            text: Text to type
+            interval: Delay between keystrokes (ignored in fallback)
+        """
+        # Fall back to clipboard method
+        pyperclip.copy(text)
+        if platform.system() == "Darwin":
+            # On macOS, we can use osascript to simulate Cmd+V
+            import subprocess
 
-        @staticmethod
-        def write(text: str, interval: float = 0.005) -> None:
-            """Write text (alias for typewrite).
+            subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
+        else:
+            # On other systems, just copy to clipboard
+            pass
 
-            Args:
-                text: Text to write
-                interval: Delay between keystrokes
-            """
-            DummyPyAutoGUI.typewrite(text, interval)
+    @staticmethod
+    def write(text: str, interval: float = 0.005) -> None:
+        """Write text (alias for typewrite).
 
-        @staticmethod
-        def hotkey(*keys: str) -> None:
-            """Simulate hotkey press.
+        Args:
+            text: Text to write
+            interval: Delay between keystrokes
+        """
+        DummyPyAutoGUI.typewrite(text, interval)
 
-            Args:
-                *keys: Keys to press together
-            """
-            if platform.system() == "Darwin" and keys == ("cmd", "v"):
-                import subprocess
+    @staticmethod
+    def hotkey(*keys: str) -> None:
+        """Simulate hotkey press.
 
-                subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
-            elif keys == ("ctrl", "v"):
-                # For other systems, we'd need platform-specific implementations
-                pass
+        Args:
+            *keys: Keys to press together
+        """
+        if platform.system() == "Darwin" and keys == ("cmd", "v"):
+            import subprocess
 
-        @staticmethod
-        def press(key: str) -> None:
-            """Simulate key press.
-
-            Args:
-                key: Key to press
-            """
-            if key == "enter" and platform.system() == "Darwin":
-                import subprocess
-
-                subprocess.run(["osascript", "-e", 'tell application "System Events" to key code 36'], check=False)
+            subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "v" using command down'], check=False)
+        elif keys == ("ctrl", "v"):
             # For other systems, we'd need platform-specific implementations
+            pass
 
-        @staticmethod
-        def position() -> tuple[int, int]:
-            """Get current mouse position.
+    @staticmethod
+    def press(key: str) -> None:
+        """Simulate key press.
 
-            Returns:
-                Tuple of (x, y) coordinates
-            """
-            # Return a dummy position
-            return (0, 0)
+        Args:
+            key: Key to press
+        """
+        if key == "enter" and platform.system() == "Darwin":
+            import subprocess
 
-    pyautogui = DummyPyAutoGUI()
+            subprocess.run(["osascript", "-e", 'tell application "System Events" to key code 36'], check=False)
+        # For other systems, we'd need platform-specific implementations
+
+    @staticmethod
+    def position() -> tuple[int, int]:
+        """Get current mouse position.
+
+        Returns:
+            Tuple of (x, y) coordinates
+        """
+        # Return a dummy position
+        return (0, 0)
+
+
+def _get_pyautogui() -> Any:
+    """Lazy import of pyautogui module.
+
+    Returns:
+        pyautogui module or DummyPyAutoGUI if not available
+    """
+    global _pyautogui_module, _pyautogui_checked, pyautogui
+
+    if not _pyautogui_checked:
+        _pyautogui_checked = True
+        try:
+            import pyautogui as _real_pyautogui
+
+            _pyautogui_module = _real_pyautogui
+            pyautogui = _real_pyautogui  # Set module-level variable for backward compatibility
+        except ImportError:
+            _pyautogui_module = DummyPyAutoGUI()
+            pyautogui = _pyautogui_module
+
+    return _pyautogui_module
+
+
+def is_pyautogui_available() -> bool:
+    """Check if pyautogui is available.
+
+    Returns:
+        True if pyautogui can be imported, False otherwise
+    """
+    pyautogui = _get_pyautogui()
+    return not isinstance(pyautogui, DummyPyAutoGUI)
 
 
 class AdaptiveTypingEngine:
@@ -155,9 +185,8 @@ class PastaKeyboardEngine:
         self.clipboard_threshold = clipboard_threshold
         self.chunk_size = chunk_size
 
-        # Optimize PyAutoGUI
-        pyautogui.PAUSE = 0.01  # Reduce from default 0.1s
-        pyautogui.FAILSAFE = True  # Safety feature
+        # PyAutoGUI will be configured on first use
+        self._pyautogui = None  # Will be initialized on first use
 
         # Adaptive typing engine
         self._adaptive_engine = AdaptiveTypingEngine()
@@ -168,6 +197,20 @@ class PastaKeyboardEngine:
         self._paste_lock = threading.Lock()
         self._abort_callback = None
         self._original_clipboard = None
+
+    def _ensure_pyautogui(self) -> Any:
+        """Ensure pyautogui is loaded and configured.
+
+        Returns:
+            pyautogui module or DummyPyAutoGUI
+        """
+        if self._pyautogui is None:
+            self._pyautogui = _get_pyautogui()
+            # Configure settings if real pyautogui
+            if not isinstance(self._pyautogui, DummyPyAutoGUI) and self._pyautogui is not None:
+                self._pyautogui.PAUSE = 0.01  # Reduce from default 0.1s
+                self._pyautogui.FAILSAFE = True  # Safety feature
+        return self._pyautogui
 
     def paste_text(self, text: str, method: str = "auto") -> bool:
         """Paste text using specified method.
@@ -224,6 +267,7 @@ class PastaKeyboardEngine:
             pyperclip.copy(text)
 
             # Perform paste
+            pyautogui = self._ensure_pyautogui()
             pyautogui.hotkey(self.paste_key, "v")
 
             # Restore original clipboard content after delay
@@ -271,6 +315,7 @@ class PastaKeyboardEngine:
                         return False
 
                     chunk = line[j : j + self.chunk_size]
+                    pyautogui = self._ensure_pyautogui()
                     pyautogui.write(chunk, interval=0.005)
 
                     # Pause between chunks
@@ -287,6 +332,7 @@ class PastaKeyboardEngine:
                 if i < len(lines) - 1:
                     # Small delay before pressing enter for multi-line
                     time.sleep(0.05)
+                    pyautogui = self._ensure_pyautogui()
                     pyautogui.press("enter")
                     # Small delay after enter to ensure it registers
                     time.sleep(0.05)
@@ -305,6 +351,7 @@ class PastaKeyboardEngine:
             True if safe to continue, False to abort
         """
         try:
+            pyautogui = self._ensure_pyautogui()
             x, y = pyautogui.position()
             # Abort if mouse is in top-left corner (0, 0)
             return not (x == 0 and y == 0)

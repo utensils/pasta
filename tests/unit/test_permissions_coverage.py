@@ -11,13 +11,29 @@ from pasta.utils.permissions import PermissionChecker
 class TestPermissionCheckerCoverage:
     """Additional test cases for PermissionChecker coverage."""
 
+    @pytest.fixture(autouse=True)
+    def clear_cache(self):
+        """Clear permission cache before each test."""
+        # Try to clear any existing cache
+        try:
+            checker = PermissionChecker()
+            checker.clear_cache()
+        except Exception:
+            pass
+        yield
+
     @pytest.fixture
     def checker(self):
         """Create a PermissionChecker instance for testing."""
-        return PermissionChecker()
+        with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
+            return PermissionChecker()
 
-    def test_cached_result(self, checker):
+    def test_cached_result(self):
         """Test that permission check results are cached."""
+        # Create checker without cache loading
+        with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
+            checker = PermissionChecker()
+
         # Mock platform check
         with patch.object(checker, "_check_macos_accessibility", return_value=True) as mock_check:
             checker.platform = "Darwin"
@@ -38,7 +54,8 @@ class TestPermissionCheckerCoverage:
     @patch("os.getuid", return_value=1000)  # Non-root user
     def test_linux_permission_denied(self, mock_uid, mock_system):
         """Test Linux permissions when not running as root."""
-        checker = PermissionChecker()
+        with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
+            checker = PermissionChecker()
 
         with patch.object(checker, "_check_linux_permissions", return_value=False):
             result = checker.check_permissions()
@@ -47,7 +64,8 @@ class TestPermissionCheckerCoverage:
     @patch("platform.system", return_value="Unknown")
     def test_unknown_platform(self, mock_system):
         """Test permissions on unknown platform."""
-        checker = PermissionChecker()
+        with patch("pasta.utils.permissions.PermissionChecker._load_cache"):
+            checker = PermissionChecker()
         result = checker.check_permissions()
         # Unknown platforms should return True
         assert result is True

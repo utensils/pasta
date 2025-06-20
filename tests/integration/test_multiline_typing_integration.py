@@ -42,8 +42,11 @@ class TestMultilineTypingIntegration:
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap"),
             patch("pasta.gui.tray_pyside6.QPainter"),
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
         ):
+            # Mock the keyboard engine's _ensure_pyautogui method to return our mock
+            mock_pyautogui = Mock()
+            components["keyboard_engine"]._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
             tray = SystemTray(**components)
             tray._update_menu = Mock()
             tray._update_tray_icon = Mock()
@@ -87,8 +90,11 @@ class TestMultilineTypingIntegration:
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap"),
             patch("pasta.gui.tray_pyside6.QPainter"),
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
         ):
+            # Mock the keyboard engine's _ensure_pyautogui method to return our mock
+            mock_pyautogui = Mock()
+            components["keyboard_engine"]._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
             tray = SystemTray(**components)
             tray._update_menu = Mock()
             tray._update_tray_icon = Mock()
@@ -133,8 +139,11 @@ print(result)""",
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap"),
             patch("pasta.gui.tray_pyside6.QPainter"),
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
         ):
+            # Mock the keyboard engine's _ensure_pyautogui method to return our mock
+            mock_pyautogui = Mock()
+            components["keyboard_engine"]._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
             tray = SystemTray(**components)
             tray._update_menu = Mock()
             tray._update_tray_icon = Mock()
@@ -172,8 +181,11 @@ print(result)""",
             patch("pasta.gui.tray_pyside6.HotkeyManager"),
             patch("pasta.gui.tray_pyside6.QPixmap"),
             patch("pasta.gui.tray_pyside6.QPainter"),
-            patch("pasta.core.keyboard.pyautogui") as mock_pyautogui,
         ):
+            # Mock the keyboard engine's _ensure_pyautogui method to return our mock
+            mock_pyautogui = Mock()
+            components["keyboard_engine"]._ensure_pyautogui = Mock(return_value=mock_pyautogui)
+
             tray = SystemTray(**components)
             tray._update_menu = Mock()
             tray._update_tray_icon = Mock()
