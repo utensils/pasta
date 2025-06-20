@@ -1,5 +1,8 @@
 # Pasta - Clipboard to Keyboard
 
+[![codecov](https://codecov.io/gh/utensils/pasta/graph/badge.svg)](https://codecov.io/gh/utensils/pasta)
+[![CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
+
 <p align="center">
   <img src="src-tauri/assets/logo.png" alt="Pasta Logo" width="256" height="256">
 </p>

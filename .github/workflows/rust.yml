@@ -7,12 +7,16 @@ on:
       - 'src-tauri/**'
       - 'src/**'
       - '.github/workflows/rust.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
   pull_request:
     branches: [main]
     paths:
       - 'src-tauri/**'
       - 'src/**'
       - '.github/workflows/rust.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
 
 env:
   CARGO_TERM_COLOR: always
