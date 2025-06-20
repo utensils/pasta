@@ -13,6 +13,15 @@ mod lib_tests;
 #[cfg(test)]
 mod config_error_tests;
 
+#[cfg(test)]
+mod keyboard_mock_tests;
+
+#[cfg(test)]
+mod config_debug_tests;
+
+#[cfg(test)]
+mod additional_tests;
+
 use std::sync::Arc;
 
 use log::{error, info};
