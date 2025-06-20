@@ -28,6 +28,15 @@ mod clipboard_mock_tests;
 #[cfg(test)]
 mod comprehensive_tests;
 
+#[cfg(test)]
+mod tray_builder_tests;
+
+#[cfg(test)]
+mod keyboard_thread_tests;
+
+#[cfg(test)]
+mod init_tests;
+
 use std::sync::Arc;
 
 use log::{error, info};
