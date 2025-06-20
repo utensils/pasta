@@ -29,6 +29,9 @@ mod tests {
 
     use super::*;
 
+    // Note: These tests require a display server (X11/Wayland) to run
+    // They are excluded from CI runs with: cargo test -- --skip clipboard::tests
+
     #[test]
     #[serial]
     fn test_get_clipboard_content() {

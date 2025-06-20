@@ -73,7 +73,7 @@ jobs:
 
     - name: Run tests
       working-directory: ./src-tauri
-      run: cargo test --lib --verbose
+      run: cargo test --lib --verbose -- --skip clipboard::tests
 
   coverage:
     name: Code Coverage
@@ -124,7 +124,8 @@ jobs:
           --exclude-files "*/clipboard.rs" \
           --skip-clean \
           --workspace \
-          --timeout 120
+          --timeout 120 \
+          -- --skip clipboard::tests
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

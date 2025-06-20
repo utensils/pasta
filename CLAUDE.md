@@ -51,8 +51,8 @@ cargo test config::
 # Run tests with output
 cargo test -- --nocapture
 
-# Run tests excluding clipboard tests (which may segfault on some systems)
-cargo test --lib -- config:: window::
+# Run tests excluding clipboard tests (which require display server)
+cargo test --lib -- --skip clipboard::tests
 
 # Run tests in release mode for better performance
 cargo test --release

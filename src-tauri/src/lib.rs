@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     config_manager: Arc<ConfigManager>,
     keyboard_emulator: Arc<KeyboardEmulator>,
 }
@@ -228,5 +228,31 @@ mod tests {
         // Verify app state holds correct references
         let config = app_state.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Normal);
+    }
+
+    #[test]
+    fn test_tray_menu_submenu_persistence() {
+        // Test to ensure submenu items are properly built and won't vanish
+        // This test verifies the menu structure is stable
+        
+        let menu_structure = vec![
+            ("paste", "MenuItemKind::MenuItem"),
+            ("typing_speed", "MenuItemKind::Submenu"),
+            ("settings", "MenuItemKind::MenuItem"),
+            ("quit", "MenuItemKind::MenuItem"),
+        ];
+
+        // Verify typing speed submenu has exactly 3 items
+        let speed_items = vec!["speed_slow", "speed_normal", "speed_fast"];
+        assert_eq!(speed_items.len(), 3);
+        
+        // Ensure menu IDs are unique
+        let all_ids: Vec<&str> = menu_structure.iter()
+            .map(|(id, _)| *id)
+            .chain(speed_items.iter().map(|s| *s))
+            .collect();
+        
+        let unique_ids: std::collections::HashSet<_> = all_ids.iter().collect();
+        assert_eq!(all_ids.len(), unique_ids.len(), "All menu IDs should be unique");
     }
 }

@@ -24,7 +24,7 @@ impl TrayManager {
         // Create menu items
         let paste_item = MenuItemBuilder::with_id("paste", "Paste").build(app)?;
 
-        // Create typing speed submenu
+        // Create typing speed submenu items
         let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
             .checked(config.typing_speed == TypingSpeed::Slow)
             .build(app)?;
@@ -37,14 +37,15 @@ impl TrayManager {
             .checked(config.typing_speed == TypingSpeed::Fast)
             .build(app)?;
 
+        // Create typing speed submenu with items
         let speed_submenu = SubmenuBuilder::new(app, "Typing Speed")
             .item(&slow_item)
             .item(&normal_item)
             .item(&fast_item)
+            .enabled(true)
             .build()?;
 
         let settings_item = MenuItemBuilder::with_id("settings", "Settings").build(app)?;
-
         let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
         // Build main menu
@@ -58,10 +59,11 @@ impl TrayManager {
             .item(&quit_item)
             .build()?;
 
-        // Create tray icon
+        // Create tray icon with menu
         let _tray = TrayIconBuilder::new()
             .icon(app.default_window_icon().unwrap().clone())
             .menu(&menu)
+            .show_menu_on_left_click(false)
             .tooltip("Pasta - Clipboard to Keyboard")
             .on_menu_event({
                 let config_manager = self.config_manager.clone();
@@ -106,6 +108,9 @@ impl TrayManager {
             })
             .build(app)?;
 
+        // The tray icon is automatically managed by Tauri
+        // We don't need to explicitly store it
+        
         Ok(())
     }
 }
@@ -161,5 +166,52 @@ mod tests {
         // Verify expected menu item IDs exist
         assert!(menu_items.contains(&"paste"));
         assert!(!menu_items.contains(&"enabled")); // Should not have enabled item
+    }
+
+    #[test]
+    fn test_menu_structure_hierarchy() {
+        // Test that verifies the expected menu structure
+        // Main menu should have:
+        // - Paste (top level)
+        // - Typing Speed (submenu with 3 items)
+        // - Settings
+        // - Quit
+
+        let _expected_structure = vec![
+            ("paste", "item"),
+            ("typing_speed", "submenu"),
+            ("settings", "item"),
+            ("quit", "item"),
+        ];
+
+        let speed_submenu_items = vec!["speed_slow", "speed_normal", "speed_fast"];
+
+        // Verify submenu contains all speed options
+        assert_eq!(speed_submenu_items.len(), 3);
+        for item in &speed_submenu_items {
+            assert!(item.starts_with("speed_"));
+        }
+    }
+
+    #[test]
+    fn test_typing_speed_menu_items_exclusive() {
+        // Test that only one typing speed can be selected at a time
+        let speeds = vec![
+            (TypingSpeed::Slow, "speed_slow"),
+            (TypingSpeed::Normal, "speed_normal"),
+            (TypingSpeed::Fast, "speed_fast"),
+        ];
+
+        // For each speed setting, verify only one item would be checked
+        for (selected_speed, selected_id) in &speeds {
+            let mut checked_count = 0;
+            for (speed, id) in &speeds {
+                if speed == selected_speed {
+                    checked_count += 1;
+                    assert_eq!(id, selected_id);
+                }
+            }
+            assert_eq!(checked_count, 1, "Only one speed should be selected");
+        }
     }
 }

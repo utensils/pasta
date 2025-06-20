@@ -96,10 +96,12 @@ No additional dependencies needed (Windows SDK required).
 cargo test
 ```
 
-### Run tests excluding clipboard tests (recommended for CI):
+### Run tests excluding clipboard tests (required for CI):
 ```bash
 cargo test --lib -- --skip clipboard::tests
 ```
+
+Note: Clipboard tests require a display server (X11/Wayland) and will fail in headless CI environments.
 
 ### Run tests with output:
 ```bash
