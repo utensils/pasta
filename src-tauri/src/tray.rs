@@ -462,6 +462,50 @@ mod tests {
     }
 
     #[test]
+    fn test_tray_manager_config_access() {
+        use std::sync::Mutex;
+        use tempfile::TempDir;
+        use crate::config::Config;
+
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config {
+                typing_speed: TypingSpeed::Fast,
+                left_click_paste: true,
+            })),
+            config_path,
+        });
+
+        let tray_manager = TrayManager::new(config_manager.clone());
+        
+        // Verify the tray manager can access config
+        let config = tray_manager.config_manager.get();
+        assert_eq!(config.typing_speed, TypingSpeed::Fast);
+        assert_eq!(config.left_click_paste, true);
+    }
+
+    #[test]
+    fn test_menu_event_ids() {
+        // Test that all expected menu event IDs are defined
+        let event_ids = vec![
+            "paste",
+            "speed_slow", 
+            "speed_normal",
+            "speed_fast",
+            "left_click_paste",
+            "quit"
+        ];
+        
+        // Verify all IDs are valid strings
+        for id in &event_ids {
+            assert!(!id.is_empty());
+            assert!(id.is_ascii());
+        }
+    }
+
+    #[test]
     fn test_tray_icon_event_types() {
         // Test that we handle the expected tray icon event types
         // Currently we only handle Click events

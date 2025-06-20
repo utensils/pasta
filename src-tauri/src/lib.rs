@@ -190,6 +190,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_paste_clipboard_command_with_text() {
+        // Test the paste_clipboard function structure
+        let mock_state = MockState::new();
+        
+        // We can't directly test paste_clipboard because it uses get_clipboard_content
+        // which requires system clipboard access, but we can test the keyboard emulator
+        let test_text = "Hello, World!";
+        let result = mock_state.app_state.keyboard_emulator.type_text(test_text).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_paste_clipboard_command_error_handling() {
+        // Test error handling in keyboard emulator
+        let mock_state = MockState::new();
+        
+        // Test with very long text that might cause issues
+        let long_text = "a".repeat(10000);
+        let result = mock_state
+            .app_state
+            .keyboard_emulator
+            .type_text(&long_text)
+            .await;
+        assert!(result.is_ok()); // Should handle long text gracefully
+    }
+
+    #[tokio::test]
     async fn test_app_state_creation() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
