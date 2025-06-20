@@ -312,12 +312,12 @@ EOF
             {italic}A fast clipboard typing utility built with Rust and Tauri{reset}
 
             {bold}Quick start:{reset}
-              {green}dev{reset}      - Run in development mode
-              {green}test{reset}     - Run tests
-              {green}build{reset}    - Build for production
-              {green}menu{reset}     - Show all available commands
+              {2}dev{reset}      - Run in development mode
+              {2}test{reset}     - Run tests
+              {2}build{reset}    - Build for production
+              {2}menu{reset}     - Show all available commands
 
-            Type {yellow}menu{reset} to see all available commands with descriptions.
+            Type {3}menu{reset} to see all available commands with descriptions.
           '';
         };
 

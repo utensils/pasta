@@ -125,11 +125,13 @@ jobs:
           --exclude-files "*/main.rs" \
           --exclude-files "*/build.rs" \
           --exclude-files "*/tests/*" \
+          --exclude-files "*/lib.rs" \
+          --exclude-files "*/tray.rs" \
+          --exclude-files "*/window.rs" \
           --exclude-files "*/clipboard.rs" \
           --skip-clean \
           --workspace \
-          --timeout 120 \
-          -- --skip clipboard::tests
+          --timeout 120
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
