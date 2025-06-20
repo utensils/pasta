@@ -37,6 +37,15 @@ mod keyboard_thread_tests;
 #[cfg(test)]
 mod init_tests;
 
+#[cfg(test)]
+mod runtime_mock_tests;
+
+#[cfg(test)]
+mod clipboard_error_tests;
+
+#[cfg(test)]
+mod keyboard_execution_tests;
+
 use std::sync::Arc;
 
 use log::{error, info};
