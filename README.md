@@ -75,6 +75,8 @@ Settings are automatically saved to:
 
 ## Development
 
+### Quick Start
+
 ```bash
 # Run in development mode with hot reload
 cargo tauri dev
@@ -89,28 +91,72 @@ cargo fmt
 cargo clippy -- -D warnings
 ```
 
-### Using Nix (Optional)
+### Using Nix (Recommended)
 
-This project includes a Nix flake for reproducible development environments. If you have [Nix](https://nixos.org/) installed with flakes enabled:
+This project includes a Nix flake with a powerful devshell for reproducible development environments. If you have [Nix](https://nixos.org/) installed with flakes enabled:
 
 ```bash
 # Enter development shell with all dependencies
 nix develop
 
-# Run the application directly
-nix run
+# Show the interactive development menu
+menu
 
-# Use the interactive development menu
-nix develop -c menu
+# Or run commands directly:
+nix develop -c dev          # Run in development mode
+nix develop -c test         # Run tests
+nix develop -c build        # Build for production
+```
 
-# Run specific commands in the Nix environment
-nix develop -c cargo test
-nix develop -c cargo fmt
-nix develop -c cargo clippy -- -D warnings
+#### Available Commands
 
-# Alternative development shells
-nix develop .#ci      # Minimal CI environment
-nix develop .#minimal # Basic Rust toolchain only
+The Nix devshell provides convenient commands for all common tasks:
+
+**Development**
+- `dev` - Run in development mode with hot reload
+- `dev-debug` - Run with debug logging enabled
+- `run` - Build and run the application directly
+- `watch` - Watch for changes and rebuild
+
+**Building**
+- `build` - Build for production
+- `build-debug` - Build in debug mode (faster compile, larger binary)
+
+**Testing**
+- `test` - Run all tests
+- `test-lib` - Run library tests (excludes clipboard tests)
+- `test-watch` - Run tests in watch mode
+- `coverage` - Generate test coverage report
+- `coverage-html` - Generate and open HTML coverage report
+
+**Code Quality**
+- `fmt` - Format code with rustfmt
+- `fmt-check` - Check code formatting
+- `lint` - Run clippy linter
+- `lint-fix` - Run clippy and attempt to fix issues
+- `check` - Run format check and linter
+
+**Maintenance**
+- `clean` - Clean build artifacts
+- `clean-all` - Clean all artifacts including coverage
+- `update` - Update dependencies
+- `outdated` - Check for outdated dependencies
+- `audit` - Audit dependencies for security vulnerabilities
+
+**Other**
+- `expand` - Expand macros for debugging
+- `install-hooks` - Install git pre-commit hooks
+
+All commands are accessible through the interactive `menu` or by running them directly:
+
+```bash
+# Using the menu (recommended)
+nix develop
+menu
+
+# Or run commands directly
+nix develop -c test-lib
+nix develop -c coverage
 ```
 
 The Nix flake provides:
@@ -118,7 +164,14 @@ The Nix flake provides:
 - Rust toolchain with cross-compilation targets
 - Platform-specific frameworks and libraries
 - Development utilities (cargo-watch, rust-analyzer, etc.)
-- Interactive menu for common tasks
+- Pre-configured environment variables
+- Automatic directory setup
+
+Alternative development shells:
+```bash
+nix develop .#ci      # Minimal CI environment
+nix develop .#minimal # Basic Rust toolchain only
+```
 
 ## Contributing
 
