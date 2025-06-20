@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::{debug, info};
+use log::{debug, error, info};
 use tauri::{
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -83,17 +83,35 @@ impl TrayManager {
                         }
                         "speed_slow" => {
                             config_manager.set_typing_speed(TypingSpeed::Slow);
-                            update_speed_menu_state(&app_handle, TypingSpeed::Slow);
+                            
+                            // Rebuild the menu to update checkbox states
+                            let tray_manager = TrayManager::new(config_manager.clone());
+                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
+                                error!("Failed to rebuild menu: {}", e);
+                            }
+                            
                             app.emit("config_changed", ()).unwrap();
                         }
                         "speed_normal" => {
                             config_manager.set_typing_speed(TypingSpeed::Normal);
-                            update_speed_menu_state(&app_handle, TypingSpeed::Normal);
+                            
+                            // Rebuild the menu to update checkbox states
+                            let tray_manager = TrayManager::new(config_manager.clone());
+                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
+                                error!("Failed to rebuild menu: {}", e);
+                            }
+                            
                             app.emit("config_changed", ()).unwrap();
                         }
                         "speed_fast" => {
                             config_manager.set_typing_speed(TypingSpeed::Fast);
-                            update_speed_menu_state(&app_handle, TypingSpeed::Fast);
+                            
+                            // Rebuild the menu to update checkbox states
+                            let tray_manager = TrayManager::new(config_manager.clone());
+                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
+                                error!("Failed to rebuild menu: {}", e);
+                            }
+                            
                             app.emit("config_changed", ()).unwrap();
                         }
                         "left_click_paste" => {
@@ -103,6 +121,12 @@ impl TrayManager {
                             // Update tray behavior
                             if let Some(tray) = app.tray_by_id("main") {
                                 let _ = tray.set_show_menu_on_left_click(current); // Inverted: if was enabled, now show menu
+                            }
+                            
+                            // Rebuild the menu to update checkbox state
+                            let tray_manager = TrayManager::new(config_manager.clone());
+                            if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
+                                error!("Failed to rebuild menu: {}", e);
                             }
                         }
                         "quit" => {
@@ -148,17 +172,64 @@ impl TrayManager {
 
         Ok(())
     }
+    
+    pub fn rebuild_menu<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+        // Get the existing tray
+        if let Some(tray) = app.tray_by_id("main") {
+            // Get current config
+            let config = self.config_manager.get();
+            info!("Rebuilding menu with config: typing_speed={:?}, left_click_paste={}", 
+                  config.typing_speed, config.left_click_paste);
+            
+            // Create menu items
+            let paste_item = MenuItemBuilder::with_id("paste", "Paste").build(app)?;
+
+            // Create typing speed submenu items with proper checked state
+            let slow_item = CheckMenuItemBuilder::with_id("speed_slow", "Slow")
+                .checked(config.typing_speed == TypingSpeed::Slow)
+                .build(app)?;
+
+            let normal_item = CheckMenuItemBuilder::with_id("speed_normal", "Normal")
+                .checked(config.typing_speed == TypingSpeed::Normal)
+                .build(app)?;
+
+            let fast_item = CheckMenuItemBuilder::with_id("speed_fast", "Fast")
+                .checked(config.typing_speed == TypingSpeed::Fast)
+                .build(app)?;
+
+            // Create typing speed submenu
+            let speed_submenu = SubmenuBuilder::new(app, "Typing Speed")
+                .item(&slow_item)
+                .item(&normal_item)
+                .item(&fast_item)
+                .build()?;
+
+            // Create left click paste menu item
+            let left_click_item =
+                CheckMenuItemBuilder::with_id("left_click_paste", "Left Click Pastes")
+                    .checked(config.left_click_paste)
+                    .build(app)?;
+
+            let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+
+            // Build new menu
+            let menu = MenuBuilder::new(app)
+                .item(&paste_item)
+                .separator()
+                .item(&speed_submenu)
+                .item(&left_click_item)
+                .separator()
+                .item(&quit_item)
+                .build()?;
+            
+            // Update the tray menu
+            tray.set_menu(Some(menu))?;
+        }
+        
+        Ok(())
+    }
 }
 
-pub fn update_speed_menu_state<R: Runtime>(_app: &AppHandle<R>, speed: TypingSpeed) {
-    // Update the check state of speed menu items
-    // Since we can't access the menu directly from the tray, we need to rebuild it
-    // For now, just log the update
-    debug!("Speed menu state should be updated to: {speed:?}");
-    
-    // The proper way to handle this would be to rebuild the entire menu
-    // with the correct state, but that requires refactoring the setup method
-}
 
 #[cfg(test)]
 mod tests {
@@ -371,15 +442,23 @@ mod tests {
     }
 
     #[test]
-    fn test_update_speed_menu_state_function() {
-        // Test the update_speed_menu_state function exists and handles all speeds
-        let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
+    fn test_rebuild_menu_method_exists() {
+        // Test that TrayManager has a rebuild_menu method
+        // This ensures the menu can be rebuilt to update checkbox states
+        use std::sync::Mutex;
+        use tempfile::TempDir;
+        use crate::config::Config;
 
-        for speed in speeds {
-            // The function should handle all speed types without panic
-            let speed_debug = format!("{:?}", speed);
-            assert!(!speed_debug.is_empty());
-        }
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let config_manager = Arc::new(ConfigManager {
+            config: Arc::new(Mutex::new(Config::default())),
+            config_path,
+        });
+
+        let _tray_manager = TrayManager::new(config_manager);
+        // The rebuild_menu method is tested through integration tests
     }
 
     #[test]

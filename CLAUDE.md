@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an experimental Rust/Tauri implementation of Pasta, demonstrating a minimal viable product with significantly better performance characteristics than the Python version. Located in the `rust-refactor` git worktree, this implementation focuses exclusively on core clipboard monitoring and keyboard typing functionality.
+Pasta is a minimal system tray application that types your clipboard content, built with Rust and Tauri v2. It provides a simple solution for situations where standard paste functionality doesn't work (like in certain remote desktop applications or web-based terminals).
 
 ## Common Development Commands
 
@@ -81,130 +81,131 @@ cargo tauri build --target x86_64-pc-windows-msvc
 cargo tauri build --target x86_64-unknown-linux-gnu
 ```
 
+## Project Structure
+
+```
+pasta/
+├── src/                        # Frontend (minimal HTML/CSS/JS)
+│   ├── index.html             # Settings window UI (currently unused)
+│   └── assets/                # Frontend assets
+│       ├── javascript.svg
+│       └── tauri.svg
+├── src-tauri/                 # Rust/Tauri backend
+│   ├── src/
+│   │   ├── main.rs           # Entry point
+│   │   ├── lib.rs            # App orchestration, state management
+│   │   ├── clipboard.rs      # Clipboard content retrieval
+│   │   ├── keyboard.rs       # Keyboard emulation with text chunking
+│   │   ├── config.rs         # TOML config persistence
+│   │   ├── tray.rs           # System tray menu
+│   │   └── theme.rs          # Theme utilities (currently unused)
+│   ├── assets/               # Tray icons (multiple sizes)
+│   ├── icons/                # App bundle icons
+│   ├── capabilities/         # Tauri permissions
+│   ├── tests/                # Integration tests
+│   ├── Cargo.toml           # Rust dependencies
+│   └── tauri.conf.json      # Tauri configuration
+├── flake.nix                 # Nix development environment
+├── README.md                 # User documentation
+└── CLAUDE.md                 # This file
+
 ## High-Level Architecture
 
 ### Core Design Principles
-- **Minimal MVP**: Only clipboard monitoring and keyboard typing - no history, encryption, or advanced features
-- **Multi-threaded**: Separate threads for clipboard monitoring, keyboard operations, and UI
-- **Channel-based Communication**: Tokio MPSC channels for thread communication
-- **Polling-based Monitoring**: 500ms clipboard polling interval (not event-based)
+- **Minimal Functionality**: Only types clipboard content - no monitoring, history, or advanced features
+- **Simple State Management**: Single AppState with keyboard emulator
+- **System Tray Interface**: All interaction through tray menu
+- **Cross-platform**: Works on macOS, Linux, and Windows
 - **Zero Network Access**: No external communication, telemetry, or updates
-
-### Project Structure
-```
-src-tauri/
-├── src/
-│   ├── main.rs          # Entry point, initializes Tauri
-│   ├── lib.rs           # Core app orchestration, state management
-│   ├── clipboard.rs     # ClipboardMonitor implementation
-│   ├── keyboard.rs      # KeyboardEmulator with chunking logic
-│   ├── config.rs        # TOML-based settings persistence
-│   ├── tray.rs          # System tray menu builder
-│   ├── window.rs        # Window management and behavior
-│   └── theme.rs         # Theme detection and color management
-├── assets/              # Runtime tray icons (template versions)
-├── icons/               # Application bundle icons
-└── capabilities/        # Tauri permission configurations
-
-src/                     # Frontend code (vanilla HTML/CSS/JS)
-└── index.html          # Settings window UI
-```
 
 ### Key Architectural Components
 
 1. **AppState** (lib.rs)
-   - Central state container wrapped in `Arc` for thread-safe sharing
-   - Manages clipboard monitor, keyboard emulator, and config manager
-   - Coordinates component lifecycle
-   - Exposes Tauri IPC commands: `get_config`, `set_enabled`, `set_typing_speed`
+   - Simple state container with only keyboard emulator
+   - Wrapped in `Arc` for thread-safe sharing
+   - Exposes single Tauri IPC command: `paste_clipboard`
 
-2. **ClipboardMonitor** (clipboard.rs)
-   - Runs in dedicated thread with its own Tokio runtime
-   - Uses content hashing to detect changes (DefaultHasher)
-   - Sends clipboard content through MPSC channel
-   - Respects enabled/disabled state dynamically
-   - Gracefully handles clipboard access errors
+2. **Clipboard Access** (clipboard.rs)
+   - Simple synchronous function to get current clipboard content
+   - Uses `arboard` crate for cross-platform clipboard access
+   - Returns `Option<String>` for text content
+   - No monitoring or polling - only reads on demand
 
 3. **KeyboardEmulator** (keyboard.rs)
-   - Runs in separate thread to avoid blocking
+   - Runs in separate thread to avoid blocking UI
    - Chunks text into 200-character segments
    - Configurable delays: Slow (50ms), Normal (25ms), Fast (10ms)
    - 100ms pause between chunks for system stability
    - Special character handling for newlines and tabs
+   - Uses `enigo` crate for keyboard emulation
 
 4. **ConfigManager** (config.rs)
    - Platform-specific config locations using `dirs` crate
    - Auto-saves on every change
-   - Graceful defaults if config missing
-   - Simple TOML format with just `enabled` and `typing_speed`
+   - Simple TOML format with `typing_speed` and `left_click_paste`
+   - Handles migration from old config format
 
-5. **WindowManager** (window.rs)
-   - Handles settings window lifecycle
-   - Prevents app quit on window close (hides instead)
-   - Manages dock icon visibility on macOS
-   - Window starts hidden to prevent flash
-
-6. **Theme System** (theme.rs + CSS)
-   - Automatic light/dark mode detection via CSS media queries
-   - System-native color palette (matches macOS design)
-   - CSS variables for consistent theming
-   - Smooth animations for user feedback
+5. **TrayManager** (tray.rs)
+   - Creates system tray icon with menu
+   - Menu items:
+     - Paste - triggers clipboard typing
+     - Typing Speed submenu (Slow/Normal/Fast)
+     - Left Click Pastes - toggle left-click behavior
+     - Quit
+   - Handles all user interaction
+   - Works around Tauri v2 initialization bug with 100ms delay
 
 ### Threading Model
 ```
 Main Thread (Tauri/UI)
-    ├── Clipboard Monitor Thread (dedicated Tokio runtime)
-    │   └── 500ms polling loop
-    ├── Keyboard Thread (receives from clipboard via channel)
-    │   └── Text chunking and typing
-    └── Settings Window (on-demand)
+    └── Keyboard Thread (spawned on paste action)
+        └── Text chunking and typing
 ```
 
 ### Frontend Architecture
-- Vanilla HTML/CSS/JavaScript (no framework)
-- Single `index.html` settings window
-- Tauri IPC commands: `get_config`, `save_config`
-- Visual save confirmation with floating indicator
-- Accessible form controls with proper labels
-- Automatic light/dark theme support
-- System-native styling (matches macOS UI conventions)
+- Currently minimal - just a placeholder HTML file
+- No settings window implemented
+- All configuration through tray menu
+- Future: Could add settings window if needed
 
 ## Implementation Notes
 
-### Clipboard Monitoring Strategy
-- Polling-based (not event-based) for cross-platform compatibility
-- 500ms interval balances responsiveness vs CPU usage
-- Empty clipboard content ignored
-- Content comparison via hash to detect changes
+### Clipboard Access
+- On-demand reading only (no monitoring or polling)
+- Uses `arboard` crate for cross-platform support
+- Returns `None` for empty clipboard or non-text content
 - Error handling for clipboard access failures
 
 ### Keyboard Typing Implementation
 - Uses `enigo` crate for cross-platform keyboard emulation
 - Special handling for newlines (`\n`) and tabs (`\t`)
-- Text chunking prevents system overload with large pastes
+- Text chunking (200 chars) prevents system overload with large pastes
 - Each character typed individually with configurable delay
-- Thread-safe operation with proper synchronization
+- Runs in separate thread to avoid blocking UI
 
 ### Configuration Persistence
 - Stored in platform-standard locations:
   - macOS: `~/Library/Application Support/com.pasta.app/config.toml`
   - Linux: `~/.config/pasta/config.toml`  
   - Windows: `%APPDATA%\pasta\config.toml`
-- Minimal config with just two fields: `enabled` and `typing_speed`
-- Directory creation handled automatically
+- Config fields:
+  - `typing_speed`: "slow" | "normal" | "fast"
+  - `left_click_paste`: boolean
+- Auto-saves on change
+- Handles migration from old format
 
 ### Tauri-specific Considerations
-- System tray icons use `iconAsTemplate` for proper macOS dark mode support
-- No CSP restrictions for simpler development
-- Frontend served from `src/` directory (not built/bundled)
-- Bundle includes platform-specific icon formats
-- Capabilities configured in `capabilities/default.json`
+- Uses Tauri v2 with improved performance
+- System tray only (no main window)
+- 100ms delay on startup to work around Tauri menu initialization bug
+- Icons in multiple sizes for different platforms
+- Minimal frontend - just placeholder HTML
 
 ## Performance Characteristics
-- Memory usage: 20-50MB (vs Python's 100-200MB)
-- Binary size: ~10MB (vs Python's 50-100MB)
-- Startup time: <500ms (vs Python's 2-3 seconds)
-- Idle CPU: <0.1% (vs Python's 1-2%)
+- Memory usage: ~20-30MB idle
+- Binary size: ~10MB
+- Startup time: <500ms
+- Idle CPU: 0% (no background polling)
 
 ## Platform-Specific Notes
 
@@ -236,27 +237,19 @@ Main Thread (Tauri/UI)
 5. Test on all platforms before committing
 
 ### Testing Strategy
-Currently, the project lacks formal tests. When implementing tests:
-- Use `cargo test` for unit tests
-- Focus on testing core logic (clipboard detection, config persistence)
-- Mock external dependencies (clipboard, keyboard)
-- Test thread synchronization and error handling
+The project has comprehensive test coverage:
+- Unit tests for all modules (74 tests total)
+- Integration tests for cross-module functionality
+- Tests cover config persistence, keyboard emulation, tray menu behavior
+- Run with `cargo test` or `cargo test --lib -- --skip clipboard::tests` to skip clipboard tests
+- Coverage reports with `cargo tarpaulin` or `./coverage.sh`
 
 ### Current Limitations
 - Text-only clipboard support (no images, files, etc.)
-- No clipboard history storage
-- No hotkey support (would require additional permissions)
-- No emergency stop mechanism
-- No security features or sensitive data detection
-- No rate limiting or abuse prevention
+- No clipboard monitoring or history
+- No global hotkeys
+- No settings window (configuration via tray menu only)
 - No automatic update mechanism
-
-### Git Worktree Notes
-This code lives in a git worktree at `./trees/rust-refactor`. When working here:
-- The actual branch is `rust-refactor` (not main)
-- Commits go to the `rust-refactor` branch
-- Use `git worktree list` from main repo to see all worktrees
-- Changes are isolated from the main Python implementation
 
 ### Debugging Tips
 - Use `RUST_LOG=debug` for verbose logging
