@@ -184,7 +184,7 @@
                 category = "build";
               }
               {
-                name = "test";
+                name = "run-tests";
                 help = "Run all tests";
                 command = "cargo test";
                 category = "testing";
@@ -312,10 +312,10 @@ EOF
             {italic}A fast clipboard typing utility built with Rust and Tauri{reset}
 
             {bold}Quick start:{reset}
-              {2}dev{reset}      - Run in development mode
-              {2}test{reset}     - Run tests
-              {2}build{reset}    - Build for production
-              {2}menu{reset}     - Show all available commands
+              {2}dev{reset}          - Run in development mode
+              {2}run-tests{reset}    - Run tests
+              {2}build{reset}        - Build for production
+              {2}menu{reset}         - Show all available commands
 
             Type {3}menu{reset} to see all available commands with descriptions.
           '';
