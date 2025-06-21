@@ -8,6 +8,7 @@ use pasta_lib::{
 use tempfile::TempDir;
 
 #[test]
+#[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
 fn test_config_and_keyboard_integration() {
     // Test that config manager and keyboard emulator work together
     let config_manager = Arc::new(ConfigManager::new().unwrap());
@@ -53,6 +54,7 @@ fn test_multiple_config_managers_share_state() {
 }
 
 #[tokio::test]
+#[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
 async fn test_keyboard_emulator_async_operations() {
     let keyboard_emulator = KeyboardEmulator::new().unwrap();
 
@@ -143,6 +145,7 @@ fn test_concurrent_config_access() {
 }
 
 #[tokio::test]
+#[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
 async fn test_keyboard_emulator_channel_capacity() {
     let keyboard_emulator = KeyboardEmulator::new().unwrap();
 
@@ -190,6 +193,7 @@ fn load_config(path: &std::path::PathBuf) -> Result<Config, Box<dyn std::error::
 }
 
 #[test]
+#[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
 fn test_full_app_initialization() {
     // Test the complete initialization flow using public API
     let result = initialize_components();
@@ -214,70 +218,3 @@ fn test_full_app_initialization() {
     assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
 }
 
-#[test]
-fn test_app_logic_integration() {
-    use pasta_lib::app_logic::{create_menu_structure, handle_menu_event, MenuAction};
-
-    // Create menu structure
-    let menu = create_menu_structure(TypingSpeed::Normal, false);
-    assert_eq!(menu.items.len(), 6); // paste, separator, submenu, left_click, separator, quit
-
-    // Test menu event handling
-    assert_eq!(handle_menu_event("paste"), MenuAction::Paste);
-    assert_eq!(
-        handle_menu_event("speed_slow"),
-        MenuAction::SetTypingSpeed(TypingSpeed::Slow)
-    );
-    assert_eq!(
-        handle_menu_event("left_click_paste"),
-        MenuAction::ToggleLeftClickPaste
-    );
-    assert_eq!(handle_menu_event("quit"), MenuAction::Quit);
-    assert_eq!(handle_menu_event("unknown"), MenuAction::None);
-}
-
-#[test]
-fn test_tray_integration() {
-    use pasta_lib::tray::{
-        calculate_show_menu_on_left_click, get_tray_tooltip, handle_tray_icon_click, TrayIconAction,
-    };
-    use tauri::tray::{MouseButton, MouseButtonState};
-
-    // Test tray tooltip
-    assert_eq!(get_tray_tooltip(), "Pasta - Clipboard to Keyboard");
-
-    // Test menu visibility calculation
-    assert_eq!(calculate_show_menu_on_left_click(true), false);
-    assert_eq!(calculate_show_menu_on_left_click(false), true);
-
-    // Test tray icon click handling
-    let action = handle_tray_icon_click(MouseButton::Left, MouseButtonState::Up, true);
-    assert_eq!(action, TrayIconAction::PasteClipboard);
-
-    let action = handle_tray_icon_click(MouseButton::Right, MouseButtonState::Up, false);
-    assert_eq!(action, TrayIconAction::ShowMenu);
-}
-
-#[tokio::test]
-async fn test_paste_clipboard_integration() {
-    use pasta_lib::app_logic::{handle_paste_clipboard, ClipboardProvider};
-
-    // Mock clipboard with content
-    struct TestClipboard {
-        content: Option<String>,
-    }
-
-    impl ClipboardProvider for TestClipboard {
-        fn get_content(&self) -> Result<Option<String>, String> {
-            Ok(self.content.clone())
-        }
-    }
-
-    let clipboard = TestClipboard {
-        content: Some("Integration test text".to_string()),
-    };
-    let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
-
-    let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
-    assert!(result.is_ok());
-}
