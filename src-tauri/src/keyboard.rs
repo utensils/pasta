@@ -305,6 +305,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     fn test_keyboard_emulator_creation() {
         // Test that KeyboardEmulator::new() doesn't panic
         let result = KeyboardEmulator::new();
@@ -320,6 +321,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     async fn test_keyboard_emulator_type_text() {
         let emulator = KeyboardEmulator::new().unwrap();
 
@@ -329,6 +331,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     fn test_keyboard_emulator_set_speed() {
         let emulator = KeyboardEmulator::new().unwrap();
 
@@ -364,7 +367,12 @@ mod tests {
     fn test_long_text_with_special_chars() {
         // Test chunking with special characters mixed in
         const CHUNK_SIZE: usize = 200;
-        let text = format!("{}test\n{}\ttab{}", "a".repeat(195), "b".repeat(195), "c".repeat(10));
+        let text = format!(
+            "{}test\n{}\ttab{}",
+            "a".repeat(195),
+            "b".repeat(195),
+            "c".repeat(10)
+        );
         let chars: Vec<char> = text.chars().collect();
         let chunks: Vec<String> = chars
             .chunks(CHUNK_SIZE)
@@ -393,13 +401,17 @@ mod tests {
                     assert!(!text.is_empty());
                 }
                 KeyboardCommand::SetSpeed(speed) => {
-                    assert!(matches!(speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
+                    assert!(matches!(
+                        speed,
+                        TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
+                    ));
                 }
             }
         }
     }
 
     #[tokio::test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     async fn test_keyboard_emulator_multiple_operations() {
         let emulator = KeyboardEmulator::new().unwrap();
 
@@ -408,20 +420,20 @@ mod tests {
         // So we'll test type_text operations only
         assert!(emulator.type_text("first").await.is_ok());
         assert!(emulator.type_text("second").await.is_ok());
-        
+
         // Test empty text
         assert!(emulator.type_text("").await.is_ok());
-        
+
         // Test with special characters
         assert!(emulator.type_text("hello\nworld\ttab").await.is_ok());
     }
 
-    #[test] 
+    #[test]
     fn test_typing_speed_default() {
         // Test that Normal is the default speed
         let speeds = vec![TypingSpeed::Slow, TypingSpeed::Normal, TypingSpeed::Fast];
         let default_speed = TypingSpeed::Normal;
-        
+
         assert!(speeds.contains(&default_speed));
         assert_eq!(default_speed.delay_ms(), 25);
     }
@@ -430,7 +442,7 @@ mod tests {
     fn test_keyboard_emulator_channel_size() {
         // Verify channel is created with proper buffer size
         let (tx, _rx) = mpsc::channel::<KeyboardCommand>(10);
-        
+
         // Test that we can send at least 10 commands without blocking
         for i in 0..10 {
             let result = tx.try_send(KeyboardCommand::TypeText(format!("test{}", i)));
@@ -447,12 +459,12 @@ mod tests {
             KeyboardCommand::SetSpeed(TypingSpeed::Normal),
             KeyboardCommand::SetSpeed(TypingSpeed::Fast),
         ];
-        
+
         for cmd in commands {
             // Verify we can clone and debug print each variant
             let cloned = cmd.clone();
             let _debug = format!("{:?}", cloned);
-            
+
             // Pattern match to ensure all variants are covered
             match cmd {
                 KeyboardCommand::TypeText(text) => assert!(!text.is_empty()),
@@ -467,7 +479,7 @@ mod tests {
         let slow = TypingSpeed::Slow.delay_ms();
         let normal = TypingSpeed::Normal.delay_ms();
         let fast = TypingSpeed::Fast.delay_ms();
-        
+
         assert!(slow > normal);
         assert!(normal > fast);
         assert_eq!(slow, 50);

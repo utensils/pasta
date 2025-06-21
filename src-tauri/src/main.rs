@@ -19,11 +19,11 @@ mod tests {
     fn test_main_calls_pasta_lib_run() {
         // Verify that pasta_lib module exists and has a run function
         // This ensures our main function can call pasta_lib::run()
-        
+
         // This will fail to compile if pasta_lib::run doesn't exist
         // Just checking that we can reference the function
         let _: fn() = pasta_lib::run;
-        
+
         // If we got here, the function exists
         assert!(true);
     }

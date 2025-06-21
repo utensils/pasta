@@ -7,7 +7,7 @@ use tauri::{
     AppHandle, Emitter, Runtime,
 };
 
-use crate::{config::ConfigManager, keyboard::TypingSpeed};
+use crate::config::ConfigManager;
 
 /// Calculate show_menu_on_left_click based on left_click_paste setting
 pub fn calculate_show_menu_on_left_click(left_click_paste: bool) -> bool {
@@ -54,28 +54,28 @@ impl TrayManager {
     pub fn new(config_manager: Arc<ConfigManager>) -> Self {
         Self { config_manager }
     }
-    
+
     fn build_tauri_menu<R: Runtime>(
-        &self, 
-        app: &AppHandle<R>, 
-        structure: &crate::app_logic::MenuStructure
+        &self,
+        app: &AppHandle<R>,
+        structure: &crate::app_logic::MenuStructure,
     ) -> Result<tauri::menu::Menu<R>, Box<dyn std::error::Error>> {
         use crate::app_logic::MenuItem;
-        
+
         let mut menu_builder = MenuBuilder::new(app);
-        
+
         for item in &structure.items {
             match item {
                 MenuItem::Action { id, label } => {
                     let menu_item = MenuItemBuilder::with_id(id, label).build(app)?;
                     menu_builder = menu_builder.item(&menu_item);
-                },
+                }
                 MenuItem::CheckItem { id, label, checked } => {
                     let check_item = CheckMenuItemBuilder::with_id(id, label)
                         .checked(*checked)
                         .build(app)?;
                     menu_builder = menu_builder.item(&check_item);
-                },
+                }
                 MenuItem::Submenu { label, items } => {
                     let mut submenu_builder = SubmenuBuilder::new(app, label);
                     for sub_item in items {
@@ -88,27 +88,27 @@ impl TrayManager {
                     }
                     let submenu = submenu_builder.build()?;
                     menu_builder = menu_builder.item(&submenu);
-                },
+                }
                 MenuItem::Separator => {
                     menu_builder = menu_builder.separator();
-                },
+                }
             }
         }
-        
+
         Ok(menu_builder.build()?)
     }
 
     pub fn setup<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let config = self.config_manager.get();
-        info!("Setting up tray with config: typing_speed={:?}, left_click_paste={}", 
-              config.typing_speed, config.left_click_paste);
+        info!(
+            "Setting up tray with config: typing_speed={:?}, left_click_paste={}",
+            config.typing_speed, config.left_click_paste
+        );
 
         // Get menu structure from business logic
-        let menu_structure = crate::app_logic::create_menu_structure(
-            config.typing_speed, 
-            config.left_click_paste
-        );
-        
+        let menu_structure =
+            crate::app_logic::create_menu_structure(config.typing_speed, config.left_click_paste);
+
         // Convert to Tauri menu
         let menu = self.build_tauri_menu(app, &menu_structure)?;
 
@@ -123,10 +123,10 @@ impl TrayManager {
                 let app_handle = app.clone();
                 move |app, event| {
                     use crate::app_logic::{handle_menu_event, MenuAction};
-                    
+
                     debug!("Menu event: {}", event.id.as_ref());
                     let action = handle_menu_event(event.id.as_ref());
-                    
+
                     match action {
                         MenuAction::Paste => {
                             info!("Paste menu item clicked");
@@ -134,13 +134,13 @@ impl TrayManager {
                         }
                         MenuAction::SetTypingSpeed(speed) => {
                             config_manager.set_typing_speed(speed);
-                            
+
                             // Rebuild the menu to update checkbox states
                             let tray_manager = TrayManager::new(config_manager.clone());
                             if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
-                                error!("Failed to rebuild menu: {}", e);
+                                error!("Failed to rebuild menu: {e}");
                             }
-                            
+
                             app.emit("config_changed", ()).unwrap();
                         }
                         MenuAction::ToggleLeftClickPaste => {
@@ -149,13 +149,15 @@ impl TrayManager {
 
                             // Update tray behavior
                             if let Some(tray) = app.tray_by_id("main") {
-                                let _ = tray.set_show_menu_on_left_click(calculate_show_menu_on_left_click(!current)); // Toggle behavior
+                                let _ = tray.set_show_menu_on_left_click(
+                                    calculate_show_menu_on_left_click(!current),
+                                ); // Toggle behavior
                             }
-                            
+
                             // Rebuild the menu to update checkbox state
                             let tray_manager = TrayManager::new(config_manager.clone());
                             if let Err(e) = tray_manager.rebuild_menu(&app_handle) {
-                                error!("Failed to rebuild menu: {}", e);
+                                error!("Failed to rebuild menu: {e}");
                             }
                         }
                         MenuAction::Quit => {
@@ -169,10 +171,16 @@ impl TrayManager {
                 let app_handle = app.clone();
                 let config_manager = self.config_manager.clone();
                 move |_tray, event| {
-                    if let TrayIconEvent::Click { button, button_state, .. } = event {
+                    if let TrayIconEvent::Click {
+                        button,
+                        button_state,
+                        ..
+                    } = event
+                    {
                         let config = config_manager.get();
-                        let action = handle_tray_icon_click(button, button_state, config.left_click_paste);
-                        
+                        let action =
+                            handle_tray_icon_click(button, button_state, config.left_click_paste);
+
                         match action {
                             TrayIconAction::PasteClipboard => {
                                 debug!("Left click on tray icon - pasting clipboard");
@@ -194,38 +202,43 @@ impl TrayManager {
 
         Ok(())
     }
-    
-    pub fn rebuild_menu<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+
+    pub fn rebuild_menu<R: Runtime>(
+        &self,
+        app: &AppHandle<R>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // Get the existing tray
         if let Some(tray) = app.tray_by_id("main") {
             // Get current config
             let config = self.config_manager.get();
-            info!("Rebuilding menu with config: typing_speed={:?}, left_click_paste={}", 
-                  config.typing_speed, config.left_click_paste);
-            
+            info!(
+                "Rebuilding menu with config: typing_speed={:?}, left_click_paste={}",
+                config.typing_speed, config.left_click_paste
+            );
+
             // Get menu structure from business logic
             let menu_structure = crate::app_logic::create_menu_structure(
-                config.typing_speed, 
-                config.left_click_paste
+                config.typing_speed,
+                config.left_click_paste,
             );
-            
+
             // Convert to Tauri menu
             let menu = self.build_tauri_menu(app, &menu_structure)?;
-            
+
             // Update the tray menu
             tray.set_menu(Some(menu))?;
         }
-        
+
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use super::*;
+    use crate::keyboard::TypingSpeed;
 
     #[test]
     fn test_tray_manager_creation() {
@@ -436,7 +449,9 @@ mod tests {
         // Test that TrayManager has a rebuild_menu method
         // This ensures the menu can be rebuilt to update checkbox states
         use std::sync::Mutex;
+
         use tempfile::TempDir;
+
         use crate::config::Config;
 
         let temp_dir = TempDir::new().unwrap();
@@ -454,7 +469,9 @@ mod tests {
     #[test]
     fn test_tray_manager_config_access() {
         use std::sync::Mutex;
+
         use tempfile::TempDir;
+
         use crate::config::Config;
 
         let temp_dir = TempDir::new().unwrap();
@@ -469,7 +486,7 @@ mod tests {
         });
 
         let tray_manager = TrayManager::new(config_manager.clone());
-        
+
         // Verify the tray manager can access config
         let config = tray_manager.config_manager.get();
         assert_eq!(config.typing_speed, TypingSpeed::Fast);
@@ -481,13 +498,13 @@ mod tests {
         // Test that all expected menu event IDs are defined
         let event_ids = vec![
             "paste",
-            "speed_slow", 
+            "speed_slow",
             "speed_normal",
             "speed_fast",
             "left_click_paste",
-            "quit"
+            "quit",
         ];
-        
+
         // Verify all IDs are valid strings
         for id in &event_ids {
             assert!(!id.is_empty());
@@ -575,7 +592,7 @@ mod tests {
     #[test]
     fn test_handle_tray_icon_click_left_with_paste_enabled() {
         use tauri::tray::{MouseButton, MouseButtonState};
-        
+
         let action = handle_tray_icon_click(
             MouseButton::Left,
             MouseButtonState::Up,
@@ -587,7 +604,7 @@ mod tests {
     #[test]
     fn test_handle_tray_icon_click_left_with_paste_disabled() {
         use tauri::tray::{MouseButton, MouseButtonState};
-        
+
         let action = handle_tray_icon_click(
             MouseButton::Left,
             MouseButtonState::Up,
@@ -599,14 +616,14 @@ mod tests {
     #[test]
     fn test_handle_tray_icon_click_right() {
         use tauri::tray::{MouseButton, MouseButtonState};
-        
+
         let action = handle_tray_icon_click(
             MouseButton::Right,
             MouseButtonState::Up,
             true, // doesn't matter
         );
         assert_eq!(action, TrayIconAction::ShowMenu);
-        
+
         let action2 = handle_tray_icon_click(
             MouseButton::Right,
             MouseButtonState::Up,
@@ -618,21 +635,13 @@ mod tests {
     #[test]
     fn test_handle_tray_icon_click_other_states() {
         use tauri::tray::{MouseButton, MouseButtonState};
-        
+
         // Test button down state
-        let action = handle_tray_icon_click(
-            MouseButton::Left,
-            MouseButtonState::Down,
-            true,
-        );
+        let action = handle_tray_icon_click(MouseButton::Left, MouseButtonState::Down, true);
         assert_eq!(action, TrayIconAction::None);
-        
+
         // Test middle button
-        let action2 = handle_tray_icon_click(
-            MouseButton::Middle,
-            MouseButtonState::Up,
-            true,
-        );
+        let action2 = handle_tray_icon_click(MouseButton::Middle, MouseButtonState::Up, true);
         assert_eq!(action2, TrayIconAction::None);
     }
 
@@ -641,10 +650,10 @@ mod tests {
         // Test Debug trait implementation
         let action = TrayIconAction::PasteClipboard;
         assert_eq!(format!("{:?}", action), "PasteClipboard");
-        
+
         let action2 = TrayIconAction::ShowMenu;
         assert_eq!(format!("{:?}", action2), "ShowMenu");
-        
+
         let action3 = TrayIconAction::None;
         assert_eq!(format!("{:?}", action3), "None");
     }

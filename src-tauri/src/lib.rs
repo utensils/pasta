@@ -1,9 +1,9 @@
 mod app_logic;
 mod clipboard;
 pub mod config;
+mod helpers;
 pub mod keyboard;
 mod tray;
-mod helpers;
 
 #[cfg(test)]
 mod error_tests;
@@ -47,16 +47,33 @@ mod clipboard_error_tests;
 #[cfg(test)]
 mod keyboard_execution_tests;
 
+#[cfg(test)]
+mod tray_comprehensive_tests;
+
+#[cfg(test)]
+mod keyboard_advanced_tests;
+
+#[cfg(test)]
+mod tauri_mock_tests;
+
+#[cfg(test)]
+mod clipboard_platform_tests;
+
+#[cfg(test)]
+mod integration_tests;
+
+#[cfg(test)]
+mod app_logic_comprehensive_tests;
+
+#[cfg(test)]
+mod mock_keyboard;
+
 use std::sync::Arc;
 
 use log::{error, info};
 use tauri::{Listener, Manager, State};
 
-use crate::{
-    config::ConfigManager,
-    keyboard::KeyboardEmulator,
-    tray::TrayManager,
-};
+use crate::{config::ConfigManager, keyboard::KeyboardEmulator, tray::TrayManager};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -64,15 +81,22 @@ pub struct AppState {
 }
 
 /// Initialize app components and return them for testing
-pub fn initialize_components() -> Result<(Arc<ConfigManager>, Arc<KeyboardEmulator>), Box<dyn std::error::Error>> {
+pub fn initialize_components(
+) -> Result<(Arc<ConfigManager>, Arc<KeyboardEmulator>), Box<dyn std::error::Error>> {
     let config_manager = Arc::new(ConfigManager::new()?);
     let initial_config = config_manager.get();
-    
-    info!("{}", helpers::format_initial_config_log(&initial_config.typing_speed, initial_config.left_click_paste));
-    
+
+    info!(
+        "{}",
+        helpers::format_initial_config_log(
+            &initial_config.typing_speed,
+            initial_config.left_click_paste
+        )
+    );
+
     let keyboard_emulator = Arc::new(KeyboardEmulator::new()?);
     keyboard_emulator.set_typing_speed(initial_config.typing_speed);
-    
+
     Ok((config_manager, keyboard_emulator))
 }
 
@@ -92,15 +116,13 @@ pub fn handle_config_changed(
 }
 
 /// Handle paste clipboard event in a new thread
-pub fn handle_paste_clipboard_event(
-    keyboard_emulator: Arc<KeyboardEmulator>,
-) {
+pub fn handle_paste_clipboard_event(keyboard_emulator: Arc<KeyboardEmulator>) {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
-    
+
     info!("{}", helpers::format_paste_event_log());
-    
+
     let clipboard = SystemClipboard;
-    
+
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async move {
@@ -120,7 +142,7 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
     // Listen for config changes
     let keyboard_emulator_clone = keyboard_emulator.clone();
     let config_manager_clone = config_manager.clone();
-    
+
     let (config_event, _) = helpers::get_event_names();
     app_handle.listen(config_event, move |_event| {
         handle_config_changed(&config_manager_clone, &keyboard_emulator_clone);
@@ -137,7 +159,7 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
 #[tauri::command]
 async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
-    
+
     let clipboard = SystemClipboard;
     handle_paste_clipboard(&clipboard, &state.keyboard_emulator).await
 }
@@ -158,7 +180,7 @@ pub fn run() {
             }
 
             // Initialize components
-            let (config_manager, keyboard_emulator) = 
+            let (config_manager, keyboard_emulator) =
                 initialize_components().expect("Failed to initialize components");
 
             // Small delay before creating tray to ensure app is fully initialized
@@ -174,11 +196,7 @@ pub fn run() {
             app.manage(app_state);
 
             // Setup event handlers
-            setup_event_handlers(
-                app.handle(),
-                config_manager,
-                keyboard_emulator,
-            );
+            setup_event_handlers(app.handle(), config_manager, keyboard_emulator);
 
             Ok(())
         })
@@ -195,9 +213,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     use super::*;
-    use crate::config::Config;
-    use crate::keyboard::TypingSpeed;
-    use crate::tray::TrayManager;
+    use crate::{config::Config, keyboard::TypingSpeed, tray::TrayManager};
 
     // Mock implementations for testing
     struct MockState {
@@ -216,9 +232,7 @@ mod tests {
 
             let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-            let app_state = AppState {
-                keyboard_emulator,
-            };
+            let app_state = AppState { keyboard_emulator };
 
             Self { app_state }
         }
@@ -242,11 +256,15 @@ mod tests {
     async fn test_paste_clipboard_command_with_text() {
         // Test the paste_clipboard function structure
         let mock_state = MockState::new();
-        
+
         // We can't directly test paste_clipboard because it uses get_clipboard_content
         // which requires system clipboard access, but we can test the keyboard emulator
         let test_text = "Hello, World!";
-        let result = mock_state.app_state.keyboard_emulator.type_text(test_text).await;
+        let result = mock_state
+            .app_state
+            .keyboard_emulator
+            .type_text(test_text)
+            .await;
         assert!(result.is_ok());
     }
 
@@ -254,7 +272,7 @@ mod tests {
     async fn test_paste_clipboard_command_error_handling() {
         // Test error handling in keyboard emulator
         let mock_state = MockState::new();
-        
+
         // Test with very long text that might cause issues
         let long_text = "a".repeat(10000);
         let result = mock_state
@@ -491,7 +509,10 @@ mod tests {
         };
 
         // Verify everything is connected properly
-        assert!(Arc::ptr_eq(&app_state.keyboard_emulator, &keyboard_emulator));
+        assert!(Arc::ptr_eq(
+            &app_state.keyboard_emulator,
+            &keyboard_emulator
+        ));
     }
 
     #[test]
@@ -548,14 +569,17 @@ mod tests {
         // Test the initialize_components function
         let result = initialize_components();
         assert!(result.is_ok());
-        
+
         let (config_manager, keyboard_emulator) = result.unwrap();
-        
+
         // Verify components are properly initialized
         let config = config_manager.get();
         // Config might have been loaded from disk, so just check it has a valid value
-        assert!(matches!(config.typing_speed, TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast));
-        
+        assert!(matches!(
+            config.typing_speed,
+            TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
+        ));
+
         // Verify keyboard emulator is created
         assert!(Arc::strong_count(&keyboard_emulator) > 0);
     }
@@ -565,13 +589,13 @@ mod tests {
         // Test that initialize_components creates valid state
         let result = initialize_components();
         assert!(result.is_ok());
-        
+
         let (config_manager, keyboard_emulator) = result.unwrap();
-        
+
         // Test that we can use the components
         config_manager.set_typing_speed(TypingSpeed::Fast);
         assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
-        
+
         // Test keyboard emulator is properly shared
         let emulator_ref1 = keyboard_emulator.clone();
         let emulator_ref2 = keyboard_emulator.clone();
@@ -583,24 +607,30 @@ mod tests {
         // Test the create_app_state function
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let app_state = create_app_state(keyboard_emulator.clone());
-        
+
         // Verify the app state holds the correct reference
-        assert!(Arc::ptr_eq(&app_state.keyboard_emulator, &keyboard_emulator));
-        
+        assert!(Arc::ptr_eq(
+            &app_state.keyboard_emulator,
+            &keyboard_emulator
+        ));
+
         // Test cloning
         let cloned_state = app_state.clone();
-        assert!(Arc::ptr_eq(&cloned_state.keyboard_emulator, &app_state.keyboard_emulator));
+        assert!(Arc::ptr_eq(
+            &cloned_state.keyboard_emulator,
+            &app_state.keyboard_emulator
+        ));
     }
 
     #[test]
     fn test_paste_clipboard_command_struct() {
         // Test that the paste_clipboard command can be invoked
         // We can't test it directly without a full Tauri context, but we can test the structure
-        
+
         // Verify the command exists and has the correct signature
         let command_name = "paste_clipboard";
         assert!(!command_name.is_empty());
-        
+
         // Test that our mock state structure is valid
         let mock_state = MockState::new();
         assert!(Arc::strong_count(&mock_state.app_state.keyboard_emulator) > 0);
@@ -612,11 +642,11 @@ mod tests {
         fn test_box_error() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }
-        
+
         fn test_string_error() -> Result<(), String> {
             Ok(())
         }
-        
+
         assert!(test_box_error().is_ok());
         assert!(test_string_error().is_ok());
     }
@@ -625,7 +655,7 @@ mod tests {
     fn test_handle_config_changed() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         let config_manager = Arc::new(ConfigManager {
             config: Arc::new(Mutex::new(Config {
                 typing_speed: TypingSpeed::Slow,
@@ -633,16 +663,16 @@ mod tests {
             })),
             config_path,
         });
-        
+
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
-        
+
         // Handle config change
         handle_config_changed(&config_manager, &keyboard_emulator);
-        
+
         // Change config and handle again
         config_manager.set_typing_speed(TypingSpeed::Fast);
         handle_config_changed(&config_manager, &keyboard_emulator);
-        
+
         // The keyboard emulator should have received the speed change
         assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
     }
@@ -650,13 +680,13 @@ mod tests {
     #[test]
     fn test_handle_paste_clipboard_event() {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
-        
+
         // Call the function - it spawns a thread
         handle_paste_clipboard_event(keyboard_emulator.clone());
-        
+
         // Give the spawned thread time to start
         std::thread::sleep(std::time::Duration::from_millis(10));
-        
+
         // Verify the keyboard emulator is still valid
         assert!(Arc::strong_count(&keyboard_emulator) > 0);
     }
@@ -666,7 +696,7 @@ mod tests {
         // Test that event names are consistent
         let config_changed_event = "config_changed";
         let paste_clipboard_event = "paste_clipboard";
-        
+
         assert_eq!(config_changed_event, "config_changed");
         assert_eq!(paste_clipboard_event, "paste_clipboard");
         assert!(!config_changed_event.contains(" "));
