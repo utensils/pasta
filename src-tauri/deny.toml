@@ -22,7 +22,6 @@ allow = [
 
 # Deny all other licenses by default
 confidence-threshold = 0.8
-default = "deny"
 
 [[licenses.exceptions]]
 # unicode-ident uses Unicode-3.0 license which is acceptable
