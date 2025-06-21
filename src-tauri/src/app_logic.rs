@@ -431,7 +431,7 @@ mod tests {
     async fn test_handle_paste_clipboard_with_very_long_text() {
         let long_text = "x".repeat(100000); // 100k characters
         let clipboard = MockClipboard::new(Some(long_text.clone()));
-        
+
         // Try to create keyboard emulator, but skip test if it fails (e.g., no display in CI)
         let keyboard_emulator = match KeyboardEmulator::new() {
             Ok(emulator) => Arc::new(emulator),
