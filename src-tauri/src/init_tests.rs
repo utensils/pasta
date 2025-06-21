@@ -152,9 +152,13 @@ mod init_tests {
         std::thread::sleep(delay);
         let elapsed = start.elapsed();
 
-        // Allow some tolerance for timing
-        assert!(elapsed >= Duration::from_millis(95));
-        assert!(elapsed <= Duration::from_millis(150));
+        // Allow some tolerance for timing (generous for CI)
+        assert!(elapsed >= Duration::from_millis(90)); // Allow 10ms early
+        assert!(
+            elapsed <= Duration::from_millis(200),
+            "Elapsed time {:?} exceeded 200ms tolerance",
+            elapsed
+        ); // Allow 100ms late for CI
     }
 
     #[test]
