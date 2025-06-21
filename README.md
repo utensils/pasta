@@ -41,7 +41,7 @@ Pasta stores its configuration file in the following locations:
 - **Linux**: `~/.config/pasta/config.toml`
 - **Windows**: `%APPDATA%\pasta\config.toml`
 
-The configuration file is automatically created on first run and saves your preferences for typing speed and left-click behavior.
+The configuration file is automatically created on first run with defaults (normal typing speed, left-click shows menu) and saves your preferences.
 
 ## Development
 
@@ -50,7 +50,7 @@ The configuration file is automatically created on first run and saves your pref
 cargo tauri dev
 
 # Run tests
-cargo test
+cargo test --lib
 
 # Using Nix (recommended)
 nix develop

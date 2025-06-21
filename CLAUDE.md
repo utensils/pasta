@@ -45,14 +45,23 @@ cargo clean
 # Run tests
 cargo test
 
+# Run tests including ignored ones (tests that create real keyboard emulators)
+cargo test -- --ignored
+
+# Run all tests including ignored ones
+cargo test -- --include-ignored
+
 # Run specific test module
 cargo test config::
 
 # Run tests with output
 cargo test -- --nocapture
 
-# Run tests excluding clipboard tests (which require display server)
-cargo test --lib -- --skip clipboard::tests
+# Run tests with single thread to avoid segfaults
+cargo test -- --test-threads=1
+
+# Run only library tests
+cargo test --lib
 
 # Run tests in release mode for better performance
 cargo test --release
@@ -94,11 +103,15 @@ pasta/
 │   ├── src/
 │   │   ├── main.rs           # Entry point
 │   │   ├── lib.rs            # App orchestration, state management
+│   │   ├── app_logic.rs      # Business logic for paste and menu operations
 │   │   ├── clipboard.rs      # Clipboard content retrieval
 │   │   ├── keyboard.rs       # Keyboard emulation with text chunking
 │   │   ├── config.rs         # TOML config persistence
 │   │   ├── tray.rs           # System tray menu
-│   │   └── theme.rs          # Theme utilities (currently unused)
+│   │   ├── helpers.rs        # Helper functions for logging and utilities
+│   │   ├── mock_keyboard.rs  # Mock keyboard emulator for testing
+│   │   ├── theme.rs          # Theme utilities (currently unused)
+│   │   └── *_tests.rs        # Various test modules (unit and integration tests)
 │   ├── assets/               # Tray icons (multiple sizes)
 │   ├── icons/                # App bundle icons
 │   ├── capabilities/         # Tauri permissions
@@ -124,6 +137,7 @@ pasta/
    - Simple state container with only keyboard emulator
    - Wrapped in `Arc` for thread-safe sharing
    - Exposes single Tauri IPC command: `paste_clipboard`
+   - Business logic extracted to app_logic module for better testability
 
 2. **Clipboard Access** (clipboard.rs)
    - Simple synchronous function to get current clipboard content
@@ -143,6 +157,7 @@ pasta/
    - Platform-specific config locations using `dirs` crate
    - Auto-saves on every change
    - Simple TOML format with `typing_speed` and `left_click_paste`
+   - Default configuration: `typing_speed = "normal"`, `left_click_paste = false`
    - Handles migration from old config format
 
 5. **TrayManager** (tray.rs)
@@ -154,6 +169,12 @@ pasta/
      - Quit
    - Handles all user interaction
    - Works around Tauri v2 initialization bug with 100ms delay
+
+6. **Helper Functions** (helpers.rs)
+   - Extracted helper functions for better testability
+   - Logging formatters for consistent messages
+   - Platform-specific utilities (e.g., macOS activation policy)
+   - Startup delay configuration
 
 ### Threading Model
 ```
@@ -238,10 +259,14 @@ Main Thread (Tauri/UI)
 
 ### Testing Strategy
 The project has comprehensive test coverage:
-- Unit tests for all modules (74 tests total)
+- Unit tests for all modules (284 tests total, 28 ignored)
 - Integration tests for cross-module functionality
+- MockKeyboardEmulator for safe testing without typing on the system
+- Tests marked with `#[ignore]` that would create real keyboard emulators
 - Tests cover config persistence, keyboard emulation, tray menu behavior
-- Run with `cargo test` or `cargo test --lib -- --skip clipboard::tests` to skip clipboard tests
+- Run with `cargo test` for normal tests
+- Run with `cargo test -- --ignored` to run tests that create real keyboard emulators
+- Run with `cargo test -- --test-threads=1` to avoid segfaults on parallel execution
 - Coverage reports with `cargo tarpaulin` or `./coverage.sh`
 
 ### Current Limitations
