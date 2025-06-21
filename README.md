@@ -11,6 +11,33 @@ A minimal system tray application that types your clipboard content. Perfect for
 
 ## Installation
 
+### Download Pre-built Binaries
+
+Download the latest release from the [Releases page](https://github.com/utensils/pasta/releases).
+
+#### macOS Users - Important Note
+
+The macOS builds are currently unsigned. To run Pasta on macOS:
+
+**Option 1 - Using Finder:**
+1. Download the .dmg file
+2. Open the .dmg and drag Pasta to Applications
+3. Right-click (or Control-click) on Pasta.app
+4. Select "Open" from the context menu
+5. Click "Open" in the dialog that appears
+
+**Option 2 - Using Terminal:**
+```bash
+# Remove quarantine attribute
+xattr -d com.apple.quarantine /Applications/Pasta.app
+```
+
+**Option 3 - Allow in System Settings:**
+1. Try to open Pasta normally
+2. Go to System Settings > Privacy & Security
+3. Look for "Pasta was blocked" message
+4. Click "Open Anyway"
+
 ### Build from Source
 
 ```bash
