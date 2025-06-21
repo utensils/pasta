@@ -88,6 +88,13 @@ make clean-coverage
 cargo tauri build --target x86_64-apple-darwin
 cargo tauri build --target x86_64-pc-windows-msvc
 cargo tauri build --target x86_64-unknown-linux-gnu
+cargo tauri build --target aarch64-apple-darwin
+
+# Install npm dependencies (required for Tauri builds)
+npm install
+
+# Trigger release workflow manually
+gh workflow run release.yml -f tag_name=v0.1.0-dev
 ```
 
 ## Project Structure
@@ -118,7 +125,13 @@ pasta/
 │   ├── tests/                # Integration tests
 │   ├── Cargo.toml           # Rust dependencies
 │   └── tauri.conf.json      # Tauri configuration
+├── .github/
+│   └── workflows/
+│       ├── rust.yml          # CI for tests and coverage
+│       ├── build.yml         # Build artifacts for all platforms
+│       └── release.yml       # Create GitHub releases with artifacts
 ├── flake.nix                 # Nix development environment
+├── package.json              # Minimal npm config for Tauri builds
 ├── README.md                 # User documentation
 └── CLAUDE.md                 # This file
 
@@ -233,10 +246,12 @@ Main Thread (Tauri/UI)
 ### macOS
 - Requires accessibility permissions for keyboard emulation
 - Template icons for proper dark mode support
-- Code signing needed for distribution
+- Unsigned builds require user approval (right-click > Open or xattr -d com.apple.quarantine)
+- Code signing needed for distribution without security warnings
 - Dock icon hidden when no windows open (menu bar app behavior)
 - Window close button hides window instead of quitting app
 - Uses `ActivationPolicy::Accessory` for background operation
+- Hardened runtime disabled in config for unsigned builds
 
 ### Linux
 - Requires X11 or Wayland support
@@ -259,7 +274,7 @@ Main Thread (Tauri/UI)
 
 ### Testing Strategy
 The project has comprehensive test coverage:
-- Unit tests for all modules (284 tests total, 28 ignored)
+- Unit tests for all modules (284 tests total, 31 ignored)
 - Integration tests for cross-module functionality
 - MockKeyboardEmulator for safe testing without typing on the system
 - Tests marked with `#[ignore]` that would create real keyboard emulators
@@ -268,6 +283,8 @@ The project has comprehensive test coverage:
 - Run with `cargo test -- --ignored` to run tests that create real keyboard emulators
 - Run with `cargo test -- --test-threads=1` to avoid segfaults on parallel execution
 - Coverage reports with `cargo tarpaulin` or `./coverage.sh`
+- CI skips certain tests that require display connection (clipboard, keyboard tests)
+- Flaky timing tests are ignored in CI due to performance variability
 
 ### Current Limitations
 - Text-only clipboard support (no images, files, etc.)
@@ -282,3 +299,58 @@ The project has comprehensive test coverage:
 - Verify permissions (especially on macOS)
 - Monitor thread activity with system tools
 - Use `cargo tauri inspect` to check bundle configuration
+
+## CI/CD and Release Process
+
+### GitHub Actions Workflows
+
+1. **rust.yml** - Main CI pipeline
+   - Runs on push/PR to main branch
+   - Tests on Ubuntu, Windows, and macOS
+   - Runs clippy and rustfmt checks
+   - Generates code coverage reports
+   - Uploads coverage to Codecov
+
+2. **build.yml** - Build artifacts
+   - Builds release artifacts for all platforms
+   - Uploads artifacts to GitHub Actions
+   - Useful for testing builds without creating releases
+
+3. **release.yml** - Release pipeline
+   - Triggers on version tags (v*) or manual dispatch
+   - Builds for all platforms: Linux x86_64, Windows x86_64, macOS x86_64 & aarch64
+   - Creates draft GitHub releases with all artifacts
+   - Uses tauri-action for automated builds
+
+### Release Artifacts
+
+**Linux:**
+- `.AppImage` - Universal package that runs on most distributions
+- `.deb` - Debian/Ubuntu package
+- `.rpm` - Fedora/RHEL package
+
+**Windows:**
+- `.exe` - NSIS installer (recommended)
+- `.msi` - MSI installer
+
+**macOS:**
+- `.dmg` - Disk image installer (separate builds for Intel and Apple Silicon)
+- `.app.tar.gz` - Compressed app bundle
+
+### Creating a Release
+
+1. Update version in `src-tauri/tauri.conf.json`
+2. Commit changes
+3. Create and push a tag:
+   ```bash
+   git tag -a v0.1.0 -m "Release v0.1.0"
+   git push origin v0.1.0
+   ```
+4. GitHub Actions will automatically build and create a draft release
+5. Edit release notes and publish when ready
+
+### Known Issues
+
+- macOS builds are unsigned and require user approval to run
+- Some tests are skipped in CI due to requiring display/clipboard access
+- Coverage reports exclude certain files that can't be tested in CI
