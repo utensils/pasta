@@ -21,6 +21,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+  TARPAULIN_VERSION: "0.30.0"
 
 jobs:
   test:
@@ -52,16 +54,11 @@ jobs:
           libssl-dev \
           libxdo-dev
 
-    - name: Cache cargo
-      uses: actions/cache@v4
+    - name: Cache cargo and build artifacts
+      uses: Swatinem/rust-cache@v2
       with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          src-tauri/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
+        workspaces: "./src-tauri -> target"
+        cache-on-failure: true
 
     - name: Run cargo fmt
       working-directory: ./src-tauri
@@ -78,6 +75,50 @@ jobs:
     - name: Run tests
       working-directory: ./src-tauri
       run: cargo test --lib --verbose -- --skip clipboard::tests
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Run security audit
+      uses: rustsec/audit-check@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  msrv:
+    name: Minimum Supported Rust Version
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install Rust 1.70.0
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: 1.70.0
+    
+    - name: Install Linux dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgtk-3-dev \
+          libwebkit2gtk-4.1-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev \
+          libssl-dev \
+          libxdo-dev
+    
+    - name: Cache cargo and build artifacts
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "./src-tauri -> target"
+    
+    - name: Check MSRV
+      working-directory: ./src-tauri
+      run: cargo check --all-features
 
   coverage:
     name: Code Coverage
@@ -102,38 +143,26 @@ jobs:
           libssl-dev \
           libxdo-dev
 
-    - name: Cache cargo
+    - name: Cache cargo and build artifacts
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "./src-tauri -> target"
+        cache-on-failure: true
+
+    - name: Cache tarpaulin
+      id: cache-tarpaulin
       uses: actions/cache@v4
       with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          src-tauri/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-
+        path: ~/.cargo/bin/cargo-tarpaulin
+        key: ${{ runner.os }}-tarpaulin-${{ env.TARPAULIN_VERSION }}
+    
     - name: Install tarpaulin
-      run: cargo install cargo-tarpaulin
+      if: steps.cache-tarpaulin.outputs.cache-hit != 'true'
+      run: cargo install cargo-tarpaulin --version ${{ env.TARPAULIN_VERSION }}
 
     - name: Generate coverage report
       working-directory: ./src-tauri
-      run: |
-        cargo tarpaulin \
-          --lib \
-          --out Xml \
-          --exclude-files "*/main.rs" \
-          --exclude-files "*/build.rs" \
-          --exclude-files "*/tests/*" \
-          --exclude-files "*/lib.rs" \
-          --exclude-files "*/tray.rs" \
-          --exclude-files "*/window.rs" \
-          --exclude-files "*/clipboard.rs" \
-          --skip-clean \
-          --workspace \
-          --timeout 120 \
-          --avoid-cfg-tarpaulin \
-          -- --skip clipboard:: --skip keyboard_mock_tests::keyboard_mock_tests::test_keyboard_type_text_with_closed_channel --skip tests::test_paste_clipboard --skip app_logic::tests::test_handle_paste_clipboard_with_very_long_text
+      run: cargo tarpaulin --config .tarpaulin.toml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

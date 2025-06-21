@@ -1,0 +1,95 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+template: |
+  ## What's Changed
+  
+  $CHANGES
+  
+  ## Installation
+  
+  ### Download Pre-built Binaries
+  
+  Download the appropriate installer for your platform below:
+  
+  #### Windows
+  - [Pasta-$RESOLVED_VERSION-x64.exe](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64_en-US.msi) - NSIS installer (recommended)
+  - [Pasta-$RESOLVED_VERSION-x64.msi](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64_en-US.msi) - MSI installer
+  
+  #### macOS
+  - [Pasta-$RESOLVED_VERSION-x64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_x64.dmg) - Intel Macs
+  - [Pasta-$RESOLVED_VERSION-aarch64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_aarch64.dmg) - Apple Silicon
+  
+  **Note**: macOS builds are unsigned. See [README](https://github.com/utensils/pasta#macos-users---important-note) for instructions on running unsigned apps.
+  
+  #### Linux
+  - [Pasta-$RESOLVED_VERSION.AppImage](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta_$RESOLVED_VERSION_amd64.AppImage) - Universal package (recommended)
+  - [Pasta-$RESOLVED_VERSION.deb](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta_$RESOLVED_VERSION_amd64.deb) - Debian/Ubuntu
+  - [Pasta-$RESOLVED_VERSION.rpm](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta-$RESOLVED_VERSION.x86_64.rpm) - Fedora/RHEL
+  
+  **Full Changelog**: https://github.com/utensils/pasta/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  - title: '🔧 CI/CD'
+    labels:
+      - 'ci'
+      - 'cd'
+      - 'github-actions'
+  - title: '⬆️ Dependencies'
+    labels:
+      - 'dependencies'
+      - 'deps'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+
+exclude-labels:
+  - 'skip-changelog'
+
+autolabeler:
+  - label: 'chore'
+    title:
+      - '/^chore/i'
+  - label: 'bug'
+    title:
+      - '/^fix/i'
+  - label: 'enhancement'
+    title:
+      - '/^feat/i'
+  - label: 'documentation'
+    title:
+      - '/^docs/i'
+  - label: 'ci'
+    title:
+      - '/^ci/i'
+  - label: 'dependencies'
+    title:
+      - '/^(chore|fix)\(deps\)/i'

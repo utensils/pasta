@@ -1,0 +1,24 @@
+[default]
+workspace = true
+lib = true
+timeout = "120s"
+skip-clean = true
+avoid-cfg-tarpaulin = true
+out = ["Xml", "Html"]
+exclude-files = [
+    "*/main.rs",
+    "*/build.rs",
+    "*/tests/*",
+    "*/lib.rs",
+    "*/tray.rs",
+    "*/window.rs",
+    "*/clipboard.rs"
+]
+
+# Skip tests that require display connection or are flaky in CI
+exclude-tests = [
+    "clipboard::",
+    "keyboard_mock_tests::keyboard_mock_tests::test_keyboard_type_text_with_closed_channel",
+    "tests::test_paste_clipboard",
+    "app_logic::tests::test_handle_paste_clipboard_with_very_long_text"
+]

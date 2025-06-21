@@ -1,0 +1,48 @@
+# This file configures cargo-deny for license compliance checking
+# See https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Include only production dependencies
+targets = []
+
+[licenses]
+# List of explicitly allowed licenses
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "MPL-2.0",
+    "Zlib",
+]
+
+# Deny all other licenses by default
+confidence-threshold = 0.8
+default = "deny"
+
+[[licenses.exceptions]]
+# unicode-ident uses Unicode-3.0 license which is acceptable
+name = "unicode-ident"
+allow = ["Unicode-3.0"]
+
+[bans]
+# Warn when multiple versions of the same crate are detected
+multiple-versions = "warn"
+# Warn about wildcard dependencies
+wildcards = "warn"
+# Allow workspace dependencies
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+[sources]
+# Deny crates from unknown registries
+unknown-registry = "deny"
+# Deny git dependencies from unknown sources
+unknown-git = "deny"
+# Allow crates.io and GitHub
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

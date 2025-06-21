@@ -1,0 +1,48 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "tauri"
+          - "@tauri-apps/*"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+  
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    groups:
+      npm-development:
+        dependency-type: "development"
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"

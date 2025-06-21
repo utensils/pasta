@@ -1,0 +1,76 @@
+name: License Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/license-check.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/license-check.yml'
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo-deny
+      id: cache-cargo-deny
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-deny
+        key: ${{ runner.os }}-cargo-deny-0.16.1
+    
+    - name: Install cargo-deny
+      if: steps.cache-cargo-deny.outputs.cache-hit != 'true'
+      run: cargo install cargo-deny --version 0.16.1 --locked
+    
+    - name: Create deny.toml if not exists
+      run: |
+        if [ ! -f "src-tauri/deny.toml" ]; then
+          cat > src-tauri/deny.toml << 'EOF'
+        [licenses]
+        allow = [
+            "MIT",
+            "Apache-2.0",
+            "Apache-2.0 WITH LLVM-exception",
+            "BSD-2-Clause",
+            "BSD-3-Clause",
+            "ISC",
+            "Unicode-DFS-2016",
+            "CC0-1.0",
+            "MPL-2.0",
+        ]
+        
+        [[licenses.exceptions]]
+        name = "unicode-ident"
+        allow = ["Unicode-3.0"]
+        
+        [bans]
+        multiple-versions = "warn"
+        wildcards = "warn"
+        
+        [sources]
+        unknown-registry = "deny"
+        unknown-git = "deny"
+        EOF
+        fi
+    
+    - name: Check licenses
+      working-directory: ./src-tauri
+      run: cargo deny check licenses
