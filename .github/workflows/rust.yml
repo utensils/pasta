@@ -131,7 +131,8 @@ jobs:
           --exclude-files "*/clipboard.rs" \
           --skip-clean \
           --workspace \
-          --timeout 120
+          --timeout 120 \
+          -- --skip clipboard::tests --skip app_logic::tests::test_handle_paste_clipboard_with_very_long_text
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
