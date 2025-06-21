@@ -13,8 +13,10 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "BSL-1.0",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     "CC0-1.0",
     "MPL-2.0",
     "Zlib",
@@ -23,10 +25,6 @@ allow = [
 # Deny all other licenses by default
 confidence-threshold = 0.8
 
-[[licenses.exceptions]]
-# unicode-ident uses Unicode-3.0 license which is acceptable
-name = "unicode-ident"
-allow = ["Unicode-3.0"]
 
 [bans]
 # Warn when multiple versions of the same crate are detected
