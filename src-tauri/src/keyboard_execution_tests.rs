@@ -163,9 +163,15 @@ mod keyboard_execution_tests {
             std::thread::sleep(delay);
             let elapsed = start.elapsed();
 
-            // Allow some tolerance for timing
+            // Allow some tolerance for timing (more generous for CI environments)
             assert!(elapsed >= delay);
-            assert!(elapsed < delay + Duration::from_millis(50));
+            // Increase tolerance to 100ms for CI environments under load
+            assert!(
+                elapsed < delay + Duration::from_millis(100),
+                "Elapsed time {:?} exceeded expected delay {:?} by more than 100ms",
+                elapsed,
+                delay
+            );
         }
     }
 

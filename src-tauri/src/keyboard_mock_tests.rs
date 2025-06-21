@@ -33,31 +33,46 @@ mod keyboard_mock_tests {
     async fn test_keyboard_type_text_with_closed_channel() {
         use crate::app_logic::{handle_paste_clipboard, ClipboardProvider};
 
-        // Mock clipboard with content
-        struct TestClipboard;
-        impl ClipboardProvider for TestClipboard {
+        // Test with empty clipboard
+        struct EmptyClipboard;
+        impl ClipboardProvider for EmptyClipboard {
             fn get_content(&self) -> Result<Option<String>, String> {
-                Ok(Some("test".to_string()))
+                Ok(None)
             }
         }
 
-        // We need a way to make the keyboard emulator fail
-        // Since we can't mock it directly, let's test other error scenarios
-
-        // Test with extremely long text that might cause issues
-        struct LongTextClipboard;
-        impl ClipboardProvider for LongTextClipboard {
+        // Test with clipboard error
+        struct ErrorClipboard;
+        impl ClipboardProvider for ErrorClipboard {
             fn get_content(&self) -> Result<Option<String>, String> {
-                Ok(Some("a".repeat(1_000_000))) // 1 million characters
+                Err("Clipboard error".to_string())
             }
         }
 
-        let clipboard = LongTextClipboard;
+        // Test with normal text - this test is more about exercising the code path
+        // rather than testing actual keyboard behavior
+        struct NormalClipboard;
+        impl ClipboardProvider for NormalClipboard {
+            fn get_content(&self) -> Result<Option<String>, String> {
+                Ok(Some("test text".to_string()))
+            }
+        }
+
+        // Test empty clipboard case
+        let empty_clipboard = EmptyClipboard;
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let result = handle_paste_clipboard(&empty_clipboard, &keyboard_emulator).await;
+        assert!(result.is_ok()); // Should handle empty clipboard gracefully
 
-        // This should succeed but tests the path
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
-        assert!(result.is_ok());
+        // Test error clipboard case
+        let error_clipboard = ErrorClipboard;
+        let result2 = handle_paste_clipboard(&error_clipboard, &keyboard_emulator).await;
+        assert!(result2.is_err()); // Should propagate clipboard errors
+
+        // Test normal case - just ensure it doesn't panic
+        let normal_clipboard = NormalClipboard;
+        let result3 = handle_paste_clipboard(&normal_clipboard, &keyboard_emulator).await;
+        assert!(result3.is_ok());
     }
 
     #[test]
