@@ -34,11 +34,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/cargo-deny
-        key: ${{ runner.os }}-cargo-deny-0.16.1
+        key: ${{ runner.os }}-cargo-deny-latest
     
     - name: Install cargo-deny
       if: steps.cache-cargo-deny.outputs.cache-hit != 'true'
-      run: cargo install cargo-deny --version 0.16.1 --locked
+      run: cargo install cargo-deny --locked
     
     - name: Create deny.toml if not exists
       run: |
