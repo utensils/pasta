@@ -40,36 +40,6 @@ jobs:
       if: steps.cache-cargo-deny.outputs.cache-hit != 'true'
       run: cargo install cargo-deny --locked
     
-    - name: Create deny.toml if not exists
-      run: |
-        if [ ! -f "src-tauri/deny.toml" ]; then
-          cat > src-tauri/deny.toml << 'EOF'
-        [licenses]
-        allow = [
-            "MIT",
-            "Apache-2.0",
-            "Apache-2.0 WITH LLVM-exception",
-            "BSD-2-Clause",
-            "BSD-3-Clause",
-            "ISC",
-            "Unicode-DFS-2016",
-            "CC0-1.0",
-            "MPL-2.0",
-        ]
-        
-        [[licenses.exceptions]]
-        name = "unicode-ident"
-        allow = ["Unicode-3.0"]
-        
-        [bans]
-        multiple-versions = "warn"
-        wildcards = "warn"
-        
-        [sources]
-        unknown-registry = "deny"
-        unknown-git = "deny"
-        EOF
-        fi
     
     - name: Check licenses
       working-directory: ./src-tauri

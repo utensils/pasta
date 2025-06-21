@@ -1,10 +1,15 @@
 [package]
-name = "pasta"
+name = "pasta-tray"
 version = "0.1.0"
 description = "Pasta - System tray clipboard to keyboard emulator"
-authors = ["pasta"]
+authors = ["James Brink"]
 edition = "2021"
-rust-version = "1.75.0"
+rust-version = "1.77.0"
+license = "MIT"
+repository = "https://github.com/utensils/pasta"
+homepage = "https://github.com/utensils/pasta"
+keywords = ["clipboard", "paste", "keyboard", "tray", "system-tray"]
+categories = ["gui", "accessibility"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,7 +17,7 @@ rust-version = "1.75.0"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "pasta_lib"
+name = "pasta_tray_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -24,7 +29,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 arboard = "3.4"
-enigo = "0.5"
+enigo = "0.2.1"
 toml = "0.8"
 log = "0.4"
 env_logger = "0.11"
