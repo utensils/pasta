@@ -133,7 +133,7 @@ jobs:
           --workspace \
           --timeout 120 \
           --avoid-cfg-tarpaulin \
-          -- --skip clipboard:: --skip keyboard_mock_tests::keyboard_mock_tests::test_keyboard_type_text_with_closed_channel --skip tests::test_paste_clipboard
+          -- --skip clipboard:: --skip keyboard_mock_tests::keyboard_mock_tests::test_keyboard_type_text_with_closed_channel --skip tests::test_paste_clipboard --skip app_logic::tests::test_handle_paste_clipboard_with_very_long_text
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

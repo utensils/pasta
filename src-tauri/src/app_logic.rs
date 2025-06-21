@@ -428,6 +428,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires display connection for keyboard emulator"]
     async fn test_handle_paste_clipboard_with_very_long_text() {
         let long_text = "x".repeat(100000); // 100k characters
         let clipboard = MockClipboard::new(Some(long_text.clone()));
