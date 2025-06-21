@@ -89,7 +89,6 @@ mod runtime_mock_tests {
     #[test]
     fn test_error_logging_path() {
         // Test the error logging path by simulating conditions
-        
 
         // Initialize logger for the test
         let _ = env_logger::builder()

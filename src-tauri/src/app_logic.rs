@@ -7,7 +7,6 @@ pub trait ClipboardProvider: Send + Sync {
     fn get_content(&self) -> Result<Option<String>, String>;
 }
 
-
 /// Real implementation of ClipboardProvider using arboard
 pub struct SystemClipboard;
 

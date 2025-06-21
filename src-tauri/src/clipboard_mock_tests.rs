@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod clipboard_mock_tests {
-    
 
     #[test]
     fn test_clipboard_error_formatting() {

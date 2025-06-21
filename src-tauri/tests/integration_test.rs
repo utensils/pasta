@@ -217,4 +217,3 @@ fn test_full_app_initialization() {
 
     assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
 }
-

@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod keyboard_advanced_tests {
-    use std::{
-        sync::Arc,
-        time::Duration,
-    };
+    use std::{sync::Arc, time::Duration};
 
     use tokio::sync::mpsc;
 

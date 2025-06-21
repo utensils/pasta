@@ -1,13 +1,8 @@
 #[cfg(test)]
 mod comprehensive_integration_tests {
-    
-
-    
 
     use crate::{
-        app_logic::{
-            create_menu_structure, handle_menu_event, MenuAction, MenuItem,
-        },
+        app_logic::{create_menu_structure, handle_menu_event, MenuAction, MenuItem},
         create_app_state, handle_config_changed, handle_paste_clipboard_event,
         initialize_components,
         keyboard::TypingSpeed,
@@ -80,7 +75,7 @@ mod comprehensive_integration_tests {
 
                 // Find left click paste item
                 let has_left_click_item = menu.items.iter().any(|item| {
-                    matches!(item, MenuItem::CheckItem { id, checked, .. } 
+                    matches!(item, MenuItem::CheckItem { id, checked, .. }
                         if id == "left_click_paste" && *checked == left_click)
                 });
                 assert!(has_left_click_item);

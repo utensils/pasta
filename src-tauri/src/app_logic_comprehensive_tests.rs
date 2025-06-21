@@ -2,8 +2,6 @@
 mod app_logic_comprehensive_tests {
     use std::sync::{Arc, Mutex};
 
-    
-
     use crate::{
         app_logic::{
             create_menu_structure, handle_menu_event, handle_paste_clipboard, ClipboardProvider,
