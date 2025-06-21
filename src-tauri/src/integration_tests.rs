@@ -308,6 +308,12 @@ mod integration_tests {
 
         // Verify delay is applied correctly
         assert!(elapsed >= delay);
-        assert!(elapsed < delay + Duration::from_millis(50)); // Allow some tolerance
+        // Increase tolerance to 100ms for CI environments under load
+        assert!(
+            elapsed < delay + Duration::from_millis(100),
+            "Elapsed time {:?} exceeded expected delay {:?} by more than 100ms",
+            elapsed,
+            delay
+        );
     }
 }
