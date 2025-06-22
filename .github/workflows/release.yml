@@ -78,6 +78,13 @@ jobs:
         prerelease: false
         args: --target ${{ matrix.platform.rust_target }}
 
+    - name: Sign macOS app with ad-hoc signature
+      if: matrix.platform.os == 'macos-latest'
+      run: |
+        # Ad-hoc sign the macOS app to reduce Gatekeeper warnings
+        chmod +x sign-macos.sh
+        ./sign-macos.sh adhoc ${{ matrix.platform.rust_target }}
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
