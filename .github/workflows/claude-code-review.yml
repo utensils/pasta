@@ -13,13 +13,6 @@ on:
       - 'src/**/*.css'
       - 'Cargo.toml'
       - 'Cargo.lock'
-    paths-ignore:
-      - '**/*.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - 'flake.nix'
-      - 'flake.lock'
-      - '.envrc'
 
 jobs:
   claude-review:

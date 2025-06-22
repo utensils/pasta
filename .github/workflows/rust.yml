@@ -13,15 +13,6 @@ on:
       - '.github/workflows/rust.yml'
       - 'Cargo.toml'
       - 'Cargo.lock'
-    paths-ignore:
-      - '**/*.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - 'flake.nix'
-      - 'flake.lock'
-      - '.envrc'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
     branches: [main]
     paths:
@@ -34,15 +25,6 @@ on:
       - '.github/workflows/rust.yml'
       - 'Cargo.toml'
       - 'Cargo.lock'
-    paths-ignore:
-      - '**/*.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - 'flake.nix'
-      - 'flake.lock'
-      - '.envrc'
-      - 'package.json'
-      - 'package-lock.json'
 
 env:
   CARGO_TERM_COLOR: always

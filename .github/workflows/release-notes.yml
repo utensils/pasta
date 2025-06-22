@@ -11,10 +11,6 @@ on:
       - 'flake.nix'
       - 'flake.lock'
       - '.envrc'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/*.yml'
-      - '!.github/workflows/release-notes.yml'
   pull_request:
     types: [opened, reopened, synchronize]
     paths-ignore:
@@ -24,10 +20,6 @@ on:
       - 'flake.nix'
       - 'flake.lock'
       - '.envrc'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/*.yml'
-      - '!.github/workflows/release-notes.yml'
 
 permissions:
   contents: read
