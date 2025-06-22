@@ -80,3 +80,9 @@ menu  # Shows all available commands
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+## CI/CD Status
+
+[![Build](https://github.com/utensils/pasta/actions/workflows/build.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/build.yml)
+[![Rust CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
+[![License Check](https://github.com/utensils/pasta/actions/workflows/license-check.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/license-check.yml)
