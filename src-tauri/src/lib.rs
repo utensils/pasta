@@ -255,6 +255,8 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_paste_clipboard_command_with_text() {
         // Test the paste_clipboard function structure
         let mock_state = MockState::new();
@@ -271,6 +273,8 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_paste_clipboard_command_error_handling() {
         // Test error handling in keyboard emulator
         let mock_state = MockState::new();
@@ -465,6 +469,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_app_state_arc_references() {
         let mock_state = MockState::new();
 
