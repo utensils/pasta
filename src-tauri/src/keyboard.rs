@@ -577,7 +577,7 @@ mod tests {
 
         // Wait for the thread to complete
         handle.join().unwrap();
-        
+
         // Now check the flag - it should definitely be set
         assert!(cancellation_flag.load(Ordering::Relaxed));
     }
