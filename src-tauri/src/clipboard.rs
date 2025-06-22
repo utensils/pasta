@@ -34,6 +34,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_get_clipboard_content() {
         // Set clipboard content
         let mut clipboard = Clipboard::new().unwrap();
@@ -47,6 +48,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_get_empty_clipboard() {
         // Clear clipboard
         let mut clipboard = Clipboard::new().unwrap();
@@ -59,6 +61,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_clipboard_with_unicode() {
         // Test with unicode content
         let mut clipboard = Clipboard::new().unwrap();
@@ -71,6 +74,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_clipboard_with_newlines() {
         // Test with multiline content
         let mut clipboard = Clipboard::new().unwrap();
@@ -83,6 +87,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_clipboard_with_tabs() {
         // Test with tab characters
         let mut clipboard = Clipboard::new().unwrap();
@@ -95,6 +100,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_clipboard_with_special_chars() {
         // Test with special characters
         let mut clipboard = Clipboard::new().unwrap();
@@ -107,6 +113,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     fn test_clipboard_with_long_text() {
         // Test with long text
         let mut clipboard = Clipboard::new().unwrap();

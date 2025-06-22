@@ -131,13 +131,30 @@ jobs:
 
     - name: Generate coverage report
       working-directory: ./src-tauri
-      run: cargo tarpaulin --config .tarpaulin.toml --lib
+      env:
+        RUST_TEST_THREADS: 1
+        CI: true
+      run: |
+        cargo tarpaulin \
+          --lib \
+          --out Xml \
+          --out Html \
+          --output-dir ./target/coverage \
+          --exclude-files "*/build.rs" \
+          --exclude-files "*/tests/*" \
+          --exclude-files "*/main.rs" \
+          --exclude-files "*/lib.rs" \
+          --exclude-files "*/tray.rs" \
+          --exclude-files "*/window.rs" \
+          --ignore-panics \
+          --skip-clean \
+          -- --skip clipboard::tests --skip test_paste_clipboard
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./src-tauri/cobertura.xml
+        files: ./src-tauri/target/coverage/cobertura.xml
         flags: unittests
         name: rust-coverage
         fail_ci_if_error: false
