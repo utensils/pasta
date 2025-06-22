@@ -1,7 +1,9 @@
 # Pasta
 
+[![Rust CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
+[![Build](https://github.com/utensils/pasta/actions/workflows/build.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/utensils/pasta/graph/badge.svg)](https://codecov.io/gh/utensils/pasta)
-[![CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
+[![License Check](https://github.com/utensils/pasta/actions/workflows/license-check.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/license-check.yml)
 
 <p align="center">
   <img src="src-tauri/assets/logo.png" alt="Pasta Logo" width="256" height="256">
@@ -80,9 +82,3 @@ menu  # Shows all available commands
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## CI/CD Status
-
-[![Build](https://github.com/utensils/pasta/actions/workflows/build.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/build.yml)
-[![Rust CI](https://github.com/utensils/pasta/actions/workflows/rust.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/rust.yml)
-[![License Check](https://github.com/utensils/pasta/actions/workflows/license-check.yml/badge.svg)](https://github.com/utensils/pasta/actions/workflows/license-check.yml)
