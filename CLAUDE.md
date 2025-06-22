@@ -287,6 +287,15 @@ To reduce security warnings without an Apple Developer account:
 - Requires X11 or Wayland support
 - AppIndicator support for system tray
 - May need additional permissions on some distributions
+- **GNOME Users**: Modern GNOME (3.26+) requires the AppIndicator extension for system tray support:
+  - Install via package manager: `gnome-shell-extension-appindicator`
+  - Or from [GNOME Extensions](https://extensions.gnome.org/extension/615/appindicator-support/)
+  - After installation, restart GNOME Shell or log out/in
+- **Nix Flake Dependencies**: The following packages are required for Linux builds:
+  - gtk3, webkitgtk_4_1, libayatana-appindicator
+  - pango, cairo, atk, harfbuzz, gdk-pixbuf
+  - xdotool (for keyboard emulation), zlib
+  - Proper PKG_CONFIG_PATH and LIBRARY_PATH configuration
 
 ### Windows
 - Works out of the box with standard permissions
