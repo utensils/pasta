@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod runtime_mock_tests {
     use std::{
-        sync::{Arc, Mutex},
+        sync::{atomic::AtomicBool, Arc, Mutex},
         time::Duration,
     };
 
@@ -21,7 +21,7 @@ mod runtime_mock_tests {
         let initial_count = Arc::strong_count(&keyboard_emulator);
 
         // Call the function which spawns a thread
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        handle_paste_clipboard_event(keyboard_emulator.clone(), Arc::new(AtomicBool::new(false)));
 
         // Give the thread time to start and grab the Arc
         std::thread::sleep(Duration::from_millis(10));
@@ -41,7 +41,10 @@ mod runtime_mock_tests {
 
         // Spawn multiple paste events
         for _ in 0..5 {
-            handle_paste_clipboard_event(keyboard_emulator.clone());
+            handle_paste_clipboard_event(
+                keyboard_emulator.clone(),
+                Arc::new(AtomicBool::new(false)),
+            );
         }
 
         // Give threads time to start
@@ -60,7 +63,10 @@ mod runtime_mock_tests {
 
         for speed in speeds {
             keyboard_emulator.set_typing_speed(speed);
-            handle_paste_clipboard_event(keyboard_emulator.clone());
+            handle_paste_clipboard_event(
+                keyboard_emulator.clone(),
+                Arc::new(AtomicBool::new(false)),
+            );
             std::thread::sleep(Duration::from_millis(20));
         }
 
@@ -143,7 +149,7 @@ mod runtime_mock_tests {
         let initial_count = Arc::strong_count(&keyboard_emulator);
 
         // Trigger paste event
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        handle_paste_clipboard_event(keyboard_emulator.clone(), Arc::new(AtomicBool::new(false)));
 
         // Wait for thread to complete
         std::thread::sleep(Duration::from_millis(150));

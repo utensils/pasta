@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod keyboard_thread_tests {
-    use std::sync::Arc;
+    use std::sync::{atomic::AtomicBool, Arc};
 
     use tokio::sync::mpsc;
 
@@ -35,17 +35,23 @@ mod keyboard_thread_tests {
         let (tx, mut rx) = mpsc::unbounded_channel::<KeyboardCommand>();
 
         // Send various commands
-        tx.send(KeyboardCommand::TypeText("Hello".to_string()))
-            .unwrap();
+        tx.send(KeyboardCommand::TypeText(
+            "Hello".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .unwrap();
         tx.send(KeyboardCommand::SetSpeed(TypingSpeed::Fast))
             .unwrap();
-        tx.send(KeyboardCommand::TypeText("World".to_string()))
-            .unwrap();
+        tx.send(KeyboardCommand::TypeText(
+            "World".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .unwrap();
 
         // Receive and verify commands
         let cmd1 = rx.recv().await.unwrap();
         match cmd1 {
-            KeyboardCommand::TypeText(text) => assert_eq!(text, "Hello"),
+            KeyboardCommand::TypeText(text, _) => assert_eq!(text, "Hello"),
             _ => panic!("Expected TypeText command"),
         }
 
@@ -57,7 +63,7 @@ mod keyboard_thread_tests {
 
         let cmd3 = rx.recv().await.unwrap();
         match cmd3 {
-            KeyboardCommand::TypeText(text) => assert_eq!(text, "World"),
+            KeyboardCommand::TypeText(text, _) => assert_eq!(text, "World"),
             _ => panic!("Expected TypeText command"),
         }
     }
@@ -176,7 +182,9 @@ mod keyboard_thread_tests {
             let ke = keyboard_emulator.clone();
             let handle = tokio::spawn(async move {
                 let text = format!("Task {}", i);
-                ke.type_text(&text).await.unwrap();
+                ke.type_text(&text, Arc::new(AtomicBool::new(false)))
+                    .await
+                    .unwrap();
                 sleep(Duration::from_millis(10)).await;
             });
             handles.push(handle);
@@ -193,7 +201,8 @@ mod keyboard_thread_tests {
         use std::mem;
 
         // Test memory layout of KeyboardCommand enum
-        let type_text_cmd = KeyboardCommand::TypeText("Hello".to_string());
+        let type_text_cmd =
+            KeyboardCommand::TypeText("Hello".to_string(), Arc::new(AtomicBool::new(false)));
         let set_speed_cmd = KeyboardCommand::SetSpeed(TypingSpeed::Fast);
 
         // Both variants should have reasonable size
@@ -201,10 +210,10 @@ mod keyboard_thread_tests {
         assert!(mem::size_of_val(&set_speed_cmd) < 100);
 
         // Test that commands can be moved
-        let cmd = KeyboardCommand::TypeText("Test".to_string());
+        let cmd = KeyboardCommand::TypeText("Test".to_string(), Arc::new(AtomicBool::new(false)));
         let moved_cmd = cmd;
         match moved_cmd {
-            KeyboardCommand::TypeText(text) => assert_eq!(text, "Test"),
+            KeyboardCommand::TypeText(text, _) => assert_eq!(text, "Test"),
             _ => panic!("Unexpected command type"),
         }
     }
@@ -215,14 +224,20 @@ mod keyboard_thread_tests {
         let (tx, rx) = mpsc::unbounded_channel::<KeyboardCommand>();
 
         // Send a command
-        tx.send(KeyboardCommand::TypeText("Test".to_string()))
-            .unwrap();
+        tx.send(KeyboardCommand::TypeText(
+            "Test".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .unwrap();
 
         // Close the channel by dropping receiver
         drop(rx);
 
         // Try to send after close - should fail
-        let result = tx.send(KeyboardCommand::TypeText("Failed".to_string()));
+        let result = tx.send(KeyboardCommand::TypeText(
+            "Failed".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ));
         assert!(result.is_err());
     }
 

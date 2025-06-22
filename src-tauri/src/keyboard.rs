@@ -1,8 +1,10 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
-use std::time::Duration;
 
 use enigo::{Enigo, Key, Keyboard};
 use log::{debug, info};
@@ -70,7 +72,8 @@ impl KeyboardEmulator {
                             // Type each character in the chunk
                             for (char_index, ch) in chunk.chars().enumerate() {
                                 // Check cancellation flag periodically (every 10 characters)
-                                if char_index % 10 == 0 && cancellation_flag.load(Ordering::Relaxed) {
+                                if char_index % 10 == 0 && cancellation_flag.load(Ordering::Relaxed)
+                                {
                                     info!("Typing cancelled by user");
                                     break;
                                 }
@@ -121,9 +124,16 @@ impl KeyboardEmulator {
         let _ = self.tx.blocking_send(KeyboardCommand::SetSpeed(speed));
     }
 
-    pub async fn type_text(&self, text: &str, cancellation_flag: Arc<AtomicBool>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn type_text(
+        &self,
+        text: &str,
+        cancellation_flag: Arc<AtomicBool>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.tx
-            .send(KeyboardCommand::TypeText(text.to_string(), cancellation_flag))
+            .send(KeyboardCommand::TypeText(
+                text.to_string(),
+                cancellation_flag,
+            ))
             .await?;
         Ok(())
     }
@@ -357,9 +367,10 @@ mod tests {
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     async fn test_keyboard_emulator_type_text() {
         let emulator = KeyboardEmulator::new().unwrap();
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
         // Test that type_text doesn't error with basic text
-        let result = emulator.type_text("test").await;
+        let result = emulator.type_text("test", cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -453,14 +464,19 @@ mod tests {
         // Test multiple operations in sequence
         // Note: set_typing_speed uses blocking_send which can't be used in async test
         // So we'll test type_text operations only
-        assert!(emulator.type_text("first").await.is_ok());
-        assert!(emulator.type_text("second").await.is_ok());
+        let flag1 = Arc::new(AtomicBool::new(false));
+        assert!(emulator.type_text("first", flag1).await.is_ok());
+
+        let flag2 = Arc::new(AtomicBool::new(false));
+        assert!(emulator.type_text("second", flag2).await.is_ok());
 
         // Test empty text
-        assert!(emulator.type_text("").await.is_ok());
+        let flag3 = Arc::new(AtomicBool::new(false));
+        assert!(emulator.type_text("", flag3).await.is_ok());
 
         // Test with special characters
-        assert!(emulator.type_text("hello\nworld\ttab").await.is_ok());
+        let flag4 = Arc::new(AtomicBool::new(false));
+        assert!(emulator.type_text("hello\nworld\ttab", flag4).await.is_ok());
     }
 
     #[test]
@@ -481,7 +497,10 @@ mod tests {
 
         // Test that we can send at least 10 commands without blocking
         for i in 0..10 {
-            let result = tx.try_send(KeyboardCommand::TypeText(format!("test{}", i), cancellation_flag.clone()));
+            let result = tx.try_send(KeyboardCommand::TypeText(
+                format!("test{}", i),
+                cancellation_flag.clone(),
+            ));
             assert!(result.is_ok());
         }
     }
@@ -527,7 +546,7 @@ mod tests {
     #[test]
     fn test_cancellation_flag_functionality() {
         let cancellation_flag = Arc::new(AtomicBool::new(false));
-        
+
         // Test initial state
         assert!(!cancellation_flag.load(Ordering::Relaxed));
 
@@ -566,7 +585,7 @@ mod tests {
             KeyboardCommand::TypeText(text, flag) => {
                 assert_eq!(text, "test");
                 assert!(Arc::ptr_eq(&flag, &cancellation_flag));
-                
+
                 // Test that modifying the original flag affects the command's flag
                 cancellation_flag.store(true, Ordering::Relaxed);
                 assert!(flag.load(Ordering::Relaxed));

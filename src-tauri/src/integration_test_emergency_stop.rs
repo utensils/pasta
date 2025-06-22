@@ -1,10 +1,12 @@
 #[cfg(test)]
 mod integration_tests {
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
+    use std::{
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        },
+        time::Duration,
     };
-    use std::time::Duration;
 
     use crate::{
         app_logic::{handle_paste_clipboard, ClipboardProvider},
@@ -12,6 +14,7 @@ mod integration_tests {
     };
 
     /// Mock clipboard that returns a long text string
+    #[derive(Clone)]
     struct LongTextClipboard {
         text: String,
     }
@@ -71,14 +74,16 @@ mod integration_tests {
         let cancellation_flag = Arc::new(AtomicBool::new(false));
         cancellation_flag.store(true, Ordering::Relaxed); // Pre-cancelled
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag.clone()).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag.clone()).await;
         assert!(result.is_ok());
 
         // Reset flag for second operation
         cancellation_flag.store(false, Ordering::Relaxed);
 
         // Second operation should work normally
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -111,7 +116,7 @@ mod integration_tests {
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let double_press_window_ms = 500u64;
-        
+
         // Simulate first press
         let first_press = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -134,16 +139,17 @@ mod integration_tests {
     async fn test_multiple_emergency_stops() {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let clipboard = LongTextClipboard::new(500);
-        
+
         // Test multiple cancellations
         for _ in 0..3 {
             let cancellation_flag = Arc::new(AtomicBool::new(false));
-            
+
             // Start typing
             let flag_clone = cancellation_flag.clone();
             let keyboard_clone = keyboard_emulator.clone();
+            let clipboard_clone = clipboard.clone();
             let typing_task = tokio::spawn(async move {
-                handle_paste_clipboard(&clipboard, &keyboard_clone, flag_clone).await
+                handle_paste_clipboard(&clipboard_clone, &keyboard_clone, flag_clone).await
             });
 
             // Cancel quickly

@@ -80,7 +80,9 @@ use std::sync::{
 use log::{error, info};
 use tauri::{Listener, Manager, State};
 
-use crate::{config::ConfigManager, hotkey::HotkeyManager, keyboard::KeyboardEmulator, tray::TrayManager};
+use crate::{
+    config::ConfigManager, hotkey::HotkeyManager, keyboard::KeyboardEmulator, tray::TrayManager,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -142,7 +144,10 @@ pub fn handle_config_changed(
 }
 
 /// Handle paste clipboard event in a new thread
-pub fn handle_paste_clipboard_event(keyboard_emulator: Arc<KeyboardEmulator>, cancellation_flag: Arc<AtomicBool>) {
+pub fn handle_paste_clipboard_event(
+    keyboard_emulator: Arc<KeyboardEmulator>,
+    cancellation_flag: Arc<AtomicBool>,
+) {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
 
     info!("{}", helpers::format_paste_event_log());
@@ -155,7 +160,9 @@ pub fn handle_paste_clipboard_event(keyboard_emulator: Arc<KeyboardEmulator>, ca
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async move {
-            if let Err(e) = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await {
+            if let Err(e) =
+                handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await
+            {
                 error!("{}", helpers::format_paste_error(&e.to_string()));
             }
         });
@@ -183,7 +190,10 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
     let cancellation_flag_clone = cancellation_flag.clone();
     let (_, paste_event) = helpers::get_event_names();
     app_handle.listen(paste_event, move |_event| {
-        handle_paste_clipboard_event(keyboard_emulator_clone.clone(), cancellation_flag_clone.clone());
+        handle_paste_clipboard_event(
+            keyboard_emulator_clone.clone(),
+            cancellation_flag_clone.clone(),
+        );
     });
 
     // Handle cancel typing event from tray
@@ -202,7 +212,12 @@ async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
     state.reset_cancellation();
 
     let clipboard = SystemClipboard;
-    handle_paste_clipboard(&clipboard, &state.keyboard_emulator, state.is_typing_cancelled.clone()).await
+    handle_paste_clipboard(
+        &clipboard,
+        &state.keyboard_emulator,
+        state.is_typing_cancelled.clone(),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -245,7 +260,12 @@ pub fn run() {
             app.manage(app_state);
 
             // Setup event handlers
-            setup_event_handlers(app.handle(), config_manager, keyboard_emulator, cancellation_flag.clone());
+            setup_event_handlers(
+                app.handle(),
+                config_manager,
+                keyboard_emulator,
+                cancellation_flag.clone(),
+            );
 
             // Setup global hotkeys
             let hotkey_manager = HotkeyManager::new();

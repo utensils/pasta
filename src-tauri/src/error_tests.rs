@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod error_scenario_tests {
-    use std::sync::Arc;
+    use std::sync::{atomic::AtomicBool, Arc};
 
     use tempfile::TempDir;
 
@@ -34,7 +34,12 @@ mod error_scenario_tests {
         let clipboard = FailingClipboard;
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(
+            &clipboard,
+            &keyboard_emulator,
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Simulated clipboard failure");
     }
@@ -45,7 +50,12 @@ mod error_scenario_tests {
         let clipboard = EmptyClipboard;
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(
+            &clipboard,
+            &keyboard_emulator,
+            Arc::new(AtomicBool::new(false)),
+        )
+        .await;
         assert!(result.is_ok());
     }
 
@@ -157,7 +167,9 @@ typing_speed = "INVALID_SPEED"
         ];
 
         for text in special_texts {
-            let result = keyboard_emulator.type_text(text).await;
+            let result = keyboard_emulator
+                .type_text(text, Arc::new(AtomicBool::new(false)))
+                .await;
             assert!(result.is_ok());
         }
     }

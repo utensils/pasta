@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod lib_coverage_tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
     use tempfile::TempDir;
 
@@ -76,7 +76,10 @@ mod lib_coverage_tests {
 
         // Call handle_paste_clipboard_event multiple times
         for _ in 0..3 {
-            handle_paste_clipboard_event(keyboard_emulator.clone());
+            handle_paste_clipboard_event(
+                keyboard_emulator.clone(),
+                Arc::new(AtomicBool::new(false)),
+            );
         }
 
         // Give threads time to start
@@ -167,7 +170,7 @@ mod lib_coverage_tests {
         for _ in 0..5 {
             let ke = keyboard_emulator.clone();
             let handle = std::thread::spawn(move || {
-                handle_paste_clipboard_event(ke);
+                handle_paste_clipboard_event(ke, Arc::new(AtomicBool::new(false)));
             });
             handles.push(handle);
         }

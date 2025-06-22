@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tauri_mock_tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
     use tempfile::TempDir;
 
@@ -86,7 +86,7 @@ mod tauri_mock_tests {
         let initial_count = Arc::strong_count(&keyboard_emulator);
 
         // Handle paste event (spawns a thread)
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        handle_paste_clipboard_event(keyboard_emulator.clone(), Arc::new(AtomicBool::new(false)));
 
         // Give thread time to spawn
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -105,6 +105,7 @@ mod tauri_mock_tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
         };
 
         // Verify the state contains the keyboard emulator
@@ -205,7 +206,10 @@ mod tauri_mock_tests {
 
         // Trigger multiple paste events
         for _ in 0..5 {
-            handle_paste_clipboard_event(keyboard_emulator.clone());
+            handle_paste_clipboard_event(
+                keyboard_emulator.clone(),
+                Arc::new(AtomicBool::new(false)),
+            );
         }
 
         // Give threads time to spawn

@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 use crate::keyboard::{KeyboardEmulator, TypingSpeed};
 
@@ -150,7 +147,7 @@ pub fn handle_menu_event(event_id: &str) -> MenuAction {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
+    use std::sync::{atomic::Ordering, Mutex};
 
     use super::*;
     use crate::keyboard::KeyboardEmulator;
@@ -182,7 +179,8 @@ mod tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -194,7 +192,8 @@ mod tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -214,7 +213,8 @@ mod tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Clipboard access denied");
     }
@@ -467,7 +467,8 @@ mod tests {
         };
         let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -477,14 +478,15 @@ mod tests {
     async fn test_handle_paste_clipboard_with_cancellation() {
         let clipboard = MockClipboard::new(Some("test text".to_string()));
         let cancellation_flag = Arc::new(AtomicBool::new(false));
-        
+
         // Create a real keyboard emulator
         let keyboard_emulator = Arc::new(crate::keyboard::KeyboardEmulator::new().unwrap());
 
         // Set cancellation flag before calling
         cancellation_flag.store(true, Ordering::Relaxed);
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok()); // The function should still return Ok even if cancelled
     }
 

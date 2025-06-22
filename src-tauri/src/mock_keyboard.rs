@@ -1,7 +1,9 @@
 #[cfg(test)]
 pub mod mock {
-    use std::sync::{Arc, Mutex};
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    };
 
     use tokio::sync::mpsc;
 
@@ -56,9 +58,16 @@ pub mod mock {
             let _ = self.tx.try_send(KeyboardCommand::SetSpeed(speed));
         }
 
-        pub async fn type_text(&self, text: &str, cancellation_flag: Arc<AtomicBool>) -> Result<(), Box<dyn std::error::Error>> {
+        pub async fn type_text(
+            &self,
+            text: &str,
+            cancellation_flag: Arc<AtomicBool>,
+        ) -> Result<(), Box<dyn std::error::Error>> {
             self.tx
-                .send(KeyboardCommand::TypeText(text.to_string(), cancellation_flag))
+                .send(KeyboardCommand::TypeText(
+                    text.to_string(),
+                    cancellation_flag,
+                ))
                 .await?;
             Ok(())
         }

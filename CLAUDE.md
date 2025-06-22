@@ -316,7 +316,7 @@ This focuses coverage metrics on actual business logic rather than framework cod
 ### Current Limitations
 - Text-only clipboard support (no images, files, etc.)
 - No clipboard monitoring or history
-- No global hotkeys
+- No global hotkeys (except for emergency stop)
 - No settings window (configuration via tray menu only)
 - No automatic update mechanism
 

@@ -2,8 +2,7 @@
 mod integration_tests {
     use std::{
         path::PathBuf,
-        sync::{Arc, Mutex},
-        sync::atomic::{AtomicBool, Ordering},
+        sync::{atomic::AtomicBool, Arc, Mutex},
     };
 
     use tempfile::TempDir;
@@ -101,7 +100,8 @@ mod integration_tests {
 
         // Execute paste operation
         let cancellation_flag = Arc::new(AtomicBool::new(false));
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -275,7 +275,9 @@ mod integration_tests {
         for content in test_contents {
             runtime.block_on(async {
                 let cancellation_flag = Arc::new(AtomicBool::new(false));
-                let result = keyboard_emulator.type_text(content, cancellation_flag).await;
+                let result = keyboard_emulator
+                    .type_text(content, cancellation_flag)
+                    .await;
                 assert!(result.is_ok());
             });
         }

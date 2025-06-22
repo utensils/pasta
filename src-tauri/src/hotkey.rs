@@ -1,11 +1,13 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
-    Arc,
+use std::{
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
+    },
+    time::{SystemTime, UNIX_EPOCH},
 };
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use log::{debug, info};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 /// Manages global hotkeys for the application
@@ -43,14 +45,14 @@ impl HotkeyManager {
                 let last_time = last_escape_time.load(Ordering::Relaxed);
                 let time_diff = current_time.saturating_sub(last_time);
 
-                debug!("Escape pressed. Time since last: {}ms", time_diff);
+                debug!("Escape pressed. Time since last: {time_diff}ms");
 
                 if time_diff <= double_press_window {
                     // Double-press detected
                     info!("Double-Escape detected! Cancelling typing operation");
                     cancellation_flag.store(true, Ordering::Relaxed);
                     last_escape_time.store(0, Ordering::Relaxed); // Reset to prevent triple-press
-                    
+
                     // Optional: Emit an event for UI feedback
                     let _ = app_handle.emit("typing_cancelled", ());
                 } else {
@@ -65,22 +67,20 @@ impl HotkeyManager {
     }
 
     /// Alternative: Register Ctrl+Shift+Escape for simpler implementation
+    #[allow(dead_code)]
     pub fn register_ctrl_shift_escape<R: tauri::Runtime>(
         &self,
         app_handle: &AppHandle<R>,
         cancellation_flag: Arc<AtomicBool>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let shortcut = Shortcut::new(
-            Some(Modifiers::CONTROL | Modifiers::SHIFT),
-            Code::Escape,
-        );
+        let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Escape);
 
         app_handle.global_shortcut().on_shortcut(
             shortcut,
             move |app_handle, _shortcut, _event| {
                 info!("Ctrl+Shift+Escape pressed! Cancelling typing operation");
                 cancellation_flag.store(true, Ordering::Relaxed);
-                
+
                 // Optional: Emit an event for UI feedback
                 let _ = app_handle.emit("typing_cancelled", ());
             },
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn test_atomic_operations() {
         let atomic_time = Arc::new(AtomicU64::new(0));
-        
+
         // Test store and load
         atomic_time.store(1000, Ordering::Relaxed);
         assert_eq!(atomic_time.load(Ordering::Relaxed), 1000);
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_cancellation_flag_operations() {
         let flag = Arc::new(AtomicBool::new(false));
-        
+
         // Test initial state
         assert!(!flag.load(Ordering::Relaxed));
 
@@ -168,7 +168,7 @@ mod tests {
         let time = SystemTime::now();
         let duration = time.duration_since(UNIX_EPOCH).unwrap();
         let millis = duration.as_millis() as u64;
-        
+
         assert!(millis > 0);
         assert!(millis < u64::MAX);
     }
@@ -180,10 +180,8 @@ mod tests {
         assert!(matches!(escape_shortcut.key, Code::Escape));
 
         // Test ctrl+shift+escape
-        let ctrl_shift_escape = Shortcut::new(
-            Some(Modifiers::CONTROL | Modifiers::SHIFT),
-            Code::Escape,
-        );
+        let ctrl_shift_escape =
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Escape);
         assert!(matches!(ctrl_shift_escape.key, Code::Escape));
     }
 }
