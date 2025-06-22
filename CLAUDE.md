@@ -95,6 +95,11 @@ npm install
 
 # Trigger release workflow manually
 gh workflow run release.yml -f tag_name=v0.1.0-dev
+
+# Self-sign macOS builds (reduces security warnings)
+./sign-macos.sh "Your Certificate Name"
+./sign-macos.sh "Your Certificate Name" x86_64-apple-darwin
+./sign-macos.sh "Your Certificate Name" aarch64-apple-darwin
 ```
 
 ## Project Structure
@@ -248,10 +253,35 @@ Main Thread (Tauri/UI)
 - Template icons for proper dark mode support
 - Unsigned builds require user approval (right-click > Open or xattr -d com.apple.quarantine)
 - Code signing needed for distribution without security warnings
+- Self-signing available via `./sign-macos.sh` script (see below)
 - Dock icon hidden when no windows open (menu bar app behavior)
 - Window close button hides window instead of quitting app
 - Uses `ActivationPolicy::Accessory` for background operation
 - Hardened runtime disabled in config for unsigned builds
+
+#### macOS Self-Signing (Without Apple Developer Account)
+To reduce security warnings without an Apple Developer account:
+
+1. **Create a self-signed certificate** (one-time setup):
+   - Open Keychain Access
+   - Certificate Assistant > Create a Certificate
+   - Name: "Your Name", Type: "Code Signing"
+   - Check "Let me override defaults" and follow prompts
+
+2. **Build the app**:
+   ```bash
+   cargo tauri build
+   ```
+
+3. **Sign the app**:
+   ```bash
+   ./sign-macos.sh "Your Certificate Name"
+   ```
+
+4. **Install and run**:
+   - The signed app will be in the .dmg file
+   - First run may still show a warning but it should be less intrusive
+   - Users can open without right-clicking
 
 ### Linux
 - Requires X11 or Wayland support
@@ -271,6 +301,12 @@ Main Thread (Tauri/UI)
 3. Use channels for cross-thread communication
 4. Keep frontend simple - no frameworks or complex build steps
 5. Test on all platforms before committing
+
+### Documentation Guidelines
+- Keep all project documentation in existing files (README.md, CLAUDE.md)
+- Do NOT create separate documentation files for individual features
+- Add feature documentation to the appropriate existing section
+- Maintain a single source of truth for project information
 
 ### Testing Strategy
 The project has comprehensive test coverage:
