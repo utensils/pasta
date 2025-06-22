@@ -61,6 +61,10 @@ cargo tauri build
 2. Copy text normally (Ctrl+C/Cmd+C)
 3. Click "Paste" in tray menu to type it out
 
+### Emergency Stop
+
+Press **Escape twice** quickly (within 500ms) to instantly cancel any ongoing typing operation. You can also click "Cancel Typing (Esc Esc)" in the tray menu.
+
 Adjust typing speed and left-click behavior from the tray menu.
 
 ## Configuration

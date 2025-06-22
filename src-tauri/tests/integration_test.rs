@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{atomic::AtomicBool, Arc};
 
 use pasta_tray_lib::{
     config::{Config, ConfigManager},
@@ -59,14 +59,20 @@ async fn test_keyboard_emulator_async_operations() {
     let keyboard_emulator = KeyboardEmulator::new().unwrap();
 
     // Test multiple async operations
-    let result1 = keyboard_emulator.type_text("Hello").await;
+    let result1 = keyboard_emulator
+        .type_text("Hello", Arc::new(AtomicBool::new(false)))
+        .await;
     assert!(result1.is_ok());
 
-    let result2 = keyboard_emulator.type_text("World").await;
+    let result2 = keyboard_emulator
+        .type_text("World", Arc::new(AtomicBool::new(false)))
+        .await;
     assert!(result2.is_ok());
 
     // Test with special characters
-    let result3 = keyboard_emulator.type_text("Line1\nLine2\tTabbed").await;
+    let result3 = keyboard_emulator
+        .type_text("Line1\nLine2\tTabbed", Arc::new(AtomicBool::new(false)))
+        .await;
     assert!(result3.is_ok());
 }
 
@@ -152,7 +158,9 @@ async fn test_keyboard_emulator_channel_capacity() {
     // Send multiple commands quickly
     let mut results = vec![];
     for i in 0..5 {
-        let result = keyboard_emulator.type_text(&format!("Text {}", i)).await;
+        let result = keyboard_emulator
+            .type_text(&format!("Text {}", i), Arc::new(AtomicBool::new(false)))
+            .await;
         results.push(result);
     }
 

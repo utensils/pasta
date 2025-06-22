@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod app_logic_comprehensive_tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
     use crate::{
         app_logic::{
@@ -43,35 +43,40 @@ mod app_logic_comprehensive_tests {
 
         // Test successful paste
         let clipboard = MockClipboard::new(Ok(Some("Hello World".to_string())));
-        let result = handle_paste_clipboard(&clipboard, &keyboard).await;
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let result = handle_paste_clipboard(&clipboard, &keyboard, cancellation_flag.clone()).await;
         assert!(result.is_ok());
         assert_eq!(clipboard.get_call_count(), 1);
 
         // Test empty clipboard
         let empty_clipboard = MockClipboard::new(Ok(None));
-        let result = handle_paste_clipboard(&empty_clipboard, &keyboard).await;
+        let result =
+            handle_paste_clipboard(&empty_clipboard, &keyboard, cancellation_flag.clone()).await;
         assert!(result.is_ok()); // Empty clipboard now returns Ok
 
         // Test clipboard error
         let error_clipboard = MockClipboard::new(Err("Access denied".to_string()));
-        let result = handle_paste_clipboard(&error_clipboard, &keyboard).await;
+        let result =
+            handle_paste_clipboard(&error_clipboard, &keyboard, cancellation_flag.clone()).await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Access denied");
 
         // Test very long content
         let long_content = "x".repeat(10000);
         let long_clipboard = MockClipboard::new(Ok(Some(long_content)));
-        let result = handle_paste_clipboard(&long_clipboard, &keyboard).await;
+        let result =
+            handle_paste_clipboard(&long_clipboard, &keyboard, cancellation_flag.clone()).await;
         assert!(result.is_ok());
 
         // Test unicode content
         let unicode_clipboard = MockClipboard::new(Ok(Some("Hello 世界 🦀".to_string())));
-        let result = handle_paste_clipboard(&unicode_clipboard, &keyboard).await;
+        let result =
+            handle_paste_clipboard(&unicode_clipboard, &keyboard, cancellation_flag.clone()).await;
         assert!(result.is_ok());
 
         // Test content with special characters
         let special_clipboard = MockClipboard::new(Ok(Some("Line1\nLine2\tTab".to_string())));
-        let result = handle_paste_clipboard(&special_clipboard, &keyboard).await;
+        let result = handle_paste_clipboard(&special_clipboard, &keyboard, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -86,7 +91,7 @@ mod app_logic_comprehensive_tests {
                 let menu_structure = create_menu_structure(typing_speed, *left_click_paste);
 
                 // Verify menu structure
-                assert_eq!(menu_structure.items.len(), 6); // paste, separator, typing_speed, left_click_paste, separator, quit
+                assert_eq!(menu_structure.items.len(), 7); // paste, cancel_typing, separator, typing_speed, left_click_paste, separator, quit
 
                 // Verify paste item
                 match &menu_structure.items[0] {
@@ -97,11 +102,20 @@ mod app_logic_comprehensive_tests {
                     _ => panic!("Expected Action item"),
                 }
 
+                // Verify cancel typing item
+                match &menu_structure.items[1] {
+                    MenuItem::Action { id, label } => {
+                        assert_eq!(id, "cancel_typing");
+                        assert_eq!(label, "Cancel Typing (Esc Esc)");
+                    }
+                    _ => panic!("Expected Action item"),
+                }
+
                 // Verify separator
-                assert!(matches!(menu_structure.items[1], MenuItem::Separator));
+                assert!(matches!(menu_structure.items[2], MenuItem::Separator));
 
                 // Verify typing speed submenu
-                match &menu_structure.items[2] {
+                match &menu_structure.items[3] {
                     MenuItem::Submenu { label, .. } => {
                         assert_eq!(label, "Typing Speed");
                     }
@@ -109,7 +123,7 @@ mod app_logic_comprehensive_tests {
                 }
 
                 // Check submenu items
-                if let MenuItem::Submenu { items, .. } = &menu_structure.items[2] {
+                if let MenuItem::Submenu { items, .. } = &menu_structure.items[3] {
                     assert_eq!(items.len(), 3);
 
                     // Check which speed is selected
@@ -126,7 +140,7 @@ mod app_logic_comprehensive_tests {
                 }
 
                 // Verify left click paste item
-                match &menu_structure.items[3] {
+                match &menu_structure.items[4] {
                     MenuItem::CheckItem { id, label, checked } => {
                         assert_eq!(id, "left_click_paste");
                         assert_eq!(label, "Left Click Pastes");
@@ -136,10 +150,10 @@ mod app_logic_comprehensive_tests {
                 }
 
                 // Verify separator
-                assert!(matches!(menu_structure.items[4], MenuItem::Separator));
+                assert!(matches!(menu_structure.items[5], MenuItem::Separator));
 
                 // Verify quit item
-                match &menu_structure.items[5] {
+                match &menu_structure.items[6] {
                     MenuItem::Action { id, label } => {
                         assert_eq!(id, "quit");
                         assert_eq!(label, "Quit");
@@ -251,7 +265,8 @@ mod app_logic_comprehensive_tests {
 
         for (clipboard_result, expected_error) in error_scenarios {
             let clipboard = MockClipboard::new(clipboard_result);
-            let result = handle_paste_clipboard(&clipboard, &keyboard).await;
+            let cancellation_flag = Arc::new(AtomicBool::new(false));
+            let result = handle_paste_clipboard(&clipboard, &keyboard, cancellation_flag).await;
 
             assert!(result.is_err());
             assert_eq!(result.unwrap_err(), expected_error);
@@ -292,10 +307,10 @@ mod app_logic_comprehensive_tests {
 
         for (speed, left_click) in states {
             let menu = create_menu_structure(speed, left_click);
-            assert_eq!(menu.items.len(), 6); // paste, sep, speed, left_click, sep, quit
+            assert_eq!(menu.items.len(), 7); // paste, cancel_typing, sep, speed, left_click, sep, quit
 
             // Verify correct speed is selected
-            if let MenuItem::Submenu { items, .. } = &menu.items[2] {
+            if let MenuItem::Submenu { items, .. } = &menu.items[3] {
                 let checked_count = items
                     .iter()
                     .filter(|item| {

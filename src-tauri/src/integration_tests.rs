@@ -2,7 +2,7 @@
 mod integration_tests {
     use std::{
         path::PathBuf,
-        sync::{Arc, Mutex},
+        sync::{atomic::AtomicBool, Arc, Mutex},
     };
 
     use tempfile::TempDir;
@@ -99,7 +99,9 @@ mod integration_tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
         // Execute paste operation
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let result =
+            handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -120,7 +122,8 @@ mod integration_tests {
         assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
 
         // Test paste event
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        handle_paste_clipboard_event(keyboard_emulator.clone(), cancellation_flag);
 
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
@@ -149,7 +152,8 @@ mod integration_tests {
                         handle_config_changed(&cm, &ke);
                     } else {
                         // Paste operations
-                        handle_paste_clipboard_event(ke);
+                        let cancellation_flag = Arc::new(AtomicBool::new(false));
+                        handle_paste_clipboard_event(ke, cancellation_flag);
                     }
                 })
             })
@@ -270,7 +274,10 @@ mod integration_tests {
 
         for content in test_contents {
             runtime.block_on(async {
-                let result = keyboard_emulator.type_text(content).await;
+                let cancellation_flag = Arc::new(AtomicBool::new(false));
+                let result = keyboard_emulator
+                    .type_text(content, cancellation_flag)
+                    .await;
                 assert!(result.is_ok());
             });
         }

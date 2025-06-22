@@ -52,7 +52,7 @@ mod tray_builder_tests {
             }
         }
 
-        assert_eq!(action_count, 2); // Paste, Quit
+        assert_eq!(action_count, 3); // Paste, Cancel Typing, Quit
         assert_eq!(check_count, 1); // Left Click Pastes
         assert_eq!(submenu_count, 1); // Typing Speed
         assert_eq!(separator_count, 2); // Two separators

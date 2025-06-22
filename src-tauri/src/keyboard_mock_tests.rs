@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod keyboard_mock_tests {
+    use std::sync::{atomic::AtomicBool, Arc};
+
     use tokio::sync::mpsc;
 
     use crate::keyboard::{KeyboardCommand, TypingSpeed};
@@ -10,7 +12,10 @@ mod keyboard_mock_tests {
         let (tx, mut rx) = mpsc::channel::<KeyboardCommand>(1);
 
         // Fill the channel
-        let _ = tx.try_send(KeyboardCommand::TypeText("test".to_string()));
+        let _ = tx.try_send(KeyboardCommand::TypeText(
+            "test".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ));
 
         // Try to send when full
         let result = tx.try_send(KeyboardCommand::SetSpeed(TypingSpeed::Fast));

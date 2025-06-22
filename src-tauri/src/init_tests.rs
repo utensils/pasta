@@ -2,7 +2,7 @@
 mod init_tests {
     use std::{
         path::PathBuf,
-        sync::{Arc, Mutex},
+        sync::{atomic::AtomicBool, Arc, Mutex},
     };
 
     use tempfile::TempDir;
@@ -98,7 +98,10 @@ mod init_tests {
 
         // Call handle_paste_clipboard_event multiple times
         for _ in 0..3 {
-            handle_paste_clipboard_event(keyboard_emulator.clone());
+            handle_paste_clipboard_event(
+                keyboard_emulator.clone(),
+                Arc::new(AtomicBool::new(false)),
+            );
             // Give thread time to start
             std::thread::sleep(std::time::Duration::from_millis(5));
         }

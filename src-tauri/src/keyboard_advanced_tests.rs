@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod keyboard_advanced_tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{
+        sync::{atomic::AtomicBool, Arc},
+        time::Duration,
+    };
 
     use tokio::sync::mpsc;
 
@@ -45,12 +48,18 @@ mod keyboard_advanced_tests {
         runtime.block_on(async {
             tx.send(KeyboardCommand::SetSpeed(TypingSpeed::Fast))
                 .unwrap();
-            tx.send(KeyboardCommand::TypeText("First".to_string()))
-                .unwrap();
+            tx.send(KeyboardCommand::TypeText(
+                "First".to_string(),
+                Arc::new(AtomicBool::new(false)),
+            ))
+            .unwrap();
             tx.send(KeyboardCommand::SetSpeed(TypingSpeed::Slow))
                 .unwrap();
-            tx.send(KeyboardCommand::TypeText("Second".to_string()))
-                .unwrap();
+            tx.send(KeyboardCommand::TypeText(
+                "Second".to_string(),
+                Arc::new(AtomicBool::new(false)),
+            ))
+            .unwrap();
         });
 
         // Verify order
@@ -65,7 +74,7 @@ mod keyboard_advanced_tests {
             _ => panic!("Expected SetSpeed command"),
         }
         match &commands[1] {
-            KeyboardCommand::TypeText(text) => assert_eq!(text, "First"),
+            KeyboardCommand::TypeText(text, _) => assert_eq!(text, "First"),
             _ => panic!("Expected TypeText command"),
         }
     }
@@ -83,7 +92,9 @@ mod keyboard_advanced_tests {
                 if i % 2 == 0 {
                     emulator_clone.set_typing_speed(TypingSpeed::Fast);
                 } else {
-                    let _ = emulator_clone.type_text(&format!("Test {}", i)).await;
+                    let _ = emulator_clone
+                        .type_text(&format!("Test {}", i), Arc::new(AtomicBool::new(false)))
+                        .await;
                 }
             });
             handles.push(handle);
@@ -190,8 +201,10 @@ mod keyboard_advanced_tests {
         // Test memory efficiency of commands
         use std::mem;
 
-        let small_text_cmd = KeyboardCommand::TypeText("Hi".to_string());
-        let large_text_cmd = KeyboardCommand::TypeText("x".repeat(10000));
+        let small_text_cmd =
+            KeyboardCommand::TypeText("Hi".to_string(), Arc::new(AtomicBool::new(false)));
+        let large_text_cmd =
+            KeyboardCommand::TypeText("x".repeat(10000), Arc::new(AtomicBool::new(false)));
         let speed_cmd = KeyboardCommand::SetSpeed(TypingSpeed::Fast);
 
         // Speed command should be small
@@ -200,7 +213,7 @@ mod keyboard_advanced_tests {
         // Note: With enums, all variants have the same size (size of largest variant)
         // So we test the string sizes instead
         match (&small_text_cmd, &large_text_cmd) {
-            (KeyboardCommand::TypeText(small), KeyboardCommand::TypeText(large)) => {
+            (KeyboardCommand::TypeText(small, _), KeyboardCommand::TypeText(large, _)) => {
                 assert!(small.len() < large.len());
             }
             _ => panic!("Expected TypeText commands"),
@@ -221,7 +234,9 @@ mod keyboard_advanced_tests {
         ];
 
         for (i, text) in test_cases.iter().enumerate() {
-            let result = emulator.type_text(text).await;
+            let result = emulator
+                .type_text(text, Arc::new(AtomicBool::new(false)))
+                .await;
             assert!(result.is_ok(), "Test case {} failed", i);
         }
     }
@@ -248,8 +263,11 @@ mod keyboard_advanced_tests {
         let (tx, mut rx) = mpsc::unbounded_channel::<KeyboardCommand>();
 
         // Send some commands
-        tx.send(KeyboardCommand::TypeText("Test".to_string()))
-            .unwrap();
+        tx.send(KeyboardCommand::TypeText(
+            "Test".to_string(),
+            Arc::new(AtomicBool::new(false)),
+        ))
+        .unwrap();
 
         // Drop sender
         drop(tx);
@@ -298,7 +316,9 @@ mod keyboard_advanced_tests {
             if i % 10 == 0 {
                 emulator.set_typing_speed(TypingSpeed::Fast);
             }
-            let _ = emulator.type_text(&format!("{}", i)).await;
+            let _ = emulator
+                .type_text(&format!("{}", i), Arc::new(AtomicBool::new(false)))
+                .await;
         }
     }
 }

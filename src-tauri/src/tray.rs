@@ -132,6 +132,10 @@ impl TrayManager {
                             info!("Paste menu item clicked");
                             app.emit("paste_clipboard", ()).unwrap();
                         }
+                        MenuAction::CancelTyping => {
+                            info!("Cancel typing menu item clicked");
+                            app.emit("cancel_typing", ()).unwrap();
+                        }
                         MenuAction::SetTypingSpeed(speed) => {
                             config_manager.set_typing_speed(speed);
 

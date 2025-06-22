@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod comprehensive_integration_tests {
+    use std::sync::{atomic::AtomicBool, Arc};
 
     use crate::{
         app_logic::{create_menu_structure, handle_menu_event, MenuAction, MenuItem},
@@ -36,7 +37,7 @@ mod comprehensive_integration_tests {
 
         // 5. Test menu structure creation
         let menu_structure = create_menu_structure(config.typing_speed, config.left_click_paste);
-        assert_eq!(menu_structure.items.len(), 6); // Expected number of menu items
+        assert_eq!(menu_structure.items.len(), 7); // Expected number of menu items
 
         // 6. Test menu event handling
         let paste_action = handle_menu_event("paste");
@@ -51,7 +52,7 @@ mod comprehensive_integration_tests {
         assert_eq!(tray_action, TrayIconAction::PasteClipboard);
 
         // 8. Test paste event handling
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        handle_paste_clipboard_event(keyboard_emulator.clone(), Arc::new(AtomicBool::new(false)));
     }
 
     #[test]
@@ -160,7 +161,7 @@ mod comprehensive_integration_tests {
             let ke = keyboard_emulator.clone();
             handles.push(thread::spawn(move || {
                 for _ in 0..10 {
-                    handle_paste_clipboard_event(ke.clone());
+                    handle_paste_clipboard_event(ke.clone(), Arc::new(AtomicBool::new(false)));
                     thread::sleep(Duration::from_millis(5));
                 }
             }));

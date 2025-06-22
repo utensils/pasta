@@ -2,6 +2,7 @@ mod app_logic;
 mod clipboard;
 pub mod config;
 mod helpers;
+mod hotkey;
 pub mod keyboard;
 mod tray;
 
@@ -63,21 +64,45 @@ mod clipboard_platform_tests;
 mod integration_tests;
 
 #[cfg(test)]
+mod integration_test_emergency_stop;
+
+#[cfg(test)]
 mod app_logic_comprehensive_tests;
 
 #[cfg(test)]
 mod mock_keyboard;
 
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use log::{error, info};
 use tauri::{Listener, Manager, State};
 
-use crate::{config::ConfigManager, keyboard::KeyboardEmulator, tray::TrayManager};
+use crate::{
+    config::ConfigManager, hotkey::HotkeyManager, keyboard::KeyboardEmulator, tray::TrayManager,
+};
 
 #[derive(Clone)]
 pub struct AppState {
     keyboard_emulator: Arc<KeyboardEmulator>,
+    is_typing_cancelled: Arc<AtomicBool>,
+}
+
+impl AppState {
+    pub fn cancel_typing(&self) {
+        self.is_typing_cancelled.store(true, Ordering::Relaxed);
+        info!("Typing operation cancelled by user");
+    }
+
+    pub fn reset_cancellation(&self) {
+        self.is_typing_cancelled.store(false, Ordering::Relaxed);
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.is_typing_cancelled.load(Ordering::Relaxed)
+    }
 }
 
 /// Initialize app components and return them for testing
@@ -102,7 +127,10 @@ pub fn initialize_components(
 
 /// Create app state from components
 pub fn create_app_state(keyboard_emulator: Arc<KeyboardEmulator>) -> AppState {
-    AppState { keyboard_emulator }
+    AppState {
+        keyboard_emulator,
+        is_typing_cancelled: Arc::new(AtomicBool::new(false)),
+    }
 }
 
 /// Setup event handlers for the app
@@ -116,17 +144,25 @@ pub fn handle_config_changed(
 }
 
 /// Handle paste clipboard event in a new thread
-pub fn handle_paste_clipboard_event(keyboard_emulator: Arc<KeyboardEmulator>) {
+pub fn handle_paste_clipboard_event(
+    keyboard_emulator: Arc<KeyboardEmulator>,
+    cancellation_flag: Arc<AtomicBool>,
+) {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
 
     info!("{}", helpers::format_paste_event_log());
+
+    // Reset the cancellation flag before starting
+    cancellation_flag.store(false, Ordering::Relaxed);
 
     let clipboard = SystemClipboard;
 
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async move {
-            if let Err(e) = handle_paste_clipboard(&clipboard, &keyboard_emulator).await {
+            if let Err(e) =
+                handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await
+            {
                 error!("{}", helpers::format_paste_error(&e.to_string()));
             }
         });
@@ -138,6 +174,7 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
     config_manager: Arc<ConfigManager>,
     keyboard_emulator: Arc<KeyboardEmulator>,
+    cancellation_flag: Arc<AtomicBool>,
 ) {
     // Listen for config changes
     let keyboard_emulator_clone = keyboard_emulator.clone();
@@ -150,9 +187,20 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
 
     // Handle paste clipboard event from tray
     let keyboard_emulator_clone = keyboard_emulator;
+    let cancellation_flag_clone = cancellation_flag.clone();
     let (_, paste_event) = helpers::get_event_names();
     app_handle.listen(paste_event, move |_event| {
-        handle_paste_clipboard_event(keyboard_emulator_clone.clone());
+        handle_paste_clipboard_event(
+            keyboard_emulator_clone.clone(),
+            cancellation_flag_clone.clone(),
+        );
+    });
+
+    // Handle cancel typing event from tray
+    let cancellation_flag_clone = cancellation_flag;
+    app_handle.listen("cancel_typing", move |_event| {
+        info!("Cancel typing event received");
+        cancellation_flag_clone.store(true, Ordering::Relaxed);
     });
 }
 
@@ -160,8 +208,22 @@ pub fn setup_event_handlers<R: tauri::Runtime>(
 async fn paste_clipboard(state: State<'_, AppState>) -> Result<(), String> {
     use app_logic::{handle_paste_clipboard, SystemClipboard};
 
+    // Reset the cancellation flag before starting
+    state.reset_cancellation();
+
     let clipboard = SystemClipboard;
-    handle_paste_clipboard(&clipboard, &state.keyboard_emulator).await
+    handle_paste_clipboard(
+        &clipboard,
+        &state.keyboard_emulator,
+        state.is_typing_cancelled.clone(),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn cancel_typing(state: State<'_, AppState>) -> Result<(), String> {
+    state.cancel_typing();
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -171,6 +233,7 @@ pub fn run() {
     helpers::log_initialization();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             // Hide dock icon on startup (macOS)
             #[cfg(target_os = "macos")]
@@ -193,14 +256,24 @@ pub fn run() {
 
             // Create app state
             let app_state = create_app_state(keyboard_emulator.clone());
+            let cancellation_flag = app_state.is_typing_cancelled.clone();
             app.manage(app_state);
 
             // Setup event handlers
-            setup_event_handlers(app.handle(), config_manager, keyboard_emulator);
+            setup_event_handlers(
+                app.handle(),
+                config_manager,
+                keyboard_emulator,
+                cancellation_flag.clone(),
+            );
+
+            // Setup global hotkeys
+            let hotkey_manager = HotkeyManager::new();
+            hotkey_manager.register_hotkeys(app.handle(), cancellation_flag)?;
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![paste_clipboard])
+        .invoke_handler(tauri::generate_handler![paste_clipboard, cancel_typing])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -232,7 +305,10 @@ mod tests {
 
             let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-            let app_state = AppState { keyboard_emulator };
+            let app_state = AppState {
+                keyboard_emulator,
+                is_typing_cancelled: Arc::new(AtomicBool::new(false)),
+            };
 
             Self { app_state }
         }
@@ -246,10 +322,11 @@ mod tests {
         let mock_state = MockState::new();
 
         // Test that keyboard emulator can receive type_text commands
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
         let result = mock_state
             .app_state
             .keyboard_emulator
-            .type_text("test")
+            .type_text("test", cancellation_flag)
             .await;
         assert!(result.is_ok());
     }
@@ -264,10 +341,11 @@ mod tests {
         // We can't directly test paste_clipboard because it uses get_clipboard_content
         // which requires system clipboard access, but we can test the keyboard emulator
         let test_text = "Hello, World!";
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
         let result = mock_state
             .app_state
             .keyboard_emulator
-            .type_text(test_text)
+            .type_text(test_text, cancellation_flag)
             .await;
         assert!(result.is_ok());
     }
@@ -281,10 +359,11 @@ mod tests {
 
         // Test with very long text that might cause issues
         let long_text = "a".repeat(10000);
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
         let result = mock_state
             .app_state
             .keyboard_emulator
-            .type_text(&long_text)
+            .type_text(&long_text, cancellation_flag)
             .await;
         assert!(result.is_ok()); // Should handle long text gracefully
     }
@@ -306,6 +385,7 @@ mod tests {
 
         let app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
         };
 
         // Test cloning
@@ -380,10 +460,31 @@ mod tests {
 
         let _app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
         };
 
         // Verify app state holds correct reference to keyboard emulator
         // (config is no longer part of app state)
+    }
+
+    #[test]
+    fn test_app_state_cancellation_methods() {
+        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let app_state = AppState {
+            keyboard_emulator,
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
+        };
+
+        // Test initial state
+        assert!(!app_state.is_cancelled());
+
+        // Test cancel_typing
+        app_state.cancel_typing();
+        assert!(app_state.is_cancelled());
+
+        // Test reset_cancellation
+        app_state.reset_cancellation();
+        assert!(!app_state.is_cancelled());
     }
 
     #[test]
@@ -518,6 +619,7 @@ mod tests {
         // Step 5: App state needs both config and keyboard
         let app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
         };
 
         // Verify everything is connected properly
@@ -698,9 +800,10 @@ mod tests {
     #[cfg(not(tarpaulin))]
     fn test_handle_paste_clipboard_event() {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
         // Call the function - it spawns a thread
-        handle_paste_clipboard_event(keyboard_emulator.clone());
+        handle_paste_clipboard_event(keyboard_emulator.clone(), cancellation_flag);
 
         // Give the spawned thread time to start
         std::thread::sleep(std::time::Duration::from_millis(10));

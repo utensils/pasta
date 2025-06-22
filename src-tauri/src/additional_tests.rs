@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod additional_coverage_tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
     use tempfile::TempDir;
 
@@ -17,6 +17,7 @@ mod additional_coverage_tests {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
         let app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
+            is_typing_cancelled: Arc::new(AtomicBool::new(false)),
         };
 
         // Test multiple clones
