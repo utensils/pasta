@@ -131,7 +131,7 @@ jobs:
 
     - name: Generate coverage report
       working-directory: ./src-tauri
-      run: cargo tarpaulin --config .tarpaulin.toml
+      run: cargo tarpaulin --config .tarpaulin.toml --lib
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

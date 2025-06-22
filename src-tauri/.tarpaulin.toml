@@ -24,7 +24,9 @@ exclude-files = [
 # Skip tests that require display connection or are flaky in CI
 exclude-tests = [
     "clipboard::",
-    "keyboard_mock_tests::keyboard_mock_tests::test_keyboard_type_text_with_closed_channel",
+    "keyboard_mock_tests::",
     "tests::test_paste_clipboard",
-    "app_logic::tests::test_handle_paste_clipboard_with_very_long_text"
+    "app_logic::tests::test_handle_paste_clipboard_with_very_long_text",
+    "integration_tests::",
+    "keyboard_execution_tests::"
 ]
