@@ -144,6 +144,7 @@ jobs:
       env:
         RUST_TEST_THREADS: 1
         CI: true
+        RUSTFLAGS: "--cfg skip_display_tests"
       run: |
         # Run tarpaulin with specific test filter to exclude problematic tests
         cargo tarpaulin \
@@ -154,6 +155,7 @@ jobs:
           --exclude-files "*/tests/*" \
           --exclude-files "*/main.rs" \
           --exclude-files "*/clipboard.rs" \
+          --exclude-files "*/keyboard_mock_tests.rs" \
           --ignore-panics \
           --skip-clean \
           --avoid-cfg-tarpaulin

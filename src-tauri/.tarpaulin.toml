@@ -16,9 +16,11 @@ exclude-files = [
     "*/main.rs",
     "*/build.rs",
     "*/tests/*",
+    "tests/*",
     "*/lib.rs",
     "*/tray.rs",
-    "*/window.rs"
+    "*/window.rs",
+    "*/keyboard_mock_tests.rs"
 ]
 
 # Use test args to exclude problematic tests
