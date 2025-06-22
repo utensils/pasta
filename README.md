@@ -17,6 +17,29 @@ A minimal system tray application that types your clipboard content. Perfect for
 
 Download the latest release from the [Releases page](https://github.com/utensils/pasta/releases).
 
+#### GNOME Users - System Tray Support
+
+GNOME removed native system tray support starting with version 3.26. To use Pasta on GNOME, you'll need to install an extension:
+
+**Option 1: Install via package manager (recommended)**
+```bash
+# Ubuntu/Debian
+sudo apt install gnome-shell-extension-appindicator
+
+# Fedora
+sudo dnf install gnome-shell-extension-appindicator
+
+# Arch
+sudo pacman -S gnome-shell-extension-appindicator
+```
+
+**Option 2: Install from GNOME Extensions website**
+1. Visit [AppIndicator Support](https://extensions.gnome.org/extension/615/appindicator-support/)
+2. Click "Install" and follow the prompts
+3. Enable the extension in GNOME Extensions or Tweaks
+
+After installation, restart GNOME Shell (Alt+F2, type 'r', press Enter) or log out and back in.
+
 ### Run with Nix
 
 If you have Nix installed, you can run Pasta directly without installing:
