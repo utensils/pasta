@@ -174,8 +174,7 @@ jobs:
           --exclude-files "*/clipboard.rs" \
           --ignore-panics \
           --skip-clean \
-          --avoid-cfg-tarpaulin \
-          -- --skip clipboard::tests --skip test_paste_clipboard --skip test_get_clipboard --skip test_get_empty_clipboard
+          --avoid-cfg-tarpaulin
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

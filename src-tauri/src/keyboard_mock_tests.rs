@@ -30,6 +30,7 @@ mod keyboard_mock_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires display connection - run with --ignored flag"]
     async fn test_keyboard_type_text_with_closed_channel() {
         use crate::app_logic::{handle_paste_clipboard, ClipboardProvider};
 
