@@ -43,6 +43,9 @@ serial_test = "3.0"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)'] }
+
 [package.metadata.bundle]
 identifier = "com.pasta.app"
 icon = ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"]
