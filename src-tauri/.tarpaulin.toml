@@ -1,6 +1,12 @@
 [default]
-workspace = true
+workspace = false
 lib = true
+bins = false
+examples = false
+tests = false
+benches = false
+doc-tests = false
+all-targets = false
 timeout = "120s"
 skip-clean = true
 avoid-cfg-tarpaulin = true

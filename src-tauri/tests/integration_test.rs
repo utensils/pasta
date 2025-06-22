@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use pasta_lib::{
+use pasta_tray_lib::{
     config::{Config, ConfigManager},
     create_app_state, handle_config_changed, initialize_components,
     keyboard::{KeyboardEmulator, TypingSpeed},
