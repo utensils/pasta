@@ -274,17 +274,28 @@ Main Thread (Tauri/UI)
 
 ### Testing Strategy
 The project has comprehensive test coverage:
-- Unit tests for all modules (284 tests total, 31 ignored)
+- Unit tests for all modules (300+ tests total, ~40 ignored)
 - Integration tests for cross-module functionality
 - MockKeyboardEmulator for safe testing without typing on the system
 - Tests marked with `#[ignore]` that would create real keyboard emulators
+- Tests that create GUI components also marked with `#[cfg(not(tarpaulin))]` to exclude from coverage
 - Tests cover config persistence, keyboard emulation, tray menu behavior
 - Run with `cargo test` for normal tests
 - Run with `cargo test -- --ignored` to run tests that create real keyboard emulators
 - Run with `cargo test -- --test-threads=1` to avoid segfaults on parallel execution
-- Coverage reports with `cargo tarpaulin` or `./coverage.sh`
+- Coverage reports with `cargo tarpaulin`
 - CI skips certain tests that require display connection (clipboard, keyboard tests)
 - Flaky timing tests are ignored in CI due to performance variability
+
+#### Coverage Configuration
+Code coverage excludes the following files as they contain mostly Tauri boilerplate or GUI code:
+- `*/lib.rs` - Tauri app initialization
+- `*/tray.rs` - System tray GUI components
+- `*/window.rs` - Window management code
+- `*/clipboard.rs` - Requires display connection
+- All test files (`*_tests.rs`)
+
+This focuses coverage metrics on actual business logic rather than framework code.
 
 ### Current Limitations
 - Text-only clipboard support (no images, files, etc.)
@@ -306,12 +317,15 @@ The project has comprehensive test coverage:
 
 1. **rust.yml** - Main CI pipeline
    - Runs on push/PR to main branch
+   - Only triggers when code files change (not on documentation updates)
    - Tests on Ubuntu, Windows, and macOS
    - Runs clippy and rustfmt checks
    - Generates code coverage reports
    - Uploads coverage to Codecov
+   - Coverage excludes GUI/framework code to focus on business logic
 
 2. **build.yml** - Build artifacts
+   - Only triggers on release tags (v*) or manual dispatch
    - Builds release artifacts for all platforms
    - Uploads artifacts to GitHub Actions
    - Useful for testing builds without creating releases
@@ -353,4 +367,5 @@ The project has comprehensive test coverage:
 
 - macOS builds are unsigned and require user approval to run
 - Some tests are skipped in CI due to requiring display/clipboard access
-- Coverage reports exclude certain files that can't be tested in CI
+- Coverage reports exclude GUI/framework files to focus on business logic (~70% coverage target)
+- Tests that create keyboard emulators must be marked with both `#[ignore]` and `#[cfg(not(tarpaulin))]`
