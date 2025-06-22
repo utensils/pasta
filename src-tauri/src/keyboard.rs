@@ -570,13 +570,15 @@ mod tests {
         let flag_clone = cancellation_flag.clone();
 
         // Simulate setting the flag in another thread
-        std::thread::spawn(move || {
+        let handle = std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(10));
             flag_clone.store(true, Ordering::Relaxed);
         });
 
-        // Wait a bit and check the flag
-        std::thread::sleep(Duration::from_millis(20));
+        // Wait for the thread to complete
+        handle.join().unwrap();
+        
+        // Now check the flag - it should definitely be set
         assert!(cancellation_flag.load(Ordering::Relaxed));
     }
 

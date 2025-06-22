@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod keyboard_execution_tests {
     use std::{
-        sync::{
-            atomic::{AtomicBool, Ordering},
-            Arc,
-        },
+        sync::{atomic::AtomicBool, Arc},
         time::Duration,
     };
 
