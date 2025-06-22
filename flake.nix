@@ -58,22 +58,42 @@
           TMPDIR=$(mktemp -d)
           trap "rm -rf $TMPDIR" EXIT
           
-          # Copy the source to temp directory
-          cp -r ${./.}/* $TMPDIR/
+          # Copy the source to temp directory (including hidden files)
+          cp -r ${./.}/* ${./.}/.* $TMPDIR/ 2>/dev/null || true
           chmod -R +w $TMPDIR
           
           # Set up environment
           export PATH="${rustToolchain}/bin:${pkgs.cargo-tauri}/bin:$PATH"
+          export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig"
           export RUST_LOG=''${RUST_LOG:-pasta=info}
           export RUST_BACKTRACE=''${RUST_BACKTRACE:-1}
+          
+          # Add library paths for Linux
+          ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildDeps}:$LD_LIBRARY_PATH"
+          ''}
           
           # Build and run
           cd $TMPDIR
           echo "Building Pasta..."
+          
+          # Run cargo build with proper environment
+          ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+            export PKG_CONFIG_PATH="${pkgs.pkg-config}/lib/pkgconfig:${pkgs.gtk3.dev}/lib/pkgconfig:${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libayatana-appindicator}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+          ''}
+          
           cargo build --manifest-path=src-tauri/Cargo.toml --release
           
-          echo "Running Pasta..."
-          exec ./src-tauri/target/release/pasta
+          # Look for the binary (named pasta-tray based on Cargo.toml)
+          if [ -f "$TMPDIR/src-tauri/target/release/pasta-tray" ]; then
+            echo "Running Pasta..."
+            exec "$TMPDIR/src-tauri/target/release/pasta-tray"
+          else
+            echo "Error: Binary not found at expected location"
+            echo "Searching for executable binaries..."
+            find $TMPDIR -name "pasta*" -type f -executable
+            exit 1
+          fi
         '';
 
       in

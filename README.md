@@ -17,6 +17,14 @@ A minimal system tray application that types your clipboard content. Perfect for
 
 Download the latest release from the [Releases page](https://github.com/utensils/pasta/releases).
 
+### Run with Nix
+
+If you have Nix installed, you can run Pasta directly without installing:
+
+```bash
+nix run github:utensils/pasta
+```
+
 #### macOS Users - Important Note
 
 The macOS builds are currently unsigned. To run Pasta on macOS, you'll need to remove the quarantine attribute:
