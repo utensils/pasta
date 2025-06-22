@@ -27,12 +27,16 @@ find_certificates() {
 
 # Check command line arguments
 if [ "$#" -eq 0 ]; then
-    echo "Usage: $0 <certificate-name> [target]"
+    echo "Usage: $0 <certificate-name|adhoc> [target]"
     echo "  certificate-name: Name of your code signing certificate"
+    echo "                   Use 'adhoc' for ad-hoc signing (no certificate needed)"
     echo "  target: Optional target architecture (x86_64-apple-darwin or aarch64-apple-darwin)"
     echo ""
     echo "Available certificates:"
     find_certificates
+    echo ""
+    echo "For ad-hoc signing (simplest option):"
+    echo "  $0 adhoc"
     echo ""
     echo "To create a self-signed certificate:"
     echo "1. Open Keychain Access"
@@ -45,35 +49,47 @@ fi
 CERT_NAME="$1"
 TARGET="${2:-}"
 
-# Verify certificate exists
-if ! security find-identity -v -p codesigning | grep -q "$CERT_NAME"; then
-    echo -e "${RED}Error: Certificate '$CERT_NAME' not found${NC}"
-    echo ""
-    echo "Available certificates:"
-    find_certificates
-    exit 1
+# Handle ad-hoc signing or certificate signing
+if [ "$CERT_NAME" = "adhoc" ]; then
+    echo -e "${GREEN}✓ Using ad-hoc signing (no certificate required)${NC}"
+    SIGN_IDENTITY="-"
+else
+    # Verify certificate exists
+    if ! security find-identity -v -p codesigning | grep -q "$CERT_NAME"; then
+        echo -e "${RED}Error: Certificate '$CERT_NAME' not found${NC}"
+        echo ""
+        echo "Available certificates:"
+        find_certificates
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Found certificate: $CERT_NAME${NC}"
+    SIGN_IDENTITY="$CERT_NAME"
 fi
-
-echo -e "${GREEN}✓ Found certificate: $CERT_NAME${NC}"
 
 # Determine paths based on target
 if [ -n "$TARGET" ]; then
     BUNDLE_PATH="src-tauri/target/$TARGET/release/bundle"
 else
-    # Auto-detect based on current architecture
-    if [[ $(uname -m) == "arm64" ]]; then
+    # Try to find the bundle path
+    if [ -d "src-tauri/target/release/bundle" ]; then
+        BUNDLE_PATH="src-tauri/target/release/bundle"
+    elif [ -d "src-tauri/target/aarch64-apple-darwin/release/bundle" ]; then
         BUNDLE_PATH="src-tauri/target/aarch64-apple-darwin/release/bundle"
-    else
+    elif [ -d "src-tauri/target/x86_64-apple-darwin/release/bundle" ]; then
         BUNDLE_PATH="src-tauri/target/x86_64-apple-darwin/release/bundle"
+    else
+        echo -e "${RED}Error: Could not find bundle directory${NC}"
+        echo "Make sure to build the app first with: cargo tauri build"
+        exit 1
     fi
 fi
 
-DMG_PATH="$BUNDLE_PATH/dmg"
+MACOS_PATH="$BUNDLE_PATH/macos"
 APP_NAME="Pasta.app"
 
 # Check if the app exists
-if [ ! -d "$DMG_PATH/$APP_NAME" ]; then
-    echo -e "${RED}Error: App not found at $DMG_PATH/$APP_NAME${NC}"
+if [ ! -d "$MACOS_PATH/$APP_NAME" ]; then
+    echo -e "${RED}Error: App not found at $MACOS_PATH/$APP_NAME${NC}"
     echo "Make sure to build the app first with: cargo tauri build"
     exit 1
 fi
@@ -81,7 +97,7 @@ fi
 echo -e "${YELLOW}Signing $APP_NAME...${NC}"
 
 # Sign the app bundle with deep signing for all embedded content
-codesign --force --deep --sign "$CERT_NAME" "$DMG_PATH/$APP_NAME"
+codesign --force --deep --sign "$SIGN_IDENTITY" "$MACOS_PATH/$APP_NAME"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Successfully signed $APP_NAME${NC}"
@@ -92,17 +108,17 @@ fi
 
 # Verify the signature
 echo -e "${YELLOW}Verifying signature...${NC}"
-codesign -dv "$DMG_PATH/$APP_NAME" 2>&1
+codesign -dv "$MACOS_PATH/$APP_NAME" 2>&1
 
 # Check gatekeeper status
 echo -e "${YELLOW}Checking Gatekeeper status...${NC}"
-spctl -a -vv "$DMG_PATH/$APP_NAME" 2>&1 || true
+spctl -a -vv "$MACOS_PATH/$APP_NAME" 2>&1 || true
 
 echo ""
 echo -e "${GREEN}✓ Signing complete!${NC}"
 echo ""
 echo "The signed app is located at:"
-echo "  $DMG_PATH/$APP_NAME"
+echo "  $MACOS_PATH/$APP_NAME"
 echo ""
 echo "Note: Self-signed apps may still trigger security warnings on first run,"
 echo "but they should be less intrusive than unsigned apps."

@@ -1,10 +1,24 @@
 # macOS Code Signing Guide for Pasta
 
-This guide explains how to self-sign the Pasta app on macOS without an Apple Developer account.
+This guide explains how to sign the Pasta app on macOS without an Apple Developer account.
 
 ## Why Sign?
 
-Self-signing reduces security warnings when users first run Pasta. While not as trusted as an Apple Developer certificate, it's better than completely unsigned apps.
+Signing reduces security warnings when users first run Pasta. While not as trusted as an Apple Developer certificate, it's better than completely unsigned apps.
+
+## Quick Start (Ad-hoc Signing)
+
+The simplest approach is ad-hoc signing, which requires no certificate:
+
+```bash
+# Build the app
+cargo tauri build
+
+# Sign with ad-hoc signature
+./sign-macos.sh adhoc
+```
+
+That's it! The app is now signed and ready to use.
 
 ## Prerequisites
 
