@@ -17,7 +17,6 @@ mod clipboard_platform_tests;
 #[cfg(test)]
 mod integration_test_emergency_stop;
 
-
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
