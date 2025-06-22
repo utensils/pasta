@@ -166,6 +166,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_handle_paste_clipboard_with_content() {
         let clipboard = MockClipboard::new(Some("Hello, World!".to_string()));
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
@@ -176,6 +177,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_handle_paste_clipboard_empty() {
         let clipboard = MockClipboard::new(None);
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
@@ -186,6 +188,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_handle_paste_clipboard_error() {
         struct ErrorClipboard;
 
@@ -429,6 +432,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Requires display connection for keyboard emulator"]
+    #[cfg(not(tarpaulin))]
     async fn test_handle_paste_clipboard_with_very_long_text() {
         let long_text = "x".repeat(100000); // 100k characters
         let clipboard = MockClipboard::new(Some(long_text.clone()));

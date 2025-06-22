@@ -156,6 +156,14 @@ jobs:
           --exclude-files "*/main.rs" \
           --exclude-files "*/clipboard.rs" \
           --exclude-files "*/keyboard_mock_tests.rs" \
+          --exclude-files "*/init_tests.rs" \
+          --exclude-files "*/integration_tests.rs" \
+          --exclude-files "*/error_tests.rs" \
+          --exclude-files "*/additional_tests.rs" \
+          --exclude-files "*/app_logic_comprehensive_tests.rs" \
+          --exclude-files "*/lib_tests.rs" \
+          --exclude-files "*/runtime_mock_tests.rs" \
+          --exclude-files "*/tauri_mock_tests.rs" \
           --ignore-panics \
           --skip-clean \
           --avoid-cfg-tarpaulin

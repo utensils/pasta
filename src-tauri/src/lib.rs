@@ -240,6 +240,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     async fn test_paste_clipboard_empty() {
         // Since we can't mock the clipboard module directly, we'll test the structure
         let mock_state = MockState::new();
@@ -313,6 +314,7 @@ mod tests {
 
     #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_config_no_longer_has_enabled_field() {
         let config = Config::default();
         let json = serde_json::to_value(&config).unwrap();
@@ -382,6 +384,7 @@ mod tests {
 
     #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_tray_menu_submenu_persistence() {
         // Test to ensure submenu items are properly built and won't vanish
         // This test verifies the menu structure is stable
@@ -607,6 +610,7 @@ mod tests {
 
     #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_create_app_state() {
         // Test the create_app_state function
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
@@ -628,6 +632,7 @@ mod tests {
 
     #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_paste_clipboard_command_struct() {
         // Test that the paste_clipboard command can be invoked
         // We can't test it directly without a full Tauri context, but we can test the structure
@@ -684,6 +689,7 @@ mod tests {
 
     #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
     fn test_handle_paste_clipboard_event() {
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
