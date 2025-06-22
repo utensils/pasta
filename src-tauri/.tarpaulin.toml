@@ -10,6 +10,7 @@ all-targets = false
 timeout = "120s"
 skip-clean = true
 avoid-cfg-tarpaulin = true
+ignore-panics = true
 out = ["Xml", "Html"]
 exclude-files = [
     "*/main.rs",
@@ -17,16 +18,8 @@ exclude-files = [
     "*/tests/*",
     "*/lib.rs",
     "*/tray.rs",
-    "*/window.rs",
-    "*/clipboard.rs"
+    "*/window.rs"
 ]
 
-# Skip tests that require display connection or are flaky in CI
-exclude-tests = [
-    "clipboard::",
-    "keyboard_mock_tests::",
-    "tests::test_paste_clipboard",
-    "app_logic::tests::test_handle_paste_clipboard_with_very_long_text",
-    "integration_tests::",
-    "keyboard_execution_tests::"
-]
+# Use test args to exclude problematic tests
+args = ["--", "--skip", "clipboard::tests", "--skip", "keyboard_execution_tests", "--skip", "integration_tests", "--skip", "test_paste_clipboard", "--skip", "test_handle_paste_clipboard_with_very_long_text"]
