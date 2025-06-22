@@ -3,12 +3,23 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    # Only run on code changes, not documentation
+    paths:
+      - 'src-tauri/**/*.rs'
+      - 'src-tauri/**/*.toml'
+      - 'src-tauri/**/*.json'
+      - 'src/**/*.html'
+      - 'src/**/*.js'
+      - 'src/**/*.css'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.envrc'
 
 jobs:
   claude-review:

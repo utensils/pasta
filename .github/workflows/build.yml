@@ -1,10 +1,11 @@
 name: Build
 
 on:
+  # Only run builds on release tags
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - 'v*'
+  # Allow manual trigger for testing
   workflow_dispatch:
 
 env:
