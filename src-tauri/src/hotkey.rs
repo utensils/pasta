@@ -20,7 +20,12 @@ impl HotkeyManager {
     pub fn new() -> Self {
         Self {
             last_escape_time: Arc::new(AtomicU64::new(0)),
-            double_press_window_ms: 500, // 500ms window for double-press
+            // 500ms window for double-press detection
+            // This timing was chosen to balance between:
+            // - Being quick enough to not interfere with normal Escape usage
+            // - Being long enough to reliably detect intentional double-presses
+            // - Matching common double-click timing expectations (400-600ms)
+            double_press_window_ms: 500,
         }
     }
 

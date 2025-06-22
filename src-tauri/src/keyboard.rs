@@ -71,6 +71,11 @@ impl KeyboardEmulator {
 
                             // Type each character in the chunk
                             for (char_index, ch) in chunk.chars().enumerate() {
+                                // Check cancellation at the start of each character for immediate response
+                                if char_index == 0 && cancellation_flag.load(Ordering::Relaxed) {
+                                    info!("Typing cancelled by user");
+                                    break;
+                                }
                                 // Check cancellation flag periodically (every 10 characters)
                                 if char_index % 10 == 0 && cancellation_flag.load(Ordering::Relaxed)
                                 {
