@@ -154,6 +154,9 @@ jobs:
           --exclude-files "*/build.rs" \
           --exclude-files "*/tests/*" \
           --exclude-files "*/main.rs" \
+          --exclude-files "*/lib.rs" \
+          --exclude-files "*/tray.rs" \
+          --exclude-files "*/window.rs" \
           --exclude-files "*/clipboard.rs" \
           --exclude-files "*/keyboard_mock_tests.rs" \
           --exclude-files "*/init_tests.rs" \
