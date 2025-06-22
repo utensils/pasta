@@ -52,7 +52,7 @@ cargo test -- --ignored
 cargo test -- --include-ignored
 
 # Run specific test module
-cargo test config::
+cargo test keyboard::
 
 # Run tests with output
 cargo test -- --nocapture
@@ -113,7 +113,6 @@ pasta/
 │   │   ├── app_logic.rs      # Business logic for paste and menu operations
 │   │   ├── clipboard.rs      # Clipboard content retrieval
 │   │   ├── keyboard.rs       # Keyboard emulation with text chunking
-│   │   ├── config.rs         # TOML config persistence
 │   │   ├── tray.rs           # System tray menu
 │   │   ├── hotkey.rs         # Global hotkey management (double-Escape)
 │   │   ├── helpers.rs        # Helper functions for logging and utilities
@@ -140,6 +139,7 @@ pasta/
 
 ### Core Design Principles
 - **Minimal Functionality**: Only types clipboard content - no monitoring, history, or advanced features
+- **Stateless Design**: No configuration persistence - always uses default Normal typing speed
 - **Simple State Management**: Single AppState with keyboard emulator and cancellation flag
 - **System Tray Interface**: All interaction through tray menu
 - **Cross-platform**: Works on macOS, Linux, and Windows
@@ -164,39 +164,30 @@ pasta/
 3. **KeyboardEmulator** (keyboard.rs)
    - Runs in separate thread to avoid blocking UI
    - Chunks text into 200-character segments
-   - Configurable delays: Slow (50ms), Normal (25ms), Fast (10ms)
+   - Fixed Normal typing speed (25ms delay between characters)
    - 100ms pause between chunks for system stability
    - Special character handling for newlines and tabs
    - Uses `enigo` crate for keyboard emulation
    - Supports cancellation via atomic flag checked during typing
    - Checks cancellation flag at chunk boundaries and every 10 characters
 
-4. **ConfigManager** (config.rs)
-   - Platform-specific config locations using `dirs` crate
-   - Auto-saves on every change
-   - Simple TOML format with `typing_speed` and `left_click_paste`
-   - Default configuration: `typing_speed = "normal"`, `left_click_paste = false`
-   - Handles migration from old config format
-
-5. **TrayManager** (tray.rs)
+4. **TrayManager** (tray.rs)
    - Creates system tray icon with menu
    - Menu items:
      - Paste - triggers clipboard typing
      - Cancel Typing (Esc Esc) - cancels ongoing typing operation
-     - Typing Speed submenu (Slow/Normal/Fast)
-     - Left Click Pastes - toggle left-click behavior
      - Quit
    - Handles all user interaction
    - Works around Tauri v2 initialization bug with 100ms delay
 
-6. **HotkeyManager** (hotkey.rs)
+5. **HotkeyManager** (hotkey.rs)
    - Manages global keyboard shortcuts
    - Uses `tauri-plugin-global-shortcut` for cross-platform hotkey support
    - Implements double-Escape detection with 500ms time window
    - Triggers cancellation when double-Escape is pressed
    - Alternative: Supports Ctrl+Shift+Escape for simpler implementation
 
-7. **Helper Functions** (helpers.rs)
+6. **Helper Functions** (helpers.rs)
    - Extracted helper functions for better testability
    - Logging formatters for consistent messages
    - Platform-specific utilities (e.g., macOS activation policy)
@@ -211,9 +202,8 @@ Main Thread (Tauri/UI)
 
 ### Frontend Architecture
 - Currently minimal - just a placeholder HTML file
-- No settings window implemented
-- All configuration through tray menu
-- Future: Could add settings window if needed
+- No settings window needed (stateless design)
+- All interaction through tray menu
 
 ## Implementation Notes
 
@@ -227,22 +217,16 @@ Main Thread (Tauri/UI)
 - Uses `enigo` crate for cross-platform keyboard emulation
 - Special handling for newlines (`\n`) and tabs (`\t`)
 - Text chunking (200 chars) prevents system overload with large pastes
-- Each character typed individually with configurable delay
+- Each character typed individually with fixed 25ms delay (Normal speed)
 - Runs in separate thread to avoid blocking UI
 - Emergency stop: Press Escape twice within 500ms to cancel typing
 - Cancellation checked at chunk boundaries and every 10 characters
 - Thread-safe cancellation using atomic boolean flag
 
-### Configuration Persistence
-- Stored in platform-standard locations:
-  - macOS: `~/Library/Application Support/com.pasta.app/config.toml`
-  - Linux: `~/.config/pasta/config.toml`  
-  - Windows: `%APPDATA%\pasta\config.toml`
-- Config fields:
-  - `typing_speed`: "slow" | "normal" | "fast"
-  - `left_click_paste`: boolean
-- Auto-saves on change
-- Handles migration from old format
+### Stateless Design
+- No configuration persistence
+- Always uses Normal typing speed (25ms delay)
+- Simple and predictable behavior
 
 ### Tauri-specific Considerations
 - Uses Tauri v2 with improved performance
@@ -295,7 +279,7 @@ The project has comprehensive test coverage:
 - MockKeyboardEmulator for safe testing without typing on the system
 - Tests marked with `#[ignore]` that would create real keyboard emulators
 - Tests that create GUI components also marked with `#[cfg(not(tarpaulin))]` to exclude from coverage
-- Tests cover config persistence, keyboard emulation, tray menu behavior
+- Tests cover keyboard emulation, tray menu behavior, cancellation logic
 - Run with `cargo test` for normal tests
 - Run with `cargo test -- --ignored` to run tests that create real keyboard emulators
 - Run with `cargo test -- --test-threads=1` to avoid segfaults on parallel execution
@@ -317,7 +301,7 @@ This focuses coverage metrics on actual business logic rather than framework cod
 - Text-only clipboard support (no images, files, etc.)
 - No clipboard monitoring or history
 - No global hotkeys (except for emergency stop)
-- No settings window (configuration via tray menu only)
+- No settings or configuration
 - No automatic update mechanism
 
 ### Debugging Tips

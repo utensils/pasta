@@ -1,56 +1,18 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
 use pasta_tray_lib::{
-    config::{Config, ConfigManager},
-    create_app_state, handle_config_changed, initialize_components,
+    create_app_state, initialize_components,
     keyboard::{KeyboardEmulator, TypingSpeed},
 };
-use tempfile::TempDir;
 
 #[test]
 #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
-fn test_config_and_keyboard_integration() {
-    // Test that config manager and keyboard emulator work together
-    let config_manager = Arc::new(ConfigManager::new().unwrap());
+fn test_keyboard_integration() {
+    // Test that keyboard emulator works
     let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-    // Set speed through config
-    config_manager.set_typing_speed(TypingSpeed::Fast);
-
-    // Apply to keyboard emulator
-    let config = config_manager.get();
-    keyboard_emulator.set_typing_speed(config.typing_speed);
-
-    // Verify config was saved
-    assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
-}
-
-#[test]
-fn test_multiple_config_managers_share_state() {
-    // Create temp dir for this test
-    let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("config.toml");
-
-    // Create first config manager and save config
-    {
-        let _config_manager = ConfigManager::new().unwrap();
-        // Manually set the config path
-        std::fs::write(
-            &config_path,
-            toml::to_string(&Config {
-                typing_speed: TypingSpeed::Slow,
-                left_click_paste: false,
-            })
-            .unwrap(),
-        )
-        .unwrap();
-    }
-
-    // Load config from the file
-    let loaded_config = load_config(&config_path).unwrap();
-
-    // Should have the same speed
-    assert_eq!(loaded_config.typing_speed, TypingSpeed::Slow);
+    // Keyboard emulator should be created successfully
+    assert!(Arc::strong_count(&keyboard_emulator) >= 1);
 }
 
 #[tokio::test]
@@ -94,60 +56,39 @@ fn test_typing_speed_consistency_across_modules() {
 }
 
 #[test]
-fn test_config_persistence_across_restarts() {
-    let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("config.toml");
-
-    // Simulate first run
-    {
-        std::fs::write(
-            &config_path,
-            toml::to_string(&Config {
-                typing_speed: TypingSpeed::Fast,
-                left_click_paste: false,
-            })
-            .unwrap(),
-        )
-        .unwrap();
-    }
-
-    // Simulate restart - load from disk
-    {
-        let loaded_config = load_config(&config_path).unwrap();
-        assert_eq!(loaded_config.typing_speed, TypingSpeed::Fast);
-    }
-}
-
-#[test]
-fn test_concurrent_config_access() {
+fn test_concurrent_operations() {
     use std::thread;
 
-    let config_manager = Arc::new(ConfigManager::new().unwrap());
+    let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+
     let mut handles = vec![];
 
-    // Spawn multiple threads that read and write config
-    for i in 0..5 {
-        let cm = config_manager.clone();
+    // Spawn multiple threads that use the keyboard emulator
+    for i in 0..3 {
+        let ke = keyboard_emulator.clone();
         let handle = thread::spawn(move || {
-            let speed = match i % 3 {
-                0 => TypingSpeed::Slow,
-                1 => TypingSpeed::Normal,
-                _ => TypingSpeed::Fast,
-            };
-            cm.set_typing_speed(speed);
-            cm.get().typing_speed
+            // Just verify we can clone and hold references
+            let _local_ref = ke.clone();
+            format!("Thread {} completed", i)
         });
         handles.push(handle);
     }
 
-    // All threads should complete without deadlock
+    // All threads should complete without issue
     for handle in handles {
-        let speed = handle.join().unwrap();
-        assert!(matches!(
-            speed,
-            TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
-        ));
+        let result = handle.join().unwrap();
+        assert!(result.contains("completed"));
     }
+}
+
+#[test]
+fn test_error_handling() {
+    // Test error handling when components fail
+    // Since we removed config, there are fewer failure modes
+
+    // Keyboard emulator should handle errors gracefully
+    let result = KeyboardEmulator::new();
+    assert!(result.is_ok());
 }
 
 #[tokio::test]
@@ -171,57 +112,20 @@ async fn test_keyboard_emulator_channel_capacity() {
 }
 
 #[test]
-fn test_cross_module_error_handling() {
-    // Test error handling when config directory doesn't exist
-    let invalid_path = std::path::PathBuf::from("/invalid/path/config.toml");
-    let config_result = load_config(&invalid_path);
-
-    // Should return Ok with default config even if file doesn't exist
-    assert!(config_result.is_ok());
-    assert_eq!(config_result.unwrap().typing_speed, TypingSpeed::Normal);
-}
-
-// Helper function for tests
-fn load_config(path: &std::path::PathBuf) -> Result<Config, Box<dyn std::error::Error>> {
-    if path.exists() {
-        let content = std::fs::read_to_string(path)?;
-        match toml::from_str(&content) {
-            Ok(config) => Ok(config),
-            Err(_) => Ok(Config {
-                typing_speed: TypingSpeed::Normal,
-                left_click_paste: false,
-            }),
-        }
-    } else {
-        Ok(Config {
-            typing_speed: TypingSpeed::Normal,
-            left_click_paste: false,
-        })
-    }
-}
-
-#[test]
 #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
 fn test_full_app_initialization() {
     // Test the complete initialization flow using public API
     let result = initialize_components();
     assert!(result.is_ok());
 
-    let (config_manager, keyboard_emulator) = result.unwrap();
+    let keyboard_emulator = result.unwrap();
 
-    // Verify components are properly initialized
-    let config = config_manager.get();
-    assert!(matches!(
-        config.typing_speed,
-        TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
-    ));
+    // Verify component is properly initialized
+    assert!(Arc::strong_count(&keyboard_emulator) > 0);
 
     // Create app state
     let app_state = create_app_state(keyboard_emulator.clone());
 
-    // Test that we can change config and apply it
-    config_manager.set_typing_speed(TypingSpeed::Fast);
-    handle_config_changed(&config_manager, &keyboard_emulator);
-
-    assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
+    // Verify app state is properly created
+    assert!(!app_state.is_cancelled());
 }

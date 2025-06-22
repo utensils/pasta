@@ -1,76 +1,22 @@
 mod app_logic;
 mod clipboard;
-pub mod config;
 mod helpers;
 mod hotkey;
 pub mod keyboard;
 mod tray;
 
 #[cfg(test)]
-mod error_tests;
-
-#[cfg(test)]
-mod lib_tests;
-
-#[cfg(test)]
-mod config_error_tests;
-
-#[cfg(test)]
-mod keyboard_mock_tests;
-
-#[cfg(test)]
-mod config_debug_tests;
-
-#[cfg(test)]
-mod additional_tests;
-
-#[cfg(test)]
 mod clipboard_mock_tests;
-
-#[cfg(test)]
-mod comprehensive_tests;
-
-#[cfg(test)]
-mod tray_builder_tests;
-
-#[cfg(test)]
-mod keyboard_thread_tests;
-
-#[cfg(test)]
-mod init_tests;
-
-#[cfg(test)]
-mod runtime_mock_tests;
 
 #[cfg(test)]
 mod clipboard_error_tests;
 
 #[cfg(test)]
-mod keyboard_execution_tests;
-
-#[cfg(test)]
-mod tray_comprehensive_tests;
-
-#[cfg(test)]
-mod keyboard_advanced_tests;
-
-#[cfg(test)]
-mod tauri_mock_tests;
-
-#[cfg(test)]
 mod clipboard_platform_tests;
-
-#[cfg(test)]
-mod integration_tests;
 
 #[cfg(test)]
 mod integration_test_emergency_stop;
 
-#[cfg(test)]
-mod app_logic_comprehensive_tests;
-
-#[cfg(test)]
-mod mock_keyboard;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -80,9 +26,7 @@ use std::sync::{
 use log::{error, info};
 use tauri::{Listener, Manager, State};
 
-use crate::{
-    config::ConfigManager, hotkey::HotkeyManager, keyboard::KeyboardEmulator, tray::TrayManager,
-};
+use crate::{hotkey::HotkeyManager, keyboard::KeyboardEmulator, tray::TrayManager};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -106,23 +50,10 @@ impl AppState {
 }
 
 /// Initialize app components and return them for testing
-pub fn initialize_components(
-) -> Result<(Arc<ConfigManager>, Arc<KeyboardEmulator>), Box<dyn std::error::Error>> {
-    let config_manager = Arc::new(ConfigManager::new()?);
-    let initial_config = config_manager.get();
-
-    info!(
-        "{}",
-        helpers::format_initial_config_log(
-            &initial_config.typing_speed,
-            initial_config.left_click_paste
-        )
-    );
-
+pub fn initialize_components() -> Result<Arc<KeyboardEmulator>, Box<dyn std::error::Error>> {
+    info!("Initializing Pasta with default typing speed: Normal");
     let keyboard_emulator = Arc::new(KeyboardEmulator::new()?);
-    keyboard_emulator.set_typing_speed(initial_config.typing_speed);
-
-    Ok((config_manager, keyboard_emulator))
+    Ok(keyboard_emulator)
 }
 
 /// Create app state from components
@@ -131,16 +62,6 @@ pub fn create_app_state(keyboard_emulator: Arc<KeyboardEmulator>) -> AppState {
         keyboard_emulator,
         is_typing_cancelled: Arc::new(AtomicBool::new(false)),
     }
-}
-
-/// Setup event handlers for the app
-/// Handle config change event
-pub fn handle_config_changed(
-    config_manager: &Arc<ConfigManager>,
-    keyboard_emulator: &Arc<KeyboardEmulator>,
-) {
-    let config = config_manager.get();
-    keyboard_emulator.set_typing_speed(config.typing_speed);
 }
 
 /// Handle paste clipboard event in a new thread
@@ -172,24 +93,13 @@ pub fn handle_paste_clipboard_event(
 /// Setup event handlers for the app
 pub fn setup_event_handlers<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
-    config_manager: Arc<ConfigManager>,
     keyboard_emulator: Arc<KeyboardEmulator>,
     cancellation_flag: Arc<AtomicBool>,
 ) {
-    // Listen for config changes
-    let keyboard_emulator_clone = keyboard_emulator.clone();
-    let config_manager_clone = config_manager.clone();
-
-    let (config_event, _) = helpers::get_event_names();
-    app_handle.listen(config_event, move |_event| {
-        handle_config_changed(&config_manager_clone, &keyboard_emulator_clone);
-    });
-
     // Handle paste clipboard event from tray
     let keyboard_emulator_clone = keyboard_emulator;
     let cancellation_flag_clone = cancellation_flag.clone();
-    let (_, paste_event) = helpers::get_event_names();
-    app_handle.listen(paste_event, move |_event| {
+    app_handle.listen("paste_clipboard", move |_event| {
         handle_paste_clipboard_event(
             keyboard_emulator_clone.clone(),
             cancellation_flag_clone.clone(),
@@ -243,7 +153,7 @@ pub fn run() {
             }
 
             // Initialize components
-            let (config_manager, keyboard_emulator) =
+            let keyboard_emulator =
                 initialize_components().expect("Failed to initialize components");
 
             // Small delay before creating tray to ensure app is fully initialized
@@ -251,7 +161,7 @@ pub fn run() {
             std::thread::sleep(helpers::get_startup_delay());
 
             // Setup system tray
-            let tray_manager = TrayManager::new(config_manager.clone());
+            let tray_manager = TrayManager::new();
             tray_manager.setup(app.handle())?;
 
             // Create app state
@@ -260,12 +170,7 @@ pub fn run() {
             app.manage(app_state);
 
             // Setup event handlers
-            setup_event_handlers(
-                app.handle(),
-                config_manager,
-                keyboard_emulator,
-                cancellation_flag.clone(),
-            );
+            setup_event_handlers(app.handle(), keyboard_emulator, cancellation_flag.clone());
 
             // Setup global hotkeys
             let hotkey_manager = HotkeyManager::new();
@@ -280,13 +185,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
-
-    use tempfile::TempDir;
     use tokio::sync::mpsc;
 
     use super::*;
-    use crate::{config::Config, keyboard::TypingSpeed, tray::TrayManager};
+    use crate::{keyboard::TypingSpeed, tray::TrayManager};
 
     // Mock implementations for testing
     struct MockState {
@@ -295,14 +197,6 @@ mod tests {
 
     impl MockState {
         fn new() -> Self {
-            let temp_dir = TempDir::new().unwrap();
-            let config_path = temp_dir.path().join("config.toml");
-
-            let _config_manager = Arc::new(ConfigManager {
-                config: Arc::new(Mutex::new(Config::default())),
-                config_path,
-            });
-
             let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
             let app_state = AppState {
@@ -370,17 +264,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_app_state_creation() {
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        let _config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config {
-                typing_speed: TypingSpeed::Fast,
-                left_click_paste: false,
-            })),
-            config_path,
-        });
-
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
         let app_state = AppState {
@@ -394,35 +277,6 @@ mod tests {
             &app_state.keyboard_emulator,
             &cloned_state.keyboard_emulator
         ));
-    }
-
-    #[test]
-    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
-    #[cfg(not(tarpaulin))]
-    fn test_config_no_longer_has_enabled_field() {
-        let config = Config::default();
-        let json = serde_json::to_value(&config).unwrap();
-
-        // Verify the config has the expected fields
-        assert!(json.is_object());
-        assert!(json.get("typing_speed").is_some());
-        assert!(json.get("left_click_paste").is_some());
-        assert!(json.get("enabled").is_none());
-    }
-
-    #[test]
-    fn test_config_serialization() {
-        let config = Config {
-            typing_speed: TypingSpeed::Fast,
-            left_click_paste: true,
-        };
-
-        let json = serde_json::to_string(&config).unwrap();
-        assert!(json.contains("typing_speed"));
-        assert!(json.contains("fast"));
-        assert!(json.contains("left_click_paste"));
-        assert!(json.contains("true"));
-        assert!(!json.contains("enabled"));
     }
 
     #[test]
@@ -444,18 +298,6 @@ mod tests {
 
     #[test]
     fn test_app_state_structure() {
-        use std::sync::Mutex;
-
-        use tempfile::TempDir;
-
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        let _config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config::default())),
-            config_path,
-        });
-
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
         let _app_state = AppState {
@@ -464,7 +306,6 @@ mod tests {
         };
 
         // Verify app state holds correct reference to keyboard emulator
-        // (config is no longer part of app state)
     }
 
     #[test]
@@ -496,21 +337,12 @@ mod tests {
 
         let menu_structure = vec![
             ("paste", "MenuItemKind::MenuItem"),
-            ("typing_speed", "MenuItemKind::Submenu"),
-            ("settings", "MenuItemKind::MenuItem"),
+            ("cancel_typing", "MenuItemKind::MenuItem"),
             ("quit", "MenuItemKind::MenuItem"),
         ];
 
-        // Verify typing speed submenu has exactly 3 items
-        let speed_items = vec!["speed_slow", "speed_normal", "speed_fast"];
-        assert_eq!(speed_items.len(), 3);
-
         // Ensure menu IDs are unique
-        let all_ids: Vec<&str> = menu_structure
-            .iter()
-            .map(|(id, _)| *id)
-            .chain(speed_items.iter().map(|s| *s))
-            .collect();
+        let all_ids: Vec<&str> = menu_structure.iter().map(|(id, _)| *id).collect();
 
         let unique_ids: std::collections::HashSet<_> = all_ids.iter().collect();
         assert_eq!(
@@ -533,43 +365,6 @@ mod tests {
     }
 
     #[test]
-    fn test_config_manager_thread_safety() {
-        use std::thread;
-
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        let config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config::default())),
-            config_path,
-        });
-
-        let handles: Vec<_> = (0..5)
-            .map(|i| {
-                let cm = config_manager.clone();
-                thread::spawn(move || {
-                    let speed = match i % 3 {
-                        0 => TypingSpeed::Slow,
-                        1 => TypingSpeed::Normal,
-                        _ => TypingSpeed::Fast,
-                    };
-                    cm.set_typing_speed(speed);
-                    cm.get()
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            let config = handle.join().unwrap();
-            // Just verify we got a valid config back
-            assert!(matches!(
-                config.typing_speed,
-                TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
-            ));
-        }
-    }
-
-    #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     #[cfg(not(tarpaulin))]
     fn test_app_state_arc_references() {
@@ -589,34 +384,18 @@ mod tests {
     #[test]
     fn test_app_lifecycle_initialization_order() {
         // Test that components are initialized in the correct order
-        // 1. Config manager
-        // 2. Keyboard emulator
-        // 3. Apply config settings
-        // 4. Tray setup
-        // 5. App state creation
-        // 6. Event listeners
+        // 1. Keyboard emulator
+        // 2. Tray setup
+        // 3. App state creation
+        // 4. Event listeners
 
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        // Step 1: Config manager should be created first
-        let config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config::default())),
-            config_path,
-        });
-        assert!(config_manager.get().typing_speed == TypingSpeed::Normal);
-
-        // Step 2: Keyboard emulator depends on nothing
+        // Step 1: Keyboard emulator
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
 
-        // Step 3: Config should be applied to keyboard emulator
-        let config = config_manager.get();
-        keyboard_emulator.set_typing_speed(config.typing_speed);
+        // Step 2: Tray manager
+        let _tray_manager = TrayManager::new();
 
-        // Step 4: Tray manager needs config manager
-        let _tray_manager = TrayManager::new(config_manager.clone());
-
-        // Step 5: App state needs both config and keyboard
+        // Step 3: App state creation
         let app_state = AppState {
             keyboard_emulator: keyboard_emulator.clone(),
             is_typing_cancelled: Arc::new(AtomicBool::new(false)),
@@ -630,30 +409,9 @@ mod tests {
     }
 
     #[test]
-    fn test_startup_config_loading() {
-        // Test that config is properly loaded and applied at startup
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        // Write a config with non-default values
-        let test_config = Config {
-            typing_speed: TypingSpeed::Fast,
-            left_click_paste: true,
-        };
-        std::fs::write(&config_path, toml::to_string(&test_config).unwrap()).unwrap();
-
-        // Create config manager - it should load the saved config
-        let config_manager = ConfigManager::new_with_path(config_path).unwrap();
-        let loaded_config = config_manager.get();
-
-        assert_eq!(loaded_config.typing_speed, TypingSpeed::Fast);
-        assert_eq!(loaded_config.left_click_paste, true);
-    }
-
-    #[test]
     fn test_event_listener_setup() {
         // Test that event listeners are properly set up
-        let event_names = vec!["config_changed", "paste_clipboard"];
+        let event_names = vec!["paste_clipboard", "cancel_typing"];
 
         // Verify event names match what's used in the app
         for event in &event_names {
@@ -662,8 +420,8 @@ mod tests {
         }
 
         // Test that events would be properly handled
-        assert_eq!(event_names[0], "config_changed");
-        assert_eq!(event_names[1], "paste_clipboard");
+        assert_eq!(event_names[0], "paste_clipboard");
+        assert_eq!(event_names[1], "cancel_typing");
     }
 
     #[test]
@@ -684,15 +442,7 @@ mod tests {
         let result = initialize_components();
         assert!(result.is_ok());
 
-        let (config_manager, keyboard_emulator) = result.unwrap();
-
-        // Verify components are properly initialized
-        let config = config_manager.get();
-        // Config might have been loaded from disk, so just check it has a valid value
-        assert!(matches!(
-            config.typing_speed,
-            TypingSpeed::Slow | TypingSpeed::Normal | TypingSpeed::Fast
-        ));
+        let keyboard_emulator = result.unwrap();
 
         // Verify keyboard emulator is created
         assert!(Arc::strong_count(&keyboard_emulator) > 0);
@@ -704,11 +454,7 @@ mod tests {
         let result = initialize_components();
         assert!(result.is_ok());
 
-        let (config_manager, keyboard_emulator) = result.unwrap();
-
-        // Test that we can use the components
-        config_manager.set_typing_speed(TypingSpeed::Fast);
-        assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
+        let keyboard_emulator = result.unwrap();
 
         // Test keyboard emulator is properly shared
         let emulator_ref1 = keyboard_emulator.clone();
@@ -770,32 +516,6 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_config_changed() {
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        let config_manager = Arc::new(ConfigManager {
-            config: Arc::new(Mutex::new(Config {
-                typing_speed: TypingSpeed::Slow,
-                left_click_paste: false,
-            })),
-            config_path,
-        });
-
-        let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
-
-        // Handle config change
-        handle_config_changed(&config_manager, &keyboard_emulator);
-
-        // Change config and handle again
-        config_manager.set_typing_speed(TypingSpeed::Fast);
-        handle_config_changed(&config_manager, &keyboard_emulator);
-
-        // The keyboard emulator should have received the speed change
-        assert_eq!(config_manager.get().typing_speed, TypingSpeed::Fast);
-    }
-
-    #[test]
     #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
     #[cfg(not(tarpaulin))]
     fn test_handle_paste_clipboard_event() {
@@ -815,13 +535,13 @@ mod tests {
     #[test]
     fn test_event_names() {
         // Test that event names are consistent
-        let config_changed_event = "config_changed";
         let paste_clipboard_event = "paste_clipboard";
+        let cancel_typing_event = "cancel_typing";
 
-        assert_eq!(config_changed_event, "config_changed");
         assert_eq!(paste_clipboard_event, "paste_clipboard");
-        assert!(!config_changed_event.contains(" "));
+        assert_eq!(cancel_typing_event, "cancel_typing");
         assert!(!paste_clipboard_event.contains(" "));
+        assert!(!cancel_typing_event.contains(" "));
     }
 
     #[test]

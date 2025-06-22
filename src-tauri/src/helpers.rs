@@ -3,16 +3,6 @@ use std::time::Duration;
 
 use log::info;
 
-/// Format log message for initial config
-pub fn format_initial_config_log(
-    typing_speed: &crate::keyboard::TypingSpeed,
-    left_click_paste: bool,
-) -> String {
-    format!(
-        "Initial config loaded: typing_speed={typing_speed:?}, left_click_paste={left_click_paste}"
-    )
-}
-
 /// Format log message for paste event
 pub fn format_paste_event_log() -> &'static str {
     "Paste clipboard event received"
@@ -26,11 +16,6 @@ pub fn format_paste_error(error: &str) -> String {
 /// Calculate startup delay duration
 pub fn get_startup_delay() -> Duration {
     Duration::from_millis(100)
-}
-
-/// Get event names used in the app
-pub fn get_event_names() -> (&'static str, &'static str) {
-    ("config_changed", "paste_clipboard")
 }
 
 /// Get activation policy name for macOS
@@ -48,19 +33,6 @@ pub fn log_initialization() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keyboard::TypingSpeed;
-
-    #[test]
-    fn test_format_initial_config_log() {
-        let msg = format_initial_config_log(&TypingSpeed::Normal, false);
-        assert!(msg.contains("Initial config loaded"));
-        assert!(msg.contains("typing_speed=Normal"));
-        assert!(msg.contains("left_click_paste=false"));
-
-        let msg2 = format_initial_config_log(&TypingSpeed::Fast, true);
-        assert!(msg2.contains("typing_speed=Fast"));
-        assert!(msg2.contains("left_click_paste=true"));
-    }
 
     #[test]
     fn test_format_paste_event_log() {
@@ -81,13 +53,6 @@ mod tests {
     fn test_get_startup_delay() {
         let delay = get_startup_delay();
         assert_eq!(delay.as_millis(), 100);
-    }
-
-    #[test]
-    fn test_get_event_names() {
-        let (config_event, paste_event) = get_event_names();
-        assert_eq!(config_event, "config_changed");
-        assert_eq!(paste_event, "paste_clipboard");
     }
 
     #[test]

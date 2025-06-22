@@ -65,18 +65,6 @@ cargo tauri build
 
 Press **Escape twice** quickly (within 500ms) to instantly cancel any ongoing typing operation. You can also click "Cancel Typing (Esc Esc)" in the tray menu.
 
-Adjust typing speed and left-click behavior from the tray menu.
-
-## Configuration
-
-Pasta stores its configuration file in the following locations:
-
-- **macOS**: `~/Library/Application Support/com.pasta.app/config.toml`
-- **Linux**: `~/.config/pasta/config.toml`
-- **Windows**: `%APPDATA%\pasta\config.toml`
-
-The configuration file is automatically created on first run with defaults (normal typing speed, left-click shows menu) and saves your preferences.
-
 ## Development
 
 ```bash
