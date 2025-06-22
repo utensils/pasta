@@ -302,6 +302,12 @@ To reduce security warnings without an Apple Developer account:
 4. Keep frontend simple - no frameworks or complex build steps
 5. Test on all platforms before committing
 
+### Documentation Guidelines
+- Keep all project documentation in existing files (README.md, CLAUDE.md)
+- Do NOT create separate documentation files for individual features
+- Add feature documentation to the appropriate existing section
+- Maintain a single source of truth for project information
+
 ### Testing Strategy
 The project has comprehensive test coverage:
 - Unit tests for all modules (300+ tests total, ~40 ignored)
