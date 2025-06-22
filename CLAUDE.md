@@ -115,6 +115,7 @@ pasta/
 │   │   ├── keyboard.rs       # Keyboard emulation with text chunking
 │   │   ├── config.rs         # TOML config persistence
 │   │   ├── tray.rs           # System tray menu
+│   │   ├── hotkey.rs         # Global hotkey management (double-Escape)
 │   │   ├── helpers.rs        # Helper functions for logging and utilities
 │   │   ├── mock_keyboard.rs  # Mock keyboard emulator for testing
 │   │   ├── theme.rs          # Theme utilities (currently unused)
@@ -139,17 +140,19 @@ pasta/
 
 ### Core Design Principles
 - **Minimal Functionality**: Only types clipboard content - no monitoring, history, or advanced features
-- **Simple State Management**: Single AppState with keyboard emulator
+- **Simple State Management**: Single AppState with keyboard emulator and cancellation flag
 - **System Tray Interface**: All interaction through tray menu
 - **Cross-platform**: Works on macOS, Linux, and Windows
 - **Zero Network Access**: No external communication, telemetry, or updates
+- **Emergency Stop**: Double-Escape hotkey to instantly cancel typing operations
 
 ### Key Architectural Components
 
 1. **AppState** (lib.rs)
-   - Simple state container with only keyboard emulator
+   - State container with keyboard emulator and cancellation flag
    - Wrapped in `Arc` for thread-safe sharing
-   - Exposes single Tauri IPC command: `paste_clipboard`
+   - Exposes Tauri IPC commands: `paste_clipboard` and `cancel_typing`
+   - Includes methods for cancellation: `cancel_typing()`, `reset_cancellation()`, `is_cancelled()`
    - Business logic extracted to app_logic module for better testability
 
 2. **Clipboard Access** (clipboard.rs)
@@ -165,6 +168,8 @@ pasta/
    - 100ms pause between chunks for system stability
    - Special character handling for newlines and tabs
    - Uses `enigo` crate for keyboard emulation
+   - Supports cancellation via atomic flag checked during typing
+   - Checks cancellation flag at chunk boundaries and every 10 characters
 
 4. **ConfigManager** (config.rs)
    - Platform-specific config locations using `dirs` crate
@@ -177,13 +182,21 @@ pasta/
    - Creates system tray icon with menu
    - Menu items:
      - Paste - triggers clipboard typing
+     - Cancel Typing (Esc Esc) - cancels ongoing typing operation
      - Typing Speed submenu (Slow/Normal/Fast)
      - Left Click Pastes - toggle left-click behavior
      - Quit
    - Handles all user interaction
    - Works around Tauri v2 initialization bug with 100ms delay
 
-6. **Helper Functions** (helpers.rs)
+6. **HotkeyManager** (hotkey.rs)
+   - Manages global keyboard shortcuts
+   - Uses `tauri-plugin-global-shortcut` for cross-platform hotkey support
+   - Implements double-Escape detection with 500ms time window
+   - Triggers cancellation when double-Escape is pressed
+   - Alternative: Supports Ctrl+Shift+Escape for simpler implementation
+
+7. **Helper Functions** (helpers.rs)
    - Extracted helper functions for better testability
    - Logging formatters for consistent messages
    - Platform-specific utilities (e.g., macOS activation policy)
@@ -216,6 +229,9 @@ Main Thread (Tauri/UI)
 - Text chunking (200 chars) prevents system overload with large pastes
 - Each character typed individually with configurable delay
 - Runs in separate thread to avoid blocking UI
+- Emergency stop: Press Escape twice within 500ms to cancel typing
+- Cancellation checked at chunk boundaries and every 10 characters
+- Thread-safe cancellation using atomic boolean flag
 
 ### Configuration Persistence
 - Stored in platform-standard locations:

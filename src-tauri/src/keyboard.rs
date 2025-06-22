@@ -1,7 +1,11 @@
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::Duration;
 
 use enigo::{Enigo, Key, Keyboard};
-use log::debug;
+use log::{debug, info};
 use tokio::sync::mpsc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -24,7 +28,7 @@ impl TypingSpeed {
 
 #[derive(Debug, Clone)]
 pub enum KeyboardCommand {
-    TypeText(String),
+    TypeText(String, Arc<AtomicBool>),
     SetSpeed(TypingSpeed),
 }
 
@@ -43,7 +47,7 @@ impl KeyboardEmulator {
 
             while let Some(cmd) = rx.blocking_recv() {
                 match cmd {
-                    KeyboardCommand::TypeText(text) => {
+                    KeyboardCommand::TypeText(text, cancellation_flag) => {
                         let delay = Duration::from_millis(current_speed.delay_ms());
 
                         debug!("Typing text with {current_speed:?} speed");
@@ -57,8 +61,20 @@ impl KeyboardEmulator {
                             .collect();
 
                         for (i, chunk) in chunks.iter().enumerate() {
+                            // Check cancellation flag at the start of each chunk
+                            if cancellation_flag.load(Ordering::Relaxed) {
+                                info!("Typing cancelled by user");
+                                break;
+                            }
+
                             // Type each character in the chunk
-                            for ch in chunk.chars() {
+                            for (char_index, ch) in chunk.chars().enumerate() {
+                                // Check cancellation flag periodically (every 10 characters)
+                                if char_index % 10 == 0 && cancellation_flag.load(Ordering::Relaxed) {
+                                    info!("Typing cancelled by user");
+                                    break;
+                                }
+
                                 match ch {
                                     '\n' => {
                                         let _ = enigo.key(Key::Return, enigo::Direction::Click);
@@ -73,13 +89,23 @@ impl KeyboardEmulator {
                                 std::thread::sleep(delay);
                             }
 
+                            // Check if cancelled before continuing to next chunk
+                            if cancellation_flag.load(Ordering::Relaxed) {
+                                info!("Typing cancelled by user");
+                                break;
+                            }
+
                             // Add a slightly longer delay between chunks
                             if i < chunks.len() - 1 {
                                 std::thread::sleep(Duration::from_millis(100));
                             }
                         }
 
-                        debug!("Finished typing text");
+                        if cancellation_flag.load(Ordering::Relaxed) {
+                            debug!("Typing was cancelled");
+                        } else {
+                            debug!("Finished typing text");
+                        }
                     }
                     KeyboardCommand::SetSpeed(speed) => {
                         current_speed = speed;
@@ -95,9 +121,9 @@ impl KeyboardEmulator {
         let _ = self.tx.blocking_send(KeyboardCommand::SetSpeed(speed));
     }
 
-    pub async fn type_text(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn type_text(&self, text: &str, cancellation_flag: Arc<AtomicBool>) -> Result<(), Box<dyn std::error::Error>> {
         self.tx
-            .send(KeyboardCommand::TypeText(text.to_string()))
+            .send(KeyboardCommand::TypeText(text.to_string(), cancellation_flag))
             .await?;
         Ok(())
     }
@@ -126,9 +152,13 @@ mod tests {
 
     #[test]
     fn test_keyboard_command_creation() {
-        let cmd = KeyboardCommand::TypeText("hello".to_string());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let cmd = KeyboardCommand::TypeText("hello".to_string(), cancellation_flag.clone());
         match cmd {
-            KeyboardCommand::TypeText(text) => assert_eq!(text, "hello"),
+            KeyboardCommand::TypeText(text, flag) => {
+                assert_eq!(text, "hello");
+                assert!(!flag.load(Ordering::Relaxed));
+            }
             _ => panic!("Wrong command type"),
         }
 
@@ -197,7 +227,8 @@ mod tests {
 
     #[test]
     fn test_keyboard_command_debug() {
-        let cmd = KeyboardCommand::TypeText("test".to_string());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let cmd = KeyboardCommand::TypeText("test".to_string(), cancellation_flag);
         let debug_str = format!("{:?}", cmd);
         assert!(debug_str.contains("TypeText"));
         assert!(debug_str.contains("test"));
@@ -210,12 +241,14 @@ mod tests {
 
     #[test]
     fn test_keyboard_command_clone() {
-        let cmd = KeyboardCommand::TypeText("hello".to_string());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let cmd = KeyboardCommand::TypeText("hello".to_string(), cancellation_flag.clone());
         let cloned = cmd.clone();
 
         match (cmd, cloned) {
-            (KeyboardCommand::TypeText(text1), KeyboardCommand::TypeText(text2)) => {
+            (KeyboardCommand::TypeText(text1, flag1), KeyboardCommand::TypeText(text2, flag2)) => {
                 assert_eq!(text1, text2);
+                assert!(Arc::ptr_eq(&flag1, &flag2));
             }
             _ => panic!("Clone failed"),
         }
@@ -390,15 +423,17 @@ mod tests {
     #[test]
     fn test_keyboard_command_pattern_matching() {
         // Test exhaustive pattern matching
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
         let commands = vec![
-            KeyboardCommand::TypeText("hello".to_string()),
+            KeyboardCommand::TypeText("hello".to_string(), cancellation_flag.clone()),
             KeyboardCommand::SetSpeed(TypingSpeed::Slow),
         ];
 
         for cmd in commands {
             match cmd {
-                KeyboardCommand::TypeText(ref text) => {
+                KeyboardCommand::TypeText(ref text, ref flag) => {
                     assert!(!text.is_empty());
+                    assert!(!flag.load(Ordering::Relaxed));
                 }
                 KeyboardCommand::SetSpeed(speed) => {
                     assert!(matches!(
@@ -442,10 +477,11 @@ mod tests {
     fn test_keyboard_emulator_channel_size() {
         // Verify channel is created with proper buffer size
         let (tx, _rx) = mpsc::channel::<KeyboardCommand>(10);
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
         // Test that we can send at least 10 commands without blocking
         for i in 0..10 {
-            let result = tx.try_send(KeyboardCommand::TypeText(format!("test{}", i)));
+            let result = tx.try_send(KeyboardCommand::TypeText(format!("test{}", i), cancellation_flag.clone()));
             assert!(result.is_ok());
         }
     }
@@ -453,8 +489,9 @@ mod tests {
     #[test]
     fn test_keyboard_command_exhaustive_match() {
         // Test that all KeyboardCommand variants are handled
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
         let commands = vec![
-            KeyboardCommand::TypeText("test".to_string()),
+            KeyboardCommand::TypeText("test".to_string(), cancellation_flag.clone()),
             KeyboardCommand::SetSpeed(TypingSpeed::Slow),
             KeyboardCommand::SetSpeed(TypingSpeed::Normal),
             KeyboardCommand::SetSpeed(TypingSpeed::Fast),
@@ -467,7 +504,7 @@ mod tests {
 
             // Pattern match to ensure all variants are covered
             match cmd {
-                KeyboardCommand::TypeText(text) => assert!(!text.is_empty()),
+                KeyboardCommand::TypeText(text, _flag) => assert!(!text.is_empty()),
                 KeyboardCommand::SetSpeed(speed) => assert!(speed.delay_ms() > 0),
             }
         }
@@ -485,5 +522,86 @@ mod tests {
         assert_eq!(slow, 50);
         assert_eq!(normal, 25);
         assert_eq!(fast, 10);
+    }
+
+    #[test]
+    fn test_cancellation_flag_functionality() {
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        
+        // Test initial state
+        assert!(!cancellation_flag.load(Ordering::Relaxed));
+
+        // Test setting to true
+        cancellation_flag.store(true, Ordering::Relaxed);
+        assert!(cancellation_flag.load(Ordering::Relaxed));
+
+        // Test resetting to false
+        cancellation_flag.store(false, Ordering::Relaxed);
+        assert!(!cancellation_flag.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_cancellation_flag_shared_across_threads() {
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let flag_clone = cancellation_flag.clone();
+
+        // Simulate setting the flag in another thread
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(10));
+            flag_clone.store(true, Ordering::Relaxed);
+        });
+
+        // Wait a bit and check the flag
+        std::thread::sleep(Duration::from_millis(20));
+        assert!(cancellation_flag.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn test_keyboard_command_with_cancellation() {
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let cmd = KeyboardCommand::TypeText("test".to_string(), cancellation_flag.clone());
+
+        // Verify the command holds the correct flag
+        match cmd {
+            KeyboardCommand::TypeText(text, flag) => {
+                assert_eq!(text, "test");
+                assert!(Arc::ptr_eq(&flag, &cancellation_flag));
+                
+                // Test that modifying the original flag affects the command's flag
+                cancellation_flag.store(true, Ordering::Relaxed);
+                assert!(flag.load(Ordering::Relaxed));
+            }
+            _ => panic!("Wrong command type"),
+        }
+    }
+
+    #[test]
+    fn test_chunk_iteration_with_cancellation_check() {
+        // Simulate the chunking logic with cancellation checks
+        let text = "a".repeat(250); // Will create 2 chunks
+        let chars: Vec<char> = text.chars().collect();
+        let chunks: Vec<String> = chars
+            .chunks(200)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect();
+
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        let mut chunks_processed = 0;
+
+        for (i, _chunk) in chunks.iter().enumerate() {
+            // Check cancellation at start of each chunk
+            if cancellation_flag.load(Ordering::Relaxed) {
+                break;
+            }
+            chunks_processed += 1;
+
+            // Simulate cancellation after first chunk
+            if i == 0 {
+                cancellation_flag.store(true, Ordering::Relaxed);
+            }
+        }
+
+        // Should only process 1 chunk before cancellation
+        assert_eq!(chunks_processed, 1);
     }
 }

@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod mock {
     use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     use tokio::sync::mpsc;
 
@@ -29,9 +30,12 @@ pub mod mock {
             std::thread::spawn(move || {
                 while let Some(cmd) = rx.blocking_recv() {
                     match cmd {
-                        KeyboardCommand::TypeText(text) => {
-                            // Just record the text, don't actually type it
-                            typed_text_clone.lock().unwrap().push(text);
+                        KeyboardCommand::TypeText(text, cancellation_flag) => {
+                            // Check if cancelled before recording
+                            if !cancellation_flag.load(Ordering::Relaxed) {
+                                // Just record the text, don't actually type it
+                                typed_text_clone.lock().unwrap().push(text);
+                            }
                         }
                         KeyboardCommand::SetSpeed(speed) => {
                             *current_speed_clone.lock().unwrap() = speed;
@@ -52,9 +56,9 @@ pub mod mock {
             let _ = self.tx.try_send(KeyboardCommand::SetSpeed(speed));
         }
 
-        pub async fn type_text(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
+        pub async fn type_text(&self, text: &str, cancellation_flag: Arc<AtomicBool>) -> Result<(), Box<dyn std::error::Error>> {
             self.tx
-                .send(KeyboardCommand::TypeText(text.to_string()))
+                .send(KeyboardCommand::TypeText(text.to_string(), cancellation_flag))
                 .await?;
             Ok(())
         }

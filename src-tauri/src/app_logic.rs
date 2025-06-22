@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use crate::keyboard::{KeyboardEmulator, TypingSpeed};
 
@@ -21,6 +24,7 @@ impl ClipboardProvider for SystemClipboard {
 pub async fn handle_paste_clipboard(
     clipboard: &dyn ClipboardProvider,
     keyboard_emulator: &Arc<KeyboardEmulator>,
+    cancellation_flag: Arc<AtomicBool>,
 ) -> Result<(), String> {
     log::info!("Paste clipboard logic triggered");
 
@@ -30,7 +34,7 @@ pub async fn handle_paste_clipboard(
     match clipboard_result {
         Ok(Some(text)) => {
             log::info!("Got clipboard content, typing text");
-            if let Err(e) = keyboard_emulator.type_text(&text).await {
+            if let Err(e) = keyboard_emulator.type_text(&text, cancellation_flag).await {
                 log::error!("Failed to type text: {e:?}");
                 return Err(format!("Failed to type text: {e}"));
             }
@@ -80,6 +84,10 @@ pub fn create_menu_structure(typing_speed: TypingSpeed, left_click_paste: bool) 
                 id: "paste".to_string(),
                 label: "Paste".to_string(),
             },
+            MenuItem::Action {
+                id: "cancel_typing".to_string(),
+                label: "Cancel Typing (Esc Esc)".to_string(),
+            },
             MenuItem::Separator,
             MenuItem::Submenu {
                 label: "Typing Speed".to_string(),
@@ -119,6 +127,7 @@ pub fn create_menu_structure(typing_speed: TypingSpeed, left_click_paste: bool) 
 #[derive(Debug, PartialEq)]
 pub enum MenuAction {
     Paste,
+    CancelTyping,
     SetTypingSpeed(TypingSpeed),
     ToggleLeftClickPaste,
     Quit,
@@ -129,6 +138,7 @@ pub enum MenuAction {
 pub fn handle_menu_event(event_id: &str) -> MenuAction {
     match event_id {
         "paste" => MenuAction::Paste,
+        "cancel_typing" => MenuAction::CancelTyping,
         "speed_slow" => MenuAction::SetTypingSpeed(TypingSpeed::Slow),
         "speed_normal" => MenuAction::SetTypingSpeed(TypingSpeed::Normal),
         "speed_fast" => MenuAction::SetTypingSpeed(TypingSpeed::Fast),
@@ -170,8 +180,9 @@ mod tests {
     async fn test_handle_paste_clipboard_with_content() {
         let clipboard = MockClipboard::new(Some("Hello, World!".to_string()));
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -181,8 +192,9 @@ mod tests {
     async fn test_handle_paste_clipboard_empty() {
         let clipboard = MockClipboard::new(None);
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
     }
 
@@ -200,8 +212,9 @@ mod tests {
 
         let clipboard = ErrorClipboard;
         let keyboard_emulator = Arc::new(KeyboardEmulator::new().unwrap());
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Clipboard access denied");
     }
@@ -211,10 +224,10 @@ mod tests {
         let menu = create_menu_structure(TypingSpeed::Slow, false);
 
         // Verify structure
-        assert_eq!(menu.items.len(), 6); // paste, separator, submenu, left_click, separator, quit
+        assert_eq!(menu.items.len(), 7); // paste, cancel_typing, separator, submenu, left_click, separator, quit
 
         // Check typing speed submenu
-        if let MenuItem::Submenu { label, items } = &menu.items[2] {
+        if let MenuItem::Submenu { label, items } = &menu.items[3] {
             assert_eq!(label, "Typing Speed");
             assert_eq!(items.len(), 3);
 
@@ -224,7 +237,7 @@ mod tests {
                 assert!(checked);
             }
         } else {
-            panic!("Expected submenu at index 2");
+            panic!("Expected submenu at index 3");
         }
     }
 
@@ -233,17 +246,22 @@ mod tests {
         let menu = create_menu_structure(TypingSpeed::Normal, true);
 
         // Check left click paste item
-        if let MenuItem::CheckItem { label, checked, .. } = &menu.items[3] {
+        if let MenuItem::CheckItem { label, checked, .. } = &menu.items[4] {
             assert_eq!(label, "Left Click Pastes");
             assert!(checked);
         } else {
-            panic!("Expected check item at index 3");
+            panic!("Expected check item at index 4");
         }
     }
 
     #[test]
     fn test_handle_menu_event_paste() {
         assert_eq!(handle_menu_event("paste"), MenuAction::Paste);
+    }
+
+    #[test]
+    fn test_handle_menu_event_cancel_typing() {
+        assert_eq!(handle_menu_event("cancel_typing"), MenuAction::CancelTyping);
     }
 
     #[test]
@@ -359,6 +377,7 @@ mod tests {
     fn test_menu_action_debug() {
         // Test Debug trait implementation
         assert_eq!(format!("{:?}", MenuAction::Paste), "Paste");
+        assert_eq!(format!("{:?}", MenuAction::CancelTyping), "CancelTyping");
         assert_eq!(
             format!("{:?}", MenuAction::SetTypingSpeed(TypingSpeed::Slow)),
             "SetTypingSpeed(Slow)"
@@ -446,8 +465,56 @@ mod tests {
                 return;
             }
         };
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
 
-        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator).await;
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    #[ignore = "Creates real keyboard emulator that can type on system - run with --ignored flag"]
+    #[cfg(not(tarpaulin))]
+    async fn test_handle_paste_clipboard_with_cancellation() {
+        let clipboard = MockClipboard::new(Some("test text".to_string()));
+        let cancellation_flag = Arc::new(AtomicBool::new(false));
+        
+        // Create a real keyboard emulator
+        let keyboard_emulator = Arc::new(crate::keyboard::KeyboardEmulator::new().unwrap());
+
+        // Set cancellation flag before calling
+        cancellation_flag.store(true, Ordering::Relaxed);
+
+        let result = handle_paste_clipboard(&clipboard, &keyboard_emulator, cancellation_flag).await;
+        assert!(result.is_ok()); // The function should still return Ok even if cancelled
+    }
+
+    #[test]
+    fn test_menu_structure_has_cancel_typing() {
+        let menu = create_menu_structure(TypingSpeed::Normal, false);
+
+        // Find cancel_typing menu item
+        let mut found_cancel = false;
+        for item in &menu.items {
+            if let MenuItem::Action { id, label } = item {
+                if id == "cancel_typing" {
+                    found_cancel = true;
+                    assert!(label.contains("Cancel Typing"));
+                    assert!(label.contains("Esc Esc"));
+                }
+            }
+        }
+        assert!(found_cancel, "Cancel typing menu item not found");
+    }
+
+    #[test]
+    fn test_cancel_typing_menu_position() {
+        let menu = create_menu_structure(TypingSpeed::Normal, false);
+
+        // Cancel typing should be the second item (after paste)
+        if let MenuItem::Action { id, .. } = &menu.items[1] {
+            assert_eq!(id, "cancel_typing");
+        } else {
+            panic!("Expected cancel_typing action at index 1");
+        }
     }
 }

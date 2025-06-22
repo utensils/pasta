@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod keyboard_execution_tests {
     use std::{sync::Arc, time::Duration};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     use tokio::sync::mpsc;
 
@@ -21,7 +22,8 @@ mod keyboard_execution_tests {
         // Send a command to verify the thread is alive
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
-            let result = keyboard.type_text("test").await;
+            let cancellation_flag = Arc::new(AtomicBool::new(false));
+            let result = keyboard.type_text("test", cancellation_flag).await;
             assert!(result.is_ok());
         });
 
@@ -43,7 +45,7 @@ mod keyboard_execution_tests {
 
             while let Some(cmd) = rx.blocking_recv() {
                 match cmd {
-                    KeyboardCommand::TypeText(text) => {
+                    KeyboardCommand::TypeText(text, _cancellation_flag) => {
                         // Simulate text processing
                         let delay = Duration::from_millis(current_speed.delay_ms());
                         assert!(delay.as_millis() > 0);
@@ -67,7 +69,8 @@ mod keyboard_execution_tests {
             tx.send(KeyboardCommand::SetSpeed(TypingSpeed::Fast))
                 .await
                 .unwrap();
-            tx.send(KeyboardCommand::TypeText("Hello".to_string()))
+            let cancellation_flag = Arc::new(AtomicBool::new(false));
+            tx.send(KeyboardCommand::TypeText("Hello".to_string(), cancellation_flag))
                 .await
                 .unwrap();
         });
@@ -183,23 +186,25 @@ mod keyboard_execution_tests {
 
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
+            let cancellation_flag = Arc::new(AtomicBool::new(false));
+            
             // Fill the channel
-            tx.send(KeyboardCommand::TypeText("1".to_string()))
+            tx.send(KeyboardCommand::TypeText("1".to_string(), cancellation_flag.clone()))
                 .await
                 .unwrap();
-            tx.send(KeyboardCommand::TypeText("2".to_string()))
+            tx.send(KeyboardCommand::TypeText("2".to_string(), cancellation_flag.clone()))
                 .await
                 .unwrap();
 
             // This would block if channel is full, so try_send
-            let result = tx.try_send(KeyboardCommand::TypeText("3".to_string()));
+            let result = tx.try_send(KeyboardCommand::TypeText("3".to_string(), cancellation_flag.clone()));
             assert!(result.is_err()); // Channel should be full
 
             // Consume one message
             let _msg = rx.recv().await;
 
             // Now we should be able to send
-            let result2 = tx.try_send(KeyboardCommand::TypeText("3".to_string()));
+            let result2 = tx.try_send(KeyboardCommand::TypeText("3".to_string(), cancellation_flag));
             assert!(result2.is_ok());
         });
     }
