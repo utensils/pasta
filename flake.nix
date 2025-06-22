@@ -45,9 +45,15 @@
           gtk3
           webkitgtk_4_1
           libayatana-appindicator
-          librsvg
           glib
           libsoup_3
+          pango
+          cairo
+          atk
+          harfbuzz
+          gdk-pixbuf
+          xdotool
+          zlib
         ];
 
         # For nix run, we'll use a wrapper that copies files to a writable location
@@ -63,7 +69,7 @@
           chmod -R +w $TMPDIR
           
           # Set up environment
-          export PATH="${rustToolchain}/bin:${pkgs.cargo-tauri}/bin:$PATH"
+          export PATH="${rustToolchain}/bin:${pkgs.cargo-tauri}/bin:${pkgs.pkg-config}/bin:$PATH"
           export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig"
           export RUST_LOG=''${RUST_LOG:-pasta=info}
           export RUST_BACKTRACE=''${RUST_BACKTRACE:-1}
@@ -71,6 +77,7 @@
           # Add library paths for Linux
           ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildDeps}:$LD_LIBRARY_PATH"
+            export LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildDeps}:$LIBRARY_PATH"
           ''}
           
           # Build and run
@@ -79,7 +86,28 @@
           
           # Run cargo build with proper environment
           ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-            export PKG_CONFIG_PATH="${pkgs.pkg-config}/lib/pkgconfig:${pkgs.gtk3.dev}/lib/pkgconfig:${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libayatana-appindicator}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            # Use pkg-config wrapper which should handle paths automatically
+            export PKG_CONFIG="${pkgs.pkg-config}/bin/pkg-config"
+            # Add all necessary paths including subdirectories
+            export PKG_CONFIG_PATH="${pkgs.lib.concatStringsSep ":" (
+              pkgs.lib.flatten (map (pkg: [
+                "${pkg}/lib/pkgconfig"
+                "${pkg}/share/pkgconfig"
+                "${pkg}/lib/x86_64-linux-gnu/pkgconfig"
+              ]) [
+                pkgs.gtk3.dev
+                pkgs.webkitgtk_4_1.dev
+                pkgs.libayatana-appindicator
+                pkgs.glib.dev
+                pkgs.libsoup_3.dev
+                pkgs.pango.dev
+                pkgs.cairo.dev
+                pkgs.atk.dev
+                pkgs.harfbuzz.dev
+                pkgs.openssl.dev
+                pkgs.gdk-pixbuf.dev
+              ])
+            )}"
           ''}
           
           cargo build --manifest-path=src-tauri/Cargo.toml --release
@@ -159,7 +187,19 @@
             }
             {
               name = "PKG_CONFIG_PATH";
-              value = "${pkgs.openssl.dev}/lib/pkgconfig";
+              value = if pkgs.stdenv.isLinux then
+                "${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.gtk3.dev}/lib/pkgconfig:${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:${pkgs.libayatana-appindicator}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:${pkgs.pango.dev}/lib/pkgconfig:${pkgs.cairo.dev}/lib/pkgconfig:${pkgs.atk.dev}/lib/pkgconfig:${pkgs.harfbuzz.dev}/lib/pkgconfig:${pkgs.gdk-pixbuf.dev}/lib/pkgconfig"
+              else
+                "${pkgs.openssl.dev}/lib/pkgconfig";
+            }
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+            {
+              name = "LD_LIBRARY_PATH";
+              value = "${pkgs.lib.makeLibraryPath buildDeps}";
+            }
+            {
+              name = "LIBRARY_PATH";
+              value = "${pkgs.lib.makeLibraryPath buildDeps}";
             }
           ];
 
