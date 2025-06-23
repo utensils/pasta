@@ -5,26 +5,39 @@ template: |
   
   $CHANGES
   
-  ## Installation
+  ## 📦 Downloads
   
-  ### Download Pre-built Binaries
+  Download the appropriate installer for your platform:
   
-  Download the appropriate installer for your platform below:
+  ### 🪟 Windows
+  - **Installer (Recommended)**: [Pasta_$RESOLVED_VERSION_x64-setup.exe](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64-setup.exe)
+  - **MSI Package**: [Pasta_$RESOLVED_VERSION_x64_en-US.msi](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64_en-US.msi)
   
-  #### Windows
-  - [Pasta-$RESOLVED_VERSION-x64.exe](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64_en-US.msi) - NSIS installer (recommended)
-  - [Pasta-$RESOLVED_VERSION-x64.msi](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64_en-US.msi) - MSI installer
+  > **Note**: May trigger antivirus warnings due to keyboard emulation. This is expected behavior.
   
-  #### macOS
-  - [Pasta-$RESOLVED_VERSION-x64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_x64.dmg) - Intel Macs
-  - [Pasta-$RESOLVED_VERSION-aarch64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_aarch64.dmg) - Apple Silicon
+  ### 🍎 macOS
+  - **Intel Macs**: [Pasta_$RESOLVED_VERSION_x64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_x64.dmg)
+  - **Apple Silicon (M1/M2/M3)**: [Pasta_$RESOLVED_VERSION_aarch64.dmg](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/Pasta_$RESOLVED_VERSION_aarch64.dmg)
   
-  **Note**: macOS builds are unsigned. See [README](https://github.com/utensils/pasta#macos-users---important-note) for instructions on running unsigned apps.
+  > **Important**: macOS builds are unsigned. You'll need to:
+  > 1. Right-click the app and select "Open" on first launch, or
+  > 2. Remove quarantine: `xattr -d com.apple.quarantine /Applications/Pasta.app`
+  > 
+  > The app requires accessibility permissions for keyboard emulation.
   
-  #### Linux
-  - [Pasta-$RESOLVED_VERSION.AppImage](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta_$RESOLVED_VERSION_amd64.AppImage) - Universal package (recommended)
-  - [Pasta-$RESOLVED_VERSION.deb](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta_$RESOLVED_VERSION_amd64.deb) - Debian/Ubuntu
-  - [Pasta-$RESOLVED_VERSION.rpm](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta-$RESOLVED_VERSION.x86_64.rpm) - Fedora/RHEL
+  ### 🐧 Linux
+  - **AppImage (Universal)**: [pasta-tray_$RESOLVED_VERSION_amd64.AppImage](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta-tray_$RESOLVED_VERSION_amd64.AppImage)
+  - **Debian/Ubuntu**: [pasta-tray_$RESOLVED_VERSION_amd64.deb](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta-tray_$RESOLVED_VERSION_amd64.deb)
+  - **Fedora/RHEL**: [pasta-tray-$RESOLVED_VERSION-1.x86_64.rpm](https://github.com/utensils/pasta/releases/download/v$RESOLVED_VERSION/pasta-tray-$RESOLVED_VERSION-1.x86_64.rpm)
+  
+  > **GNOME Users**: Install system tray support:
+  > ```bash
+  > # Ubuntu/Debian
+  > sudo apt install gnome-shell-extension-appindicator
+  > # Fedora
+  > sudo dnf install gnome-shell-extension-appindicator
+  > ```
+  > Or install from [GNOME Extensions](https://extensions.gnome.org/extension/615/appindicator-support/)
   
   **Full Changelog**: https://github.com/utensils/pasta/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
