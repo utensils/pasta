@@ -119,7 +119,6 @@ pasta/
 │   │   ├── clipboard.rs      # Clipboard content retrieval
 │   │   ├── keyboard.rs       # Keyboard emulation with text chunking
 │   │   ├── tray.rs           # System tray menu
-│   │   ├── hotkey.rs         # Global hotkey management (double-Escape)
 │   │   ├── helpers.rs        # Helper functions for logging and utilities
 │   │   ├── mock_keyboard.rs  # Mock keyboard emulator for testing
 │   │   ├── theme.rs          # Theme utilities (currently unused)
@@ -149,7 +148,7 @@ pasta/
 - **System Tray Interface**: All interaction through tray menu
 - **Cross-platform**: Works on macOS, Linux, and Windows
 - **Zero Network Access**: No external communication, telemetry, or updates
-- **Emergency Stop**: Double-Escape hotkey to instantly cancel typing operations
+- **Emergency Stop**: Click tray icon during typing to instantly cancel operations
 
 ### Key Architectural Components
 
@@ -180,19 +179,12 @@ pasta/
    - Creates system tray icon with menu
    - Menu items:
      - Paste - triggers clipboard typing
-     - Cancel Typing (Esc Esc) - cancels ongoing typing operation
+     - Cancel Typing - cancels ongoing typing operation
      - Quit
    - Handles all user interaction
    - Works around Tauri v2 initialization bug with 100ms delay
 
-5. **HotkeyManager** (hotkey.rs)
-   - Manages global keyboard shortcuts
-   - Uses `tauri-plugin-global-shortcut` for cross-platform hotkey support
-   - Implements double-Escape detection with 500ms time window
-   - Triggers cancellation when double-Escape is pressed
-   - Alternative: Supports Ctrl+Shift+Escape for simpler implementation
-
-6. **Helper Functions** (helpers.rs)
+5. **Helper Functions** (helpers.rs)
    - Extracted helper functions for better testability
    - Logging formatters for consistent messages
    - Platform-specific utilities (e.g., macOS activation policy)
@@ -224,7 +216,7 @@ Main Thread (Tauri/UI)
 - Text chunking (200 chars) prevents system overload with large pastes
 - Each character typed individually with fixed 25ms delay (Normal speed)
 - Runs in separate thread to avoid blocking UI
-- Emergency stop: Press Escape twice within 500ms to cancel typing
+- Emergency stop: Click tray icon to instantly cancel typing
 - Cancellation checked at chunk boundaries and every 10 characters
 - Thread-safe cancellation using atomic boolean flag
 

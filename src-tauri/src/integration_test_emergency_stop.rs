@@ -52,7 +52,7 @@ mod integration_tests {
         // Wait a bit for typing to start
         tokio::time::sleep(Duration::from_millis(50)).await;
 
-        // Trigger cancellation (simulating double-Escape press)
+        // Trigger cancellation (simulating Ctrl+Shift+Escape press)
         cancellation_flag.store(true, Ordering::Relaxed);
 
         // Wait for the typing task to complete
@@ -113,6 +113,8 @@ mod integration_tests {
 
     #[test]
     fn test_double_escape_timing_window() {
+        // Note: This test is kept for historical reference, but we now use Ctrl+Shift+Escape
+        // which doesn't require timing window detection
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let double_press_window_ms = 500u64;

@@ -65,9 +65,10 @@ impl KeyboardEmulator {
                         for (i, chunk) in chunks.iter().enumerate() {
                             // Check cancellation flag at the start of each chunk
                             if cancellation_flag.load(Ordering::Relaxed) {
-                                info!("Typing cancelled by user");
+                                info!("Typing cancelled by user at chunk {i}");
                                 break;
                             }
+                            debug!("Processing chunk {} of {}", i + 1, chunks.len());
 
                             // Type each character in the chunk
                             for (char_index, ch) in chunk.chars().enumerate() {

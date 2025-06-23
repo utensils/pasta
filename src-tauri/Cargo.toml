@@ -1,6 +1,6 @@
 [package]
 name = "pasta-tray"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pasta - System tray clipboard to keyboard emulator"
 authors = ["James Brink"]
 edition = "2021"

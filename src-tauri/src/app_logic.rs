@@ -71,7 +71,7 @@ pub fn create_menu_structure() -> MenuStructure {
             },
             MenuItem::Action {
                 id: "cancel_typing".to_string(),
-                label: "Cancel Typing (Esc Esc)".to_string(),
+                label: "Cancel Typing".to_string(),
             },
             MenuItem::Separator,
             MenuItem::Action {
@@ -223,7 +223,7 @@ mod tests {
         // Check cancel typing item
         if let MenuItem::Action { id, label } = &menu.items[1] {
             assert_eq!(id, "cancel_typing");
-            assert_eq!(label, "Cancel Typing (Esc Esc)");
+            assert_eq!(label, "Cancel Typing");
         } else {
             panic!("Second item should be cancel_typing action");
         }
@@ -303,7 +303,6 @@ mod tests {
         assert!(cancel_item.is_some());
         if let Some(MenuItem::Action { label, .. }) = cancel_item {
             assert!(label.contains("Cancel Typing"));
-            assert!(label.contains("Esc Esc"));
         }
     }
 
