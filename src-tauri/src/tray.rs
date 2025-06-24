@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::{debug, error, info};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -99,21 +99,35 @@ impl TrayManager {
                     }
                 }
             })
-            .on_tray_icon_event(move |_tray, event| {
-                if let TrayIconEvent::Click {
-                    button,
-                    button_state,
-                    ..
-                } = event
-                {
-                    let action = handle_tray_icon_click(button, button_state);
+            .on_tray_icon_event(move |tray, event| {
+                match event {
+                    TrayIconEvent::Click {
+                        button,
+                        button_state,
+                        ..
+                    } => {
+                        info!("Tray icon clicked - button: {button:?}, state: {button_state:?}");
 
-                    match action {
-                        TrayIconAction::ShowMenu => {
-                            debug!("Click on tray icon - showing menu");
-                            // Menu will be shown automatically by Tauri
+                        // Always emit cancel typing event on any click
+                        match tray.app_handle().emit("cancel_typing", ()) {
+                            Ok(_) => info!("Cancel typing event emitted successfully"),
+                            Err(e) => error!("Failed to emit cancel typing event: {e:?}"),
                         }
-                        TrayIconAction::None => {}
+
+                        // Handle menu display based on click type
+                        let action = handle_tray_icon_click(button, button_state);
+                        match action {
+                            TrayIconAction::ShowMenu => {
+                                debug!("Showing menu");
+                                // Menu will be shown automatically by Tauri
+                            }
+                            TrayIconAction::None => {
+                                debug!("No menu action for this click type");
+                            }
+                        }
+                    }
+                    _ => {
+                        debug!("Other tray event: {event:?}");
                     }
                 }
             })
