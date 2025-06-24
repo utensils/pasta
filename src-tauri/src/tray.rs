@@ -106,9 +106,7 @@ impl TrayManager {
                         button_state,
                         ..
                     } => {
-                        info!(
-                            "Tray icon clicked - button: {button:?}, state: {button_state:?}"
-                        );
+                        info!("Tray icon clicked - button: {button:?}, state: {button_state:?}");
 
                         // Always emit cancel typing event on any click
                         match tray.app_handle().emit("cancel_typing", ()) {
