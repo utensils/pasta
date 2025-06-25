@@ -73,7 +73,7 @@ jobs:
       with:
         tagName: ${{ github.event.inputs.tag_name || github.ref_name }}
         releaseName: 'Pasta ${{ github.event.inputs.tag_name || github.ref_name }}'
-        releaseBody: 'See the assets to download this version and install.'
+        releaseBody: ''
         releaseDraft: true
         prerelease: false
         args: --target ${{ matrix.platform.rust_target }}
@@ -92,3 +92,25 @@ jobs:
         path: |
           src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/**/*
 
+  update-release-notes:
+    name: Update Release Notes
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Update release draft
+      uses: release-drafter/release-drafter@v6
+      with:
+        config-name: release-drafter.yml
+        tag: ${{ github.event.inputs.tag_name || github.ref_name }}
+        name: 'Pasta ${{ github.event.inputs.tag_name || github.ref_name }}'
+        version: ${{ github.event.inputs.tag_name || github.ref_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
