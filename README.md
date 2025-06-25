@@ -48,7 +48,19 @@ If you have Nix installed, you can run Pasta directly without installing:
 nix run github:utensils/pasta
 ```
 
-#### macOS Users - Important Note
+#### macOS Users - Important Notes
+
+**1. Accessibility Permissions Required**
+
+Pasta requires accessibility permissions to simulate keyboard input:
+1. Open **System Preferences → Security & Privacy → Privacy → Accessibility**
+2. Click the lock icon to make changes (enter your password)
+3. Add Pasta.app by clicking the "+" button or drag it into the list
+4. Ensure the checkbox next to Pasta is checked
+
+If Pasta doesn't type anything when you click "Paste", this is usually the issue.
+
+**2. Unsigned Build Warning**
 
 The macOS builds are currently unsigned. To run Pasta on macOS, you'll need to remove the quarantine attribute:
 

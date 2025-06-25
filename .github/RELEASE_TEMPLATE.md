@@ -17,11 +17,16 @@ Download the appropriate installer for your platform:
 - **Intel Macs**: [Pasta_X.X.X_x64.dmg](https://github.com/utensils/pasta/releases/download/vX.X.X/Pasta_X.X.X_x64.dmg)
 - **Apple Silicon (M1/M2/M3)**: [Pasta_X.X.X_aarch64.dmg](https://github.com/utensils/pasta/releases/download/vX.X.X/Pasta_X.X.X_aarch64.dmg)
 
-> **Important**: macOS builds are unsigned. You'll need to:
-> 1. Right-click the app and select "Open" on first launch, or
-> 2. Remove quarantine: `xattr -d com.apple.quarantine /Applications/Pasta.app`
+> **Important**: 
 > 
-> The app requires accessibility permissions for keyboard emulation.
+> **1. Grant Accessibility Permissions** (Required for keyboard emulation):
+> - System Preferences → Security & Privacy → Privacy → Accessibility
+> - Add Pasta.app to the list and ensure it's checked
+> - If Pasta doesn't type anything, this is usually the issue
+> 
+> **2. Handle Unsigned Build Warning**:
+> - Remove quarantine: `xattr -d com.apple.quarantine /Applications/Pasta.app`
+> - Or right-click the app and select "Open" on first launch
 
 ### 🐧 Linux
 - **AppImage (Universal)**: [pasta-tray_X.X.X_amd64.AppImage](https://github.com/utensils/pasta/releases/download/vX.X.X/pasta-tray_X.X.X_amd64.AppImage)
