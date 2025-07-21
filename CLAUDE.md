@@ -406,3 +406,4 @@ This focuses coverage metrics on actual business logic rather than framework cod
 - Some tests are skipped in CI due to requiring display/clipboard access
 - Coverage reports exclude GUI/framework files to focus on business logic (~70% coverage target)
 - Tests that create keyboard emulators must be marked with both `#[ignore]` and `#[cfg(not(tarpaulin))]`
+- **iDrac Console Compatibility**: On non-Windows systems, numbers may not type correctly in iDrac consoles and some remote desktop environments. This is due to limitations in the enigo keyboard emulation library where number key codes are only available on Windows. Spaces have been fixed and should work correctly. See src/keyboard.rs for implementation details.

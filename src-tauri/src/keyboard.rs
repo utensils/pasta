@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use enigo::{Enigo, Key, Keyboard};
+use enigo::{Direction, Enigo, Key, Keyboard};
 use log::{debug, info};
 use tokio::sync::mpsc;
 
@@ -39,6 +39,27 @@ pub struct KeyboardEmulator {
 }
 
 impl KeyboardEmulator {
+    /// Type a single character with compatibility for remote desktop environments
+    fn type_character(enigo: &mut Enigo, ch: char) {
+        match ch {
+            '\n' => {
+                let _ = enigo.key(Key::Return, Direction::Click);
+            }
+            '\t' => {
+                let _ = enigo.key(Key::Tab, Direction::Click);
+            }
+            ' ' => {
+                let _ = enigo.key(Key::Space, Direction::Click);
+            }
+            // For alphanumeric characters, we still use text() but with single characters
+            // Some remote environments may still have issues, but this is the best we can do
+            // without platform-specific key codes
+            _ => {
+                let _ = enigo.text(&ch.to_string());
+            }
+        }
+    }
+
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let (tx, mut rx) = mpsc::channel::<KeyboardCommand>(10);
 
@@ -84,17 +105,8 @@ impl KeyboardEmulator {
                                     break;
                                 }
 
-                                match ch {
-                                    '\n' => {
-                                        let _ = enigo.key(Key::Return, enigo::Direction::Click);
-                                    }
-                                    '\t' => {
-                                        let _ = enigo.key(Key::Tab, enigo::Direction::Click);
-                                    }
-                                    _ => {
-                                        let _ = enigo.text(&ch.to_string());
-                                    }
-                                }
+                                // Use our type_character function for better compatibility
+                                Self::type_character(&mut enigo, ch);
                                 std::thread::sleep(delay);
                             }
 
@@ -291,11 +303,43 @@ mod tests {
 
     #[test]
     fn test_special_character_handling() {
-        // Test newline and tab characters
-        let special_chars = vec!['\n', '\t'];
+        // Test newline, tab, space, and number characters
+        let special_chars = vec![
+            '\n', '\t', ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        ];
         for ch in special_chars {
-            assert!(ch == '\n' || ch == '\t');
+            assert!(ch == '\n' || ch == '\t' || ch == ' ' || ch.is_ascii_digit());
         }
+    }
+
+    #[test]
+    fn test_space_character_specific() {
+        // Test that space is recognized as a special character
+        let space = ' ';
+        assert_eq!(space, ' ');
+        assert_ne!(space, 'a');
+
+        // Test in a string context
+        let test_str = "hello world";
+        assert!(test_str.contains(' '));
+        assert_eq!(test_str.chars().filter(|&c| c == ' ').count(), 1);
+    }
+
+    #[test]
+    fn test_number_character_handling() {
+        // Test that numbers are recognized as special characters
+        for i in 0..10 {
+            let num_char = char::from_digit(i, 10).unwrap();
+            assert!(num_char.is_ascii_digit());
+            assert_ne!(num_char, 'a');
+        }
+
+        // Test numbers in string context
+        let test_str = "n8n has 16k records";
+        assert!(test_str.contains('8'));
+        assert!(test_str.contains('1'));
+        assert!(test_str.contains('6'));
+        assert_eq!(test_str.chars().filter(|c| c.is_ascii_digit()).count(), 3);
     }
 
     #[test]

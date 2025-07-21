@@ -5,6 +5,9 @@ pub mod keyboard;
 mod tray;
 
 #[cfg(test)]
+mod mock_keyboard;
+
+#[cfg(test)]
 mod clipboard_mock_tests;
 
 #[cfg(test)]
@@ -15,6 +18,9 @@ mod clipboard_platform_tests;
 
 #[cfg(test)]
 mod integration_test_emergency_stop;
+
+#[cfg(test)]
+mod keyboard_regression_tests;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},

@@ -102,6 +102,11 @@ To instantly stop typing:
 - **Click the tray icon** during a paste operation, or
 - Click "Cancel Typing" in the tray menu
 
+## Known Issues
+
+### iDrac Console Compatibility
+On non-Windows systems, numbers may not type correctly in iDrac consoles and some remote desktop environments. Spaces have been fixed and should work correctly. This is due to limitations in the keyboard emulation library where number key codes are only available on Windows.
+
 ## Development
 
 ```bash
