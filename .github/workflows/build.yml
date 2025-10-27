@@ -74,7 +74,7 @@ jobs:
 
     - name: Upload Linux artifacts
       if: matrix.platform.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: pasta-${{ matrix.platform.name }}
         path: |
@@ -84,7 +84,7 @@ jobs:
 
     - name: Upload Windows artifacts
       if: matrix.platform.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: pasta-${{ matrix.platform.name }}
         path: |
@@ -93,7 +93,7 @@ jobs:
 
     - name: Upload macOS artifacts
       if: matrix.platform.os == 'macos-latest'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: pasta-${{ matrix.platform.name }}
         path: |
